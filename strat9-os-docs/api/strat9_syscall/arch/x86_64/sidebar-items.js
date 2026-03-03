@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["KERNEL_METADATA_SIZE","PAGE_SIZE"],"struct":["EnvRegisters","Exception","FloatRegisters","IntRegisters"]};

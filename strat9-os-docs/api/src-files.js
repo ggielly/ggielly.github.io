@@ -1,0 +1,2 @@
+createSrcSidebar('[["strat9_abi",["",[],["boot.rs","data.rs","errno.rs","flag.rs","ipc.rs","lib.rs","syscall.rs"]]],["strat9_syscall",["",[["arch",[],["mod.rs","x86_64.rs"]]],["data.rs","dirent.rs","error.rs","flag.rs","io.rs","lib.rs","number.rs","schemev2.rs","sigabi.rs"]]]]');
+//{"start":19,"fragment_lengths":[96,161]}
