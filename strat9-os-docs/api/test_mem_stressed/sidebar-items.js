@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["PAGE_SIZE"],"fn":["_start","log","log_err","log_hex_u64","log_u64","panic","pattern_byte","query_brk","section","set_brk","stage_churn_loops","stage_fixed_rounds","stage_sawtooth_heavy","touch_pages","write_fd"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["E1000_DEVICE_IDS","INTEL_VENDOR","NUM_RX","NUM_TX","RX_BUF_SIZE"],"struct":["E1000Nic"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["ctrl","eerd","int_bits","rctl","regs","tctl"],"struct":["LegacyRxDesc","LegacyTxDesc"]};

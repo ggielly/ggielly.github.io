@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_COMPONENT_LENGTH","MAX_PATH_LENGTH"],"fn":["ascii_iequals","is_valid_filename"],"struct":["UnicodeString","WideStringBuffer"]};

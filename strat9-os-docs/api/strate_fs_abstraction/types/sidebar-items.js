@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["VfsFileType"],"struct":["OpenFlags","RenameFlags","VfsFileInfo","VfsTimestamp"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["init_component"],"enum":["ComponentInitError","InitStage"],"fn":["init_all","list_components"],"macro":["parse_components_toml","parse_metadata"],"struct":["ComponentEntry","ComponentInfo"]};

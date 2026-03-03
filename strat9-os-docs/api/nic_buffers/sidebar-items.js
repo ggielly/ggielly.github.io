@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["DmaAllocError","DmaRegion"],"trait":["DmaAllocator"]};

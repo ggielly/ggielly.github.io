@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["RxRing","TxRing"],"trait":["RxDescriptor","TxDescriptor"]};
