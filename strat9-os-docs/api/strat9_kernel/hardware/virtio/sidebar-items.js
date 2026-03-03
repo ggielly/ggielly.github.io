@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DeviceType"],"mod":["common","console","gpu","mmio","rng","status","vring_flags"],"struct":["VirtqDesc"]};

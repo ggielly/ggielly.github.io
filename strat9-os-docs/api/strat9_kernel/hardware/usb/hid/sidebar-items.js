@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["HID_BOOT_KEYBOARD","HID_BOOT_MOUSE"],"fn":["get_keyboard","get_mouse","init","is_available","keyboard_count","mouse_count"],"struct":["HidKeyboard","HidMouse","KeyEvent","MouseEvent"]};

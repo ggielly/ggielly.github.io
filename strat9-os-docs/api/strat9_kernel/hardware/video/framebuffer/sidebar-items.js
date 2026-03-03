@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FramebufferSource"],"fn":["init"],"struct":["Framebuffer","FramebufferInfo","PixelFormat","RgbColor"]};

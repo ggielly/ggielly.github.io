@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["USER_ADDR_MAX","USER_STACK_BASE","USER_STACK_PAGES","USER_STACK_TOP"],"fn":["load_and_run_elf","load_and_run_elf_with_caps","load_elf_image","load_elf_task_with_caps","read_user_mapped_bytes_pub","write_user_mapped_bytes_pub","write_user_u64_pub"],"struct":["LoadedElfInfo"]};

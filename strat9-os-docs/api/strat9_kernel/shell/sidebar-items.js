@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ShellError"],"fn":["shell_main"],"mod":["commands","output","parser"]};

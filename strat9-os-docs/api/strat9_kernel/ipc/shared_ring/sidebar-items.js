@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RingError"],"fn":["create_ring","destroy_ring","get_ring"],"struct":["RingId","SharedRing"]};

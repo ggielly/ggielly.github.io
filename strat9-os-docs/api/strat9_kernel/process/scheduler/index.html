@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Scheduler implementation"><title>strat9_kernel::process::scheduler - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-b7b9f40b.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="strat9_kernel" data-themes="" data-resource-suffix="" data-rustdoc-version="1.96.0-nightly (38c0de8dc 2026-02-28)" data-channel="nightly" data-search-js="search-63369b7b.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-170eb4bf.js" ><script src="../../../static.files/storage-41dd4d93.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-5013f961.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-f7c3ffd8.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module scheduler</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../strat9_kernel/index.html">strat9_<wbr>kernel</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module scheduler</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#preemption-design" title="Preemption design">Preemption design</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In strat9_<wbr>kernel::<wbr>process</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">strat9_kernel</a>::<wbr><a href="../index.html">process</a></div><h1>Module <span>scheduler</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/strat9_kernel/process/scheduler.rs.html#1-503">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Scheduler implementation</p>
+<p>Implements a per-CPU round-robin scheduler for Strat9-OS with support for
+cooperative and preemptive multitasking.</p>
+<h3 id="preemption-design"><a class="doc-anchor" href="#preemption-design">§</a>Preemption design</h3>
+<p>The timer interrupt (100Hz) calls <code>maybe_preempt()</code> which picks the next
+task and performs a context switch. Interrupts are disabled while the
+scheduler lock is held to prevent deadlock on single-core systems:</p>
+<ul>
+<li><code>yield_task()</code>: CLI → lock → pick next → TSS/CR3 → unlock → switch_context → restore IF</li>
+<li>Timer handler: CPU already cleared IF → lock → pick next → TSS/CR3 → unlock → switch_context</li>
+</ul>
+<p>Each task has its own 16KB kernel stack. Callee-saved registers are
+pushed/popped by <code>switch_context()</code>. <code>CpuContext</code> only stores <code>saved_rsp</code>.</p>
+<p>TODO(v3 scheduler):</p>
+<ul>
+<li>API stabilization before adding more features:
+<ul>
+<li>freeze scheduler command syntax.</li>
+<li>add a small machine-friendly output format (key=value) for scripts/debug.</li>
+</ul>
+</li>
+<li>observability v2:
+<ul>
+<li>per-class latency/wait histograms.</li>
+<li>one structured dump format (instead of free-form text logs) for top/debug.</li>
+</ul>
+</li>
+<li>targeted scheduler tests (high priority):
+<ul>
+<li>config validation/reject paths (class/policy map).</li>
+<li>ready-task migration on class-table updates.</li>
+<li>SMP steal/preempt non-regression.</li>
+</ul>
+</li>
+<li>only then: CPU affinity (first truly useful advanced scheduler feature).</li>
+</ul>
+<p>Legacy backlog:</p>
+<ul>
+<li>class registry v2:
+<ul>
+<li>dynamic add/remove/reorder with validation and safe reject path.</li>
+<li>policy-&gt;class mapping as runtime registry (not only static enum mapping).</li>
+</ul>
+</li>
+<li>atomic class-table migration:
+<ul>
+<li>RCU/STW swap + migration of queued tasks across classes.</li>
+<li>preserve per-task accounting (vruntime, rt budget, wake deadlines).</li>
+</ul>
+</li>
+<li>balancing v2:
+<ul>
+<li>dedicated balancer module, per-class steal policy, CPU affinity masks.</li>
+<li>NUMA-aware placement (future) and stronger anti-thrashing controls.</li>
+</ul>
+</li>
+<li>SMP hardening:
+<ul>
+<li>explicit lock hierarchy doc + assertions.</li>
+<li>improved resched IPI batching/coalescing policy tuning.</li>
+</ul>
+</li>
+<li>observability v2:
+<ul>
+<li>latency/wait-time histograms per class + structured trace dump.</li>
+<li>shell/top integration over stable snapshot API.</li>
+</ul>
+</li>
+<li>tests:
+<ul>
+<li>deterministic migration/policy-remap/SMP-steal suites.</li>
+<li>fairness/starvation long-run regression in test ISO.</li>
+</ul>
+</li>
+</ul>
+<p>Optimization roadmap (stability-first, incremental):</p>
+<ol>
+<li>Lock contention reduction (highest ROI, low risk)
+<ul>
+<li>keep scheduler critical sections minimal: compute decisions under lock,
+execute expensive side effects (IPI, signal delivery, cleanup) after unlock.</li>
+<li>split hot paths into tiny helpers with explicit “lock held / lock free” contract.</li>
+<li>add/track contention counters in every try_lock fallback path.</li>
+</ul>
+</li>
+<li>Wakeup path scalability (only after strong guards)
+<ul>
+<li>re-introduce deadline index behind a runtime feature flag (default OFF).</li>
+<li>enforce single writer API for wake deadlines (no direct field stores in syscalls).</li>
+<li>add strict invariants:
+<ul>
+<li>if task has deadline != 0, index contains task exactly once.</li>
+<li>on wake/kill/exit/resume, deadline is removed from index and field cleared.</li>
+</ul>
+</li>
+<li>keep safe fallback scan path available and switchable at runtime.</li>
+</ul>
+</li>
+<li>Scheduler observability for regressions
+<ul>
+<li>keep stable key=value output for scripts (<code>scheduler metrics kv</code>, <code>scheduler dump kv</code>).</li>
+<li>expose blocked-task ids and per-cpu preempt causes to diagnose stalls quickly.</li>
+<li>include boot-phase and lock-miss counters in all dump modes.</li>
+</ul>
+</li>
+<li>Balancing/pick optimizations
+<ul>
+<li>tune steal hysteresis/cooldown with metrics, avoid ping-pong migration.</li>
+<li>avoid counting idle task as runnable load for CPU selection.</li>
+<li>add bounded per-tick work budgets to prevent long interrupt latency tails.</li>
+</ul>
+</li>
+<li>Safety rails before each optimization lands
+<ul>
+<li>ship each optimization in one isolated patchset with rollback switch.</li>
+<li>validate with targeted scenarios:
+<ul>
+<li>boot + shell responsiveness,</li>
+<li>timeout-heavy workload (poll/futex/nanosleep),</li>
+<li>SMP preempt/steal stress.</li>
+</ul>
+</li>
+<li>if any regression appears, disable feature first, debug second.</li>
+</ul>
+</li>
+</ol>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.CpuUsageSnapshot.html" title="struct strat9_kernel::process::scheduler::CpuUsageSnapshot">CpuUsage<wbr>Snapshot</a></dt><dt><a class="struct" href="struct.Scheduler.html" title="struct strat9_kernel::process::scheduler::Scheduler">Scheduler</a></dt><dd>The round-robin scheduler (per-CPU queues)</dd><dt><a class="struct" href="struct.SchedulerMetricsSnapshot.html" title="struct strat9_kernel::process::scheduler::SchedulerMetricsSnapshot">Scheduler<wbr>Metrics<wbr>Snapshot</a></dt><dt><a class="struct" href="struct.SchedulerStateSnapshot.html" title="struct strat9_kernel::process::scheduler::SchedulerStateSnapshot">Scheduler<wbr>State<wbr>Snapshot</a></dt></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.WaitChildResult.html" title="enum strat9_kernel::process::scheduler::WaitChildResult">Wait<wbr>Child<wbr>Result</a></dt><dd>Result of a non-blocking wait on child exit.</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.add_task.html" title="fn strat9_kernel::process::scheduler::add_task">add_<wbr>task</a></dt><dd>Add a task to the scheduler</dd><dt><a class="fn" href="fn.add_task_with_parent.html" title="fn strat9_kernel::process::scheduler::add_task_with_parent">add_<wbr>task_<wbr>with_<wbr>parent</a></dt><dd>Add a task and register a parent/child relation.</dd><dt><a class="fn" href="fn.block_current_task.html" title="fn strat9_kernel::process::scheduler::block_current_task">block_<wbr>current_<wbr>task</a></dt><dd>Block the current task and yield to the scheduler.</dd><dt><a class="fn" href="fn.class_table.html" title="fn strat9_kernel::process::scheduler::class_table">class_<wbr>table</a></dt><dd>Return the scheduler class-table currently in use.</dd><dt><a class="fn" href="fn.clear_task_wake_deadline.html" title="fn strat9_kernel::process::scheduler::clear_task_wake_deadline">clear_<wbr>task_<wbr>wake_<wbr>deadline</a></dt><dt><a class="fn" href="fn.configure_class_table.html" title="fn strat9_kernel::process::scheduler::configure_class_table">configure_<wbr>class_<wbr>table</a></dt><dd>Configure scheduler class pick/steal order at runtime.</dd><dt><a class="fn" href="fn.cpu_usage_snapshot.html" title="fn strat9_kernel::process::scheduler::cpu_usage_snapshot">cpu_<wbr>usage_<wbr>snapshot</a></dt><dt><a class="fn" href="fn.create_session.html" title="fn strat9_kernel::process::scheduler::create_session">create_<wbr>session</a></dt><dd>Create a new session for the calling task.</dd><dt><a class="fn" href="fn.current_pgid.html" title="fn strat9_kernel::process::scheduler::current_pgid">current_<wbr>pgid</a></dt><dd>Get the current process group id.</dd><dt><a class="fn" href="fn.current_pid.html" title="fn strat9_kernel::process::scheduler::current_pid">current_<wbr>pid</a></dt><dd>Get the current process ID (POSIX pid).</dd><dt><a class="fn" href="fn.current_sid.html" title="fn strat9_kernel::process::scheduler::current_sid">current_<wbr>sid</a></dt><dd>Get the current session id.</dd><dt><a class="fn" href="fn.current_task_clone.html" title="fn strat9_kernel::process::scheduler::current_task_clone">current_<wbr>task_<wbr>clone</a></dt><dd>Get the current task (cloned Arc), if any.</dd><dt><a class="fn" href="fn.current_task_clone_try.html" title="fn strat9_kernel::process::scheduler::current_task_clone_try">current_<wbr>task_<wbr>clone_<wbr>try</a></dt><dd>Best-effort, non-blocking variant of <a href="fn.current_task_clone.html" title="fn strat9_kernel::process::scheduler::current_task_clone"><code>current_task_clone</code></a>.</dd><dt><a class="fn" href="fn.current_task_id.html" title="fn strat9_kernel::process::scheduler::current_task_id">current_<wbr>task_<wbr>id</a></dt><dd>Get the current task’s ID (if any task is running).</dd><dt><a class="fn" href="fn.current_tid.html" title="fn strat9_kernel::process::scheduler::current_tid">current_<wbr>tid</a></dt><dd>Get the current thread ID (POSIX tid).</dd><dt><a class="fn" href="fn.exit_current_task.html" title="fn strat9_kernel::process::scheduler::exit_current_task">exit_<wbr>current_<wbr>task</a></dt><dd>Mark the current task as Dead and yield to the scheduler.</dd><dt><a class="fn" href="fn.finish_switch.html" title="fn strat9_kernel::process::scheduler::finish_switch">finish_<wbr>switch</a></dt><dd>Called immediately after a context switch completes (in the new task’s context).
+This safely re-queues the previously running task now that its state is fully saved.</dd><dt><a class="fn" href="fn.get_all_tasks.html" title="fn strat9_kernel::process::scheduler::get_all_tasks">get_<wbr>all_<wbr>tasks</a></dt><dd>Get a list of all tasks in the system (for timer checking).
+Returns None if scheduler is not initialized or currently locked.</dd><dt><a class="fn" href="fn.get_parent_id.html" title="fn strat9_kernel::process::scheduler::get_parent_id">get_<wbr>parent_<wbr>id</a></dt><dd>Get parent task ID for a child task.</dd><dt><a class="fn" href="fn.get_parent_pid.html" title="fn strat9_kernel::process::scheduler::get_parent_pid">get_<wbr>parent_<wbr>pid</a></dt><dd>Get parent process ID for a child task.</dd><dt><a class="fn" href="fn.get_pgid_by_pid.html" title="fn strat9_kernel::process::scheduler::get_pgid_by_pid">get_<wbr>pgid_<wbr>by_<wbr>pid</a></dt><dd>Resolve a PID to the current process group id.</dd><dt><a class="fn" href="fn.get_sid_by_pid.html" title="fn strat9_kernel::process::scheduler::get_sid_by_pid">get_<wbr>sid_<wbr>by_<wbr>pid</a></dt><dd>Resolve a PID to the current session id.</dd><dt><a class="fn" href="fn.get_task_by_id.html" title="fn strat9_kernel::process::scheduler::get_task_by_id">get_<wbr>task_<wbr>by_<wbr>id</a></dt><dd>Get a task by its TaskId (if still registered).</dd><dt><a class="fn" href="fn.get_task_by_pid.html" title="fn strat9_kernel::process::scheduler::get_task_by_pid">get_<wbr>task_<wbr>by_<wbr>pid</a></dt><dd>Resolve a POSIX pid to the corresponding task.</dd><dt><a class="fn" href="fn.get_task_id_by_pid.html" title="fn strat9_kernel::process::scheduler::get_task_id_by_pid">get_<wbr>task_<wbr>id_<wbr>by_<wbr>pid</a></dt><dd>Resolve a POSIX pid to internal TaskId.</dd><dt><a class="fn" href="fn.get_task_id_by_tid.html" title="fn strat9_kernel::process::scheduler::get_task_id_by_tid">get_<wbr>task_<wbr>id_<wbr>by_<wbr>tid</a></dt><dd>Resolve a POSIX tid to the corresponding internal task id.</dd><dt><a class="fn" href="fn.get_task_ids_in_pgid.html" title="fn strat9_kernel::process::scheduler::get_task_ids_in_pgid">get_<wbr>task_<wbr>ids_<wbr>in_<wbr>pgid</a></dt><dd>Collect task IDs that currently belong to process group <code>pgid</code>.</dd><dt><a class="fn" href="fn.init_scheduler.html" title="fn strat9_kernel::process::scheduler::init_scheduler">init_<wbr>scheduler</a></dt><dd>Initialize the scheduler</dd><dt><a class="fn" href="fn.kill_task.html" title="fn strat9_kernel::process::scheduler::kill_task">kill_<wbr>task</a></dt><dd>Kill a task by ID (best-effort).</dd><dt><a class="fn" href="fn.log_state.html" title="fn strat9_kernel::process::scheduler::log_state">log_<wbr>state</a></dt><dd>Dump per-cpu scheduler queues for tracing/debug.</dd><dt><a class="fn" href="fn.maybe_preempt.html" title="fn strat9_kernel::process::scheduler::maybe_preempt">maybe_<wbr>preempt</a></dt><dd>Called from the timer interrupt handler (or a resched IPI) to potentially
+preempt the current task.</dd><dt><a class="fn" href="fn.note_try_lock_fail.html" title="fn strat9_kernel::process::scheduler::note_try_lock_fail">note_<wbr>try_<wbr>lock_<wbr>fail</a></dt><dt><a class="fn" href="fn.reset_scheduler_metrics.html" title="fn strat9_kernel::process::scheduler::reset_scheduler_metrics">reset_<wbr>scheduler_<wbr>metrics</a></dt><dt><a class="fn" href="fn.resume_task.html" title="fn strat9_kernel::process::scheduler::resume_task">resume_<wbr>task</a></dt><dd>Resume a previously suspended task by ID.</dd><dt><a class="fn" href="fn.schedule.html" title="fn strat9_kernel::process::scheduler::schedule">schedule</a></dt><dd>Start the scheduler (called from kernel_main)</dd><dt><a class="fn" href="fn.schedule_on_cpu.html" title="fn strat9_kernel::process::scheduler::schedule_on_cpu">schedule_<wbr>on_<wbr>cpu</a></dt><dt><a class="fn" href="fn.scheduler_metrics_snapshot.html" title="fn strat9_kernel::process::scheduler::scheduler_metrics_snapshot">scheduler_<wbr>metrics_<wbr>snapshot</a></dt><dt><a class="fn" href="fn.set_process_group.html" title="fn strat9_kernel::process::scheduler::set_process_group">set_<wbr>process_<wbr>group</a></dt><dd>Set process group id for <code>target_pid</code> (or current if <code>None</code>).</dd><dt><a class="fn" href="fn.set_task_sched_policy.html" title="fn strat9_kernel::process::scheduler::set_task_sched_policy">set_<wbr>task_<wbr>sched_<wbr>policy</a></dt><dd>Update a task scheduling policy and requeue if needed.</dd><dt><a class="fn" href="fn.set_task_wake_deadline.html" title="fn strat9_kernel::process::scheduler::set_task_wake_deadline">set_<wbr>task_<wbr>wake_<wbr>deadline</a></dt><dt><a class="fn" href="fn.set_verbose.html" title="fn strat9_kernel::process::scheduler::set_verbose">set_<wbr>verbose</a></dt><dd>Enable or disable verbose scheduler tracing.</dd><dt><a class="fn" href="fn.state_snapshot.html" title="fn strat9_kernel::process::scheduler::state_snapshot">state_<wbr>snapshot</a></dt><dd>Structured scheduler state snapshot for shell/top/debug tooling.</dd><dt><a class="fn" href="fn.suspend_task.html" title="fn strat9_kernel::process::scheduler::suspend_task">suspend_<wbr>task</a></dt><dd>Suspend a task by ID (best-effort).</dd><dt><a class="fn" href="fn.ticks.html" title="fn strat9_kernel::process::scheduler::ticks">ticks</a></dt><dd>Get the current tick count</dd><dt><a class="fn" href="fn.timer_tick.html" title="fn strat9_kernel::process::scheduler::timer_tick">timer_<wbr>tick</a></dt><dd>Timer interrupt handler - called from interrupt context.</dd><dt><a class="fn" href="fn.try_wait_child.html" title="fn strat9_kernel::process::scheduler::try_wait_child">try_<wbr>wait_<wbr>child</a></dt><dd>Try to reap a zombie child.</dd><dt><a class="fn" href="fn.verbose_enabled.html" title="fn strat9_kernel::process::scheduler::verbose_enabled">verbose_<wbr>enabled</a></dt><dd>Return current verbose tracing state.</dd><dt><a class="fn" href="fn.wake_task.html" title="fn strat9_kernel::process::scheduler::wake_task">wake_<wbr>task</a></dt><dd>Wake a blocked task by its ID.</dd><dt><a class="fn" href="fn.yield_task.html" title="fn strat9_kernel::process::scheduler::yield_task">yield_<wbr>task</a></dt><dd>Yield the current task to allow other tasks to run (cooperative).</dd></dl></section></div></main></body></html>

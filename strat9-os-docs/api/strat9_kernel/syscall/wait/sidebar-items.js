@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["WNOHANG"],"fn":["sys_getpid","sys_getppid","sys_wait","sys_waitpid"],"struct":["Waitmsg"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_device","init"],"mod":["features","net_status"],"struct":["VirtioNetDevice","VirtioNetHeader"]};

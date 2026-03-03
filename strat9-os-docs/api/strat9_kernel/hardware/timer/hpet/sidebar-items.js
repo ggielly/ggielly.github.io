@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["delay_ms","delay_us","frequency_hz","init","is_available","num_timers","read_counter","tick_period_ns","uptime_ms","uptime_secs"],"struct":["HpetInfo"]};

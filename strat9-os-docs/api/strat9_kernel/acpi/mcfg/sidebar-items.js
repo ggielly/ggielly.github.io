@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MCFG_SIGNATURE"],"fn":["parse_mcfg"],"struct":["Mcfg","McfgEntry","McfgInfo"]};

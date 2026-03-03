@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["current_time_ns","sys_clock_gettime","sys_nanosleep"],"struct":["TimeSpec"]};

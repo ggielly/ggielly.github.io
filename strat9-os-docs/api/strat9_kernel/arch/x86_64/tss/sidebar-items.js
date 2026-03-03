@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DOUBLE_FAULT_IST_INDEX"],"fn":["init","init_cpu","set_kernel_stack","set_kernel_stack_for","tss_for"]};

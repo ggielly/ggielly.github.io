@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["STDERR","STDIN","STDOUT"],"struct":["FileDescriptor","FileDescriptorTable"]};

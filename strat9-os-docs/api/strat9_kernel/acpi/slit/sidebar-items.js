@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DISTANCE_LOCAL","DISTANCE_REMOTE","SLIT_SIGNATURE"],"struct":["Slit"]};

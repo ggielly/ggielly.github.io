@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["disable_irqs","enable_irqs","halt_cpu","irqs_enabled","restore_irqs","save_and_disable_irqs","without_interrupts"],"struct":["CpuId","CpuIter"]};

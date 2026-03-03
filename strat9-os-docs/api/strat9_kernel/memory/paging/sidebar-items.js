@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["active_page_table","ensure_identity_map","ensure_identity_map_range","init","is_initialized","kernel_l4_phys","map_page","translate","unmap_page"],"struct":["BuddyFrameAllocator"]};

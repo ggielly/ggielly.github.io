@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["dispatcher","error","exec","fcntl","fork","futex","mmap","numbers","poll","process","signal","time","wait"],"struct":["SyscallFrame"]};

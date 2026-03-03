@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["round_down","round_up"],"mod":["bits"],"struct":["IdSet","IdSetIter"],"type":["CpuSet","Result"]};

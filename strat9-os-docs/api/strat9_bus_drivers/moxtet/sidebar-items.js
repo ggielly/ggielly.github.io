@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MoxtetModuleId"],"struct":["Moxtet","MoxtetModule"]};

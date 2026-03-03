@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["allocate_dma_frame","hhdm_offset","init_cow_subsystem","init_memory_manager","phys_to_virt","set_hhdm_offset","virt_to_phys"],"mod":["address_space","buddy","cow","frame","heap","paging","userslice","zone"]};

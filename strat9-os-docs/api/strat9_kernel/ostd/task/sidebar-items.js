@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TaskState"],"fn":["current_task"],"struct":["TaskId","TaskInner","TaskOptions","TaskRef"]};

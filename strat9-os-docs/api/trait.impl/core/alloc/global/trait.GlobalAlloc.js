@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["dhcp_client",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/alloc/global/trait.GlobalAlloc.html\" title=\"trait core::alloc::global::GlobalAlloc\">GlobalAlloc</a> for <a class=\"struct\" href=\"dhcp_client/struct.BumpAllocator.html\" title=\"struct dhcp_client::BumpAllocator\">BumpAllocator</a>",0]]],["strat9_kernel",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/alloc/global/trait.GlobalAlloc.html\" title=\"trait core::alloc::global::GlobalAlloc\">GlobalAlloc</a> for <a class=\"struct\" href=\"strat9_kernel/memory/heap/struct.LockedHeap.html\" title=\"struct strat9_kernel::memory::heap::LockedHeap\">LockedHeap</a>",0]]],["strate_bus",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/alloc/global/trait.GlobalAlloc.html\" title=\"trait core::alloc::global::GlobalAlloc\">GlobalAlloc</a> for <a class=\"struct\" href=\"strate_bus/struct.BumpAllocator.html\" title=\"struct strate_bus::BumpAllocator\">BumpAllocator</a>",0]]],["strate_sshd",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/alloc/global/trait.GlobalAlloc.html\" title=\"trait core::alloc::global::GlobalAlloc\">GlobalAlloc</a> for <a class=\"struct\" href=\"strate_sshd/struct.SshdAllocator.html\" title=\"struct strate_sshd::SshdAllocator\">SshdAllocator</a>",0]]],["web_admin",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/alloc/global/trait.GlobalAlloc.html\" title=\"trait core::alloc::global::GlobalAlloc\">GlobalAlloc</a> for <a class=\"struct\" href=\"web_admin/struct.WebAdminAllocator.html\" title=\"struct web_admin::WebAdminAllocator\">WebAdminAllocator</a>",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[329,353,327,330,336]}

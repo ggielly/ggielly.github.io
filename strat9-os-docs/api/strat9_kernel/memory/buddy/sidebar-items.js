@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_allocator","init_buddy_allocator"],"struct":["BuddyAllocator","ZoneStats"]};

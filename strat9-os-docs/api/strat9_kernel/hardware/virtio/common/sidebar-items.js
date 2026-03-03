@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["features"],"struct":["VirtioDevice","VirtqAvail","VirtqUsed","VirtqUsedElem","Virtqueue"]};

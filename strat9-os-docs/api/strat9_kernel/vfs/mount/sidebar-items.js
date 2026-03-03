@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["list_mounts","mount","resolve","unmount"],"struct":["MountTable","Namespace"]};

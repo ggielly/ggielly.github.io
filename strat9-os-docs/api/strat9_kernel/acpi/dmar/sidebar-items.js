@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DMAR_SIGNATURE"],"struct":["Dmar"]};

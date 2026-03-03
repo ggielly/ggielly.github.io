@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["init_component"],"macro":["parse_components_toml"]};

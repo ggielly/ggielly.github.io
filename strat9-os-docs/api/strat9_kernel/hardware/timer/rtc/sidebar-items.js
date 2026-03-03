@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_datetime","get_timestamp","init","is_available","rtc_interrupt_handler","set_periodic_frequency","set_periodic_interrupt","uptime_secs"],"struct":["RtcDateTime","RtcDriver"]};

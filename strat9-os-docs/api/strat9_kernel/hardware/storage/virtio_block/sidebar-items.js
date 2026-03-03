@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SECTOR_SIZE"],"enum":["BlockError","BlockStatus","RequestType"],"fn":["get_device","get_irq","handle_interrupt","init"],"mod":["features"],"struct":["BlockRequestHeader","VirtioBlockDevice"],"trait":["BlockDevice"]};

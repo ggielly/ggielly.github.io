@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["channel","message","port","reply","semaphore","shared_ring","test"],"struct":["IpcMessage"]};

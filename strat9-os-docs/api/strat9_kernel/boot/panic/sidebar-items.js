@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["install_default_panic_hooks","panic_handler","register_panic_hook"]};

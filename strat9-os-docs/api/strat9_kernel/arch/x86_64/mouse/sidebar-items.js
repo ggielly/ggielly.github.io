@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["handle_irq","has_event","init","mouse_pos","read_event"],"static":["MOUSE_READY"],"struct":["MouseEvent"]};

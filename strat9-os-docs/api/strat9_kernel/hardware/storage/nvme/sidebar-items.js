@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_first_controller","init","list_controllers"],"struct":["NvmeController","NvmeNamespace"]};

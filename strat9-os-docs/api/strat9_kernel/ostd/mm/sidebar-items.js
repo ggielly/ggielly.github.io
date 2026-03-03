@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["PAGE_SIZE"],"enum":["MapError"],"fn":["phys_to_virt","tlb_flush_all","tlb_flush_virt_addr","virt_to_phys"],"struct":["AllocatedPages","MapFlags","MappedPages","PhysAddr","VirtAddr","Vmar"]};

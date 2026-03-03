@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["HPET_SIGNATURE"],"struct":["HpetAcpiTable"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SemaphoreError"],"fn":["create_semaphore","destroy_semaphore","get_semaphore"],"struct":["PosixSemaphore","SemId"]};

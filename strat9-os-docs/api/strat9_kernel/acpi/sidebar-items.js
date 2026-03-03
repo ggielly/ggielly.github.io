@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["find_table","find_tables","get_bgrt","get_fadt","get_hpet","get_madt","get_mcfg","get_slit","get_table","init","is_available","revision","rsdp_address"],"mod":["bgrt","dmar","fadt","hpet","madt","mcfg","rsdt","sdt","slit","waet"],"struct":["AcpiTables"]};

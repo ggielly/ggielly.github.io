@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_drive","get_first_drive","init","is_available"],"struct":["AtaChannel","AtaDrive","AtaDriveInfo"]};

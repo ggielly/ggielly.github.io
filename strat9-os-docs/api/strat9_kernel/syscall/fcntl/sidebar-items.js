@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["FD_CLOEXEC","F_DUPFD","F_GETFD","F_GETFL","F_SETFD","F_SETFL"],"fn":["sys_fcntl"]};

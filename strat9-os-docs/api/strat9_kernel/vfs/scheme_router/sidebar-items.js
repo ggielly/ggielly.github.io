@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_scheme","init_builtin_schemes","list_schemes","mount_scheme","register_initfs_file","register_ipc_scheme","register_scheme"],"struct":["SchemeEntry","SchemeRouter"]};

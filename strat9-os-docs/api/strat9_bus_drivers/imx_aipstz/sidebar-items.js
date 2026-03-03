@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["IMX8MP_DEFAULT_CFG"],"struct":["AipstzConfig","ImxAipstz"]};

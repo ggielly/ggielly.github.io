@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cli","cpuid","hlt","init_fpu","interrupts_enabled","rdmsr","restore_flags","save_flags_and_cli","sti","wrmsr"],"mod":["apic","gdt","idt","io","ioapic","keyboard","keyboard_layout","keyboard_us","mouse","pci","percpu","pic","serial","smp","syscall","timer","tlb","tss","vga"]};

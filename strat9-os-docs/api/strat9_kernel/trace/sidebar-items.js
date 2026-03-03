@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TraceKind"],"fn":["clear_all","disable","enable","enabled","kind_name","mask","mask_human","record","serial_echo","set_mask","set_serial_echo","snapshot_all","stats"],"mod":["category"],"struct":["TraceEvent","TraceStats","TraceTaskCtx"]};

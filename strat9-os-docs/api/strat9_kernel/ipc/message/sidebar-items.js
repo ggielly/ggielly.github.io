@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["ipc_message_from_raw","ipc_message_to_raw"],"struct":["IpcLabel","IpcMessage"]};

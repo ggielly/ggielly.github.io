@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["init_console_scheme","setup_stdio"],"struct":["ConsoleScheme"]};

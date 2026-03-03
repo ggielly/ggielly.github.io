@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["init","is_available","read","write"],"struct":["VirtioConsole"]};

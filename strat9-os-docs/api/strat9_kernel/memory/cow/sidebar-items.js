@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["frame_clear_cow","frame_dec_ref","frame_get_refcount","frame_inc_ref","frame_is_cow","frame_is_dll","frame_set_cow","frame_set_dll","init_frame_metadata"],"mod":["frame_flags"],"struct":["FrameMeta"]};

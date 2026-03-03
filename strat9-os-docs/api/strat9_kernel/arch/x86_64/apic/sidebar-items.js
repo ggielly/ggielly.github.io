@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["IPI_RESCHED_VECTOR","IPI_TLB_SHOOTDOWN_VECTOR","LVT_TIMER_MASKED","LVT_TIMER_PERIODIC","LVT_TIMER_VECTOR","REG_ESR","REG_ICR_HIGH","REG_ICR_LOW","REG_LVT_TIMER","REG_TIMER_CURRENT","REG_TIMER_DIVIDE","REG_TIMER_INIT"],"fn":["eoi","init","init_ap","is_initialized","is_present","lapic_id","read_reg","send_resched_ipi","write_reg"]};

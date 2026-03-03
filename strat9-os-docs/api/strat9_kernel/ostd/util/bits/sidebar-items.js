@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["align_down","align_up","count_ones","is_aligned","leading_zeros","log2_ceil","log2_floor","next_power_of_two","trailing_zeros"]};

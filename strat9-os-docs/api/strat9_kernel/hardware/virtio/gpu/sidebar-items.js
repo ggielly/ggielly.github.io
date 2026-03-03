@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_framebuffer_info","get_gpu","init","is_available"],"struct":["GpuInfo","VirtioGpu"]};

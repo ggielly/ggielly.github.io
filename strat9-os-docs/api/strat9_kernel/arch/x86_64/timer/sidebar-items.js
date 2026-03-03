@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["NS_PER_TICK","TIMER_HZ"],"fn":["apic_ticks_per_10ms","calibrate_apic_timer","debug_measure_time","init_pit","is_apic_timer_active","start_apic_timer","start_apic_timer_cached","stop_pit"]};

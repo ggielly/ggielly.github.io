@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["handle_scancode","handle_scancode_raw","is_french_layout","set_french_layout","set_us_layout"]};

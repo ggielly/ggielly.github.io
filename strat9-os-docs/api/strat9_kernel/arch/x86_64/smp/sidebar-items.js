@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["TRAMPOLINE_PHYS_ADDR"],"fn":["cpu_count","init","smp_main"]};

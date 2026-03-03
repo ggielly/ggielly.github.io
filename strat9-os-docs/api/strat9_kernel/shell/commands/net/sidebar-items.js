@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cmd_ifconfig","cmd_net","cmd_ping"]};

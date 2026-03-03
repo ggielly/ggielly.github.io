@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MADT_SIGNATURE"],"fn":["parse_madt"],"struct":["InterruptSourceOverride","IoApicEntry","LocalApicEntry","MadtAcpiTable","MadtInfo","MadtIntSrcOverride","MadtIoApic","MadtLocalApic"]};

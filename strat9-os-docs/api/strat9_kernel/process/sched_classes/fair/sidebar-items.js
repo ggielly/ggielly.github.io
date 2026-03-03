@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["nice_to_weight"],"struct":["FairClassRq"]};

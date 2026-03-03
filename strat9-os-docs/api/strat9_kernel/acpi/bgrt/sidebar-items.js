@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["BGRT_FORMAT_BMP","BGRT_SIGNATURE","BGRT_STATUS_DISPLAYED"],"struct":["Bgrt"]};

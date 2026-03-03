@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ResourceType"],"fn":["get_capability_manager"],"struct":["CapId","CapPermissions","Capability","CapabilityManager","CapabilityTable"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ChannelStream","ConnectionState","CoreDirective","ParsedPacket","SshCoreError"],"struct":["ExecSessionWiring","Server","SessionPump","SshCore"],"trait":["AuthProvider","ExecSessionProvider","HostKeyProvider","SshBackend","Transport"],"type":["Result"]};

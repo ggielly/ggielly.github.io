@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["clock_gettime_ns","debug_log","exit","ipc_try_recv","nanosleep","net_info","net_recv","net_send","proc_yield","syscall0","syscall2"],"mod":["call","error","number"],"struct":["TimeSpec"],"type":["Result"]};

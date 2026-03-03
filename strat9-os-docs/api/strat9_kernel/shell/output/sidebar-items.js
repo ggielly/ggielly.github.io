@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["clear_screen","format_bytes","print_char","print_prompt"]};

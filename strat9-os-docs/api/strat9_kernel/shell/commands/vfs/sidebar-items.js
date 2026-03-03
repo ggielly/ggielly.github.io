@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cmd_cat","cmd_cd","cmd_ls","cmd_mkdir","cmd_mount","cmd_rm","cmd_scheme","cmd_touch","cmd_umount","cmd_write","get_cwd","resolve_shell_path"]};

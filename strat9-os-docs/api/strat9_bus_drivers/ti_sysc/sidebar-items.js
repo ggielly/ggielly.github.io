@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["REGBITS_OMAP2","REGBITS_OMAP4"],"struct":["SyscQuirks","SyscRegbits","TiSysc"]};

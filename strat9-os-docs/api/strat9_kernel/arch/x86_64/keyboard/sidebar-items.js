@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["KEY_DOWN","KEY_END","KEY_HOME","KEY_LEFT","KEY_RIGHT","KEY_UP"],"fn":["add_to_buffer","handle_scancode","handle_scancode_raw","has_input","read_char"],"static":["KEYBOARD"],"struct":["KeyboardState"]};

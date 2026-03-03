@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_controller","init","is_available"],"struct":["XhciController"]};

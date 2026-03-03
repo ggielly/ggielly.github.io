@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["strat9_abi","strat9_syscall"];
-//{"start":21,"fragment_lengths":[12,17]}
+window.ALL_CRATES = ["component_macro","dhcp_client","fs_ext4","libssh_strat9","strat9_abi","strat9_bus_drivers","strat9_components_api","strat9_kernel","strat9_syscall","strate_bus","strate_fs_ramfs","strate_net","strate_sshd","strate_wasm","test_mem","web_admin"];
+//{"start":21,"fragment_lengths":[17,14,10,16,13,21,24,16,17,13,18,13,14,14,11,12]}

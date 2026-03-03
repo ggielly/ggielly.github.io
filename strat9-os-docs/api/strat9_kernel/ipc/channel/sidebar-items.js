@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ChannelError"],"fn":["channel","create_channel","destroy_channel","get_channel"],"struct":["ChanId","Receiver","Sender","SyncChan"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["IpcError"],"fn":["cleanup_ports_for_task","create_port","destroy_port","get_port"],"struct":["Port","PortId"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MTU"],"enum":["NetError"],"fn":["get_default_device","get_device","init","list_interfaces","register_device"],"mod":["e1000_drv","e1000e_drv","igc_drv","pcnet_drv","rtl8139_drv","scheme","virtio_net"],"trait":["NetworkDevice"]};
