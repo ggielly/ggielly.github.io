@@ -483,310 +483,321 @@
 <a href=#483 id=483 data-nosnippet>483</a>        </span><span class="kw">let </span>context = CpuContext::new(entry_point <span class="kw">as </span><span class="kw-2">*const </span>() <span class="kw">as </span>u64, <span class="kw-2">&amp;</span>kernel_stack);
 <a href=#484 id=484 data-nosnippet>484</a>        <span class="kw">let </span>id = TaskId::new();
 <a href=#485 id=485 data-nosnippet>485</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
-<a href=#486 id=486 data-nosnippet>486</a>
-<a href=#487 id=487 data-nosnippet>487</a>        <span class="macro">log::debug!</span>(
-<a href=#488 id=488 data-nosnippet>488</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} kstack={:?} kstack_kib={}"</span>,
-<a href=#489 id=489 data-nosnippet>489</a>            name,
-<a href=#490 id=490 data-nosnippet>490</a>            id.as_u64(),
-<a href=#491 id=491 data-nosnippet>491</a>            pid,
-<a href=#492 id=492 data-nosnippet>492</a>            tid,
-<a href=#493 id=493 data-nosnippet>493</a>            kernel_stack.virt_base,
-<a href=#494 id=494 data-nosnippet>494</a>            kernel_stack.size / <span class="number">1024
-<a href=#495 id=495 data-nosnippet>495</a>        </span>);
-<a href=#496 id=496 data-nosnippet>496</a>
-<a href=#497 id=497 data-nosnippet>497</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
-<a href=#498 id=498 data-nosnippet>498</a>            id,
-<a href=#499 id=499 data-nosnippet>499</a>            pid,
-<a href=#500 id=500 data-nosnippet>500</a>            tid,
-<a href=#501 id=501 data-nosnippet>501</a>            tgid,
-<a href=#502 id=502 data-nosnippet>502</a>            pgid: AtomicU32::new(pid),
-<a href=#503 id=503 data-nosnippet>503</a>            sid: AtomicU32::new(pid),
-<a href=#504 id=504 data-nosnippet>504</a>            uid: AtomicU32::new(<span class="number">0</span>),
-<a href=#505 id=505 data-nosnippet>505</a>            euid: AtomicU32::new(<span class="number">0</span>),
-<a href=#506 id=506 data-nosnippet>506</a>            gid: AtomicU32::new(<span class="number">0</span>),
-<a href=#507 id=507 data-nosnippet>507</a>            egid: AtomicU32::new(<span class="number">0</span>),
-<a href=#508 id=508 data-nosnippet>508</a>            state: SyncUnsafeCell::new(TaskState::Ready),
-<a href=#509 id=509 data-nosnippet>509</a>            priority,
-<a href=#510 id=510 data-nosnippet>510</a>            context: SyncUnsafeCell::new(context),
-<a href=#511 id=511 data-nosnippet>511</a>            kernel_stack,
-<a href=#512 id=512 data-nosnippet>512</a>            user_stack: <span class="prelude-val">None</span>,
-<a href=#513 id=513 data-nosnippet>513</a>            name,
-<a href=#514 id=514 data-nosnippet>514</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, <span class="kw">crate</span>::memory::kernel_address_space().clone())),
-<a href=#515 id=515 data-nosnippet>515</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#516 id=516 data-nosnippet>516</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#517 id=517 data-nosnippet>517</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
-<a href=#518 id=518 data-nosnippet>518</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
-<a href=#519 id=519 data-nosnippet>519</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
-<a href=#520 id=520 data-nosnippet>520</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
-<a href=#521 id=521 data-nosnippet>521</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
-<a href=#522 id=522 data-nosnippet>522</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
-<a href=#523 id=523 data-nosnippet>523</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
-<a href=#524 id=524 data-nosnippet>524</a>            ticks: AtomicU64::new(<span class="number">0</span>),
-<a href=#525 id=525 data-nosnippet>525</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
-<a href=#526 id=526 data-nosnippet>526</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
-<a href=#527 id=527 data-nosnippet>527</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
-<a href=#528 id=528 data-nosnippet>528</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
-<a href=#529 id=529 data-nosnippet>529</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
-<a href=#530 id=530 data-nosnippet>530</a>            xcr0_mask: AtomicU64::new(<span class="kw">crate</span>::arch::x86_64::cpuid::host_default_xcr0()),
-<a href=#531 id=531 data-nosnippet>531</a>        }))
-<a href=#532 id=532 data-nosnippet>532</a>    }
-<a href=#533 id=533 data-nosnippet>533</a>
-<a href=#534 id=534 data-nosnippet>534</a>    <span class="doccomment">/// Create a new user task with its own address space (stub for future use).
-<a href=#535 id=535 data-nosnippet>535</a>    ///
-<a href=#536 id=536 data-nosnippet>536</a>    /// The entry point and user stack must already be mapped in the given address space.
-<a href=#537 id=537 data-nosnippet>537</a>    </span><span class="kw">pub fn </span>new_user_task(
-<a href=#538 id=538 data-nosnippet>538</a>        entry_point: u64,
-<a href=#539 id=539 data-nosnippet>539</a>        address_space: Arc&lt;AddressSpace&gt;,
-<a href=#540 id=540 data-nosnippet>540</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#541 id=541 data-nosnippet>541</a>        priority: TaskPriority,
-<a href=#542 id=542 data-nosnippet>542</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#543 id=543 data-nosnippet>543</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="self">Self</span>::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
-<a href=#544 id=544 data-nosnippet>544</a>        <span class="kw">let </span>context = CpuContext::new(entry_point, <span class="kw-2">&amp;</span>kernel_stack);
-<a href=#545 id=545 data-nosnippet>545</a>        <span class="kw">let </span>id = TaskId::new();
-<a href=#546 id=546 data-nosnippet>546</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
-<a href=#547 id=547 data-nosnippet>547</a>
-<a href=#548 id=548 data-nosnippet>548</a>        <span class="macro">log::debug!</span>(
-<a href=#549 id=549 data-nosnippet>549</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} user_as_cr3={:#x}"</span>,
-<a href=#550 id=550 data-nosnippet>550</a>            name,
-<a href=#551 id=551 data-nosnippet>551</a>            id.as_u64(),
-<a href=#552 id=552 data-nosnippet>552</a>            pid,
-<a href=#553 id=553 data-nosnippet>553</a>            tid,
-<a href=#554 id=554 data-nosnippet>554</a>            address_space.cr3().as_u64()
-<a href=#555 id=555 data-nosnippet>555</a>        );
-<a href=#556 id=556 data-nosnippet>556</a>
-<a href=#557 id=557 data-nosnippet>557</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
-<a href=#558 id=558 data-nosnippet>558</a>            id,
-<a href=#559 id=559 data-nosnippet>559</a>            pid,
-<a href=#560 id=560 data-nosnippet>560</a>            tid,
-<a href=#561 id=561 data-nosnippet>561</a>            tgid,
-<a href=#562 id=562 data-nosnippet>562</a>            pgid: AtomicU32::new(pid),
-<a href=#563 id=563 data-nosnippet>563</a>            sid: AtomicU32::new(pid),
-<a href=#564 id=564 data-nosnippet>564</a>            uid: AtomicU32::new(<span class="number">0</span>),
-<a href=#565 id=565 data-nosnippet>565</a>            euid: AtomicU32::new(<span class="number">0</span>),
-<a href=#566 id=566 data-nosnippet>566</a>            gid: AtomicU32::new(<span class="number">0</span>),
-<a href=#567 id=567 data-nosnippet>567</a>            egid: AtomicU32::new(<span class="number">0</span>),
-<a href=#568 id=568 data-nosnippet>568</a>            state: SyncUnsafeCell::new(TaskState::Ready),
-<a href=#569 id=569 data-nosnippet>569</a>            priority,
-<a href=#570 id=570 data-nosnippet>570</a>            context: SyncUnsafeCell::new(context),
-<a href=#571 id=571 data-nosnippet>571</a>            kernel_stack,
-<a href=#572 id=572 data-nosnippet>572</a>            user_stack: <span class="prelude-val">None</span>,
-<a href=#573 id=573 data-nosnippet>573</a>            name,
-<a href=#574 id=574 data-nosnippet>574</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, address_space)),
-<a href=#575 id=575 data-nosnippet>575</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#576 id=576 data-nosnippet>576</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#577 id=577 data-nosnippet>577</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
-<a href=#578 id=578 data-nosnippet>578</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
-<a href=#579 id=579 data-nosnippet>579</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
-<a href=#580 id=580 data-nosnippet>580</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
-<a href=#581 id=581 data-nosnippet>581</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
-<a href=#582 id=582 data-nosnippet>582</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
-<a href=#583 id=583 data-nosnippet>583</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
-<a href=#584 id=584 data-nosnippet>584</a>            ticks: AtomicU64::new(<span class="number">0</span>),
-<a href=#585 id=585 data-nosnippet>585</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
-<a href=#586 id=586 data-nosnippet>586</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
-<a href=#587 id=587 data-nosnippet>587</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
-<a href=#588 id=588 data-nosnippet>588</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
-<a href=#589 id=589 data-nosnippet>589</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
-<a href=#590 id=590 data-nosnippet>590</a>            xcr0_mask: AtomicU64::new(<span class="kw">crate</span>::arch::x86_64::cpuid::host_default_xcr0()),
-<a href=#591 id=591 data-nosnippet>591</a>        }))
-<a href=#592 id=592 data-nosnippet>592</a>    }
-<a href=#593 id=593 data-nosnippet>593</a>
-<a href=#594 id=594 data-nosnippet>594</a>    <span class="doccomment">/// Reset all signal handlers to SIG_DFL (default).
-<a href=#595 id=595 data-nosnippet>595</a>    ///
-<a href=#596 id=596 data-nosnippet>596</a>    /// Called during execve to reset signal handlers as per POSIX:
-<a href=#597 id=597 data-nosnippet>597</a>    /// handlers set to catch signals are reset to SIG_DFL, but SIG_IGN
-<a href=#598 id=598 data-nosnippet>598</a>    /// remains ignored (implementation simplification: we reset all).
-<a href=#599 id=599 data-nosnippet>599</a>    </span><span class="kw">pub fn </span>reset_signals(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-<a href=#600 id=600 data-nosnippet>600</a>        <span class="comment">// SAFETY: We have a valid reference to the task.
-<a href=#601 id=601 data-nosnippet>601</a>        </span><span class="kw">unsafe </span>{
-<a href=#602 id=602 data-nosnippet>602</a>            <span class="kw">let </span>actions = <span class="kw-2">&amp;mut *</span><span class="self">self</span>.process.signal_actions.get();
-<a href=#603 id=603 data-nosnippet>603</a>            <span class="kw">for </span>action <span class="kw">in </span>actions.iter_mut() {
-<a href=#604 id=604 data-nosnippet>604</a>                <span class="kw-2">*</span>action = <span class="kw">super</span>::signal::SigActionData::default();
-<a href=#605 id=605 data-nosnippet>605</a>            }
-<a href=#606 id=606 data-nosnippet>606</a>        }
-<a href=#607 id=607 data-nosnippet>607</a>    }
-<a href=#608 id=608 data-nosnippet>608</a>
-<a href=#609 id=609 data-nosnippet>609</a>    <span class="doccomment">/// Returns true if this is a kernel task (shares the kernel address space).
-<a href=#610 id=610 data-nosnippet>610</a>    </span><span class="kw">pub fn </span>is_kernel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-<a href=#611 id=611 data-nosnippet>611</a>        <span class="comment">// SAFETY: address_space is immutable for the lifetime of the Arc?
-<a href=#612 id=612 data-nosnippet>612</a>        // Actually we just updated it to SyncUnsafeCell.
-<a href=#613 id=613 data-nosnippet>613</a>        </span><span class="kw">unsafe </span>{ (<span class="kw-2">*</span><span class="self">self</span>.process.address_space.get()).is_kernel() }
-<a href=#614 id=614 data-nosnippet>614</a>    }
-<a href=#615 id=615 data-nosnippet>615</a>
-<a href=#616 id=616 data-nosnippet>616</a>    <span class="doccomment">/// Allocate POSIX identifiers for a new process leader.
-<a href=#617 id=617 data-nosnippet>617</a>    </span><span class="kw">pub fn </span>allocate_process_ids() -&gt; (Pid, Tid, Pid) {
-<a href=#618 id=618 data-nosnippet>618</a>        <span class="kw">let </span>pid = next_pid();
-<a href=#619 id=619 data-nosnippet>619</a>        <span class="kw">let </span>tid = next_tid();
-<a href=#620 id=620 data-nosnippet>620</a>        (pid, tid, pid)
-<a href=#621 id=621 data-nosnippet>621</a>    }
-<a href=#622 id=622 data-nosnippet>622</a>}
-<a href=#623 id=623 data-nosnippet>623</a>
-<a href=#624 id=624 data-nosnippet>624</a><span class="doccomment">/// Context switch dispatcher. Picks the xsave or fxsave path based on host
-<a href=#625 id=625 data-nosnippet>625</a>/// capabilities, then performs the full save/swap/restore sequence.
-<a href=#626 id=626 data-nosnippet>626</a>///
-<a href=#627 id=627 data-nosnippet>627</a>/// # Safety
-<a href=#628 id=628 data-nosnippet>628</a>/// Caller must ensure all pointers in `target` are valid and interrupts are disabled.
-<a href=#629 id=629 data-nosnippet>629</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_switch_context(target: <span class="kw-2">&amp;</span><span class="kw">super</span>::scheduler::SwitchTarget) {
-<a href=#630 id=630 data-nosnippet>630</a>    <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
-<a href=#631 id=631 data-nosnippet>631</a>        switch_context_xsave(
-<a href=#632 id=632 data-nosnippet>632</a>            target.old_rsp_ptr,
-<a href=#633 id=633 data-nosnippet>633</a>            target.new_rsp_ptr,
-<a href=#634 id=634 data-nosnippet>634</a>            target.old_fpu_ptr,
-<a href=#635 id=635 data-nosnippet>635</a>            target.new_fpu_ptr,
-<a href=#636 id=636 data-nosnippet>636</a>            target.new_xcr0,
-<a href=#637 id=637 data-nosnippet>637</a>        );
-<a href=#638 id=638 data-nosnippet>638</a>    } <span class="kw">else </span>{
-<a href=#639 id=639 data-nosnippet>639</a>        switch_context_fxsave(
-<a href=#640 id=640 data-nosnippet>640</a>            target.old_rsp_ptr,
-<a href=#641 id=641 data-nosnippet>641</a>            target.new_rsp_ptr,
-<a href=#642 id=642 data-nosnippet>642</a>            target.old_fpu_ptr,
-<a href=#643 id=643 data-nosnippet>643</a>            target.new_fpu_ptr,
-<a href=#644 id=644 data-nosnippet>644</a>        );
-<a href=#645 id=645 data-nosnippet>645</a>    }
-<a href=#646 id=646 data-nosnippet>646</a>}
-<a href=#647 id=647 data-nosnippet>647</a>
-<a href=#648 id=648 data-nosnippet>648</a><span class="doccomment">/// First-task restore dispatcher. Like `do_switch_context` but without
-<a href=#649 id=649 data-nosnippet>649</a>/// saving old state (there is no previous task).
-<a href=#650 id=650 data-nosnippet>650</a>///
-<a href=#651 id=651 data-nosnippet>651</a>/// # Safety
-<a href=#652 id=652 data-nosnippet>652</a>/// Caller must ensure pointers are valid and interrupts are disabled. Never returns.
-<a href=#653 id=653 data-nosnippet>653</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_restore_first_task(
-<a href=#654 id=654 data-nosnippet>654</a>    rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#655 id=655 data-nosnippet>655</a>    fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#656 id=656 data-nosnippet>656</a>    xcr0: u64,
-<a href=#657 id=657 data-nosnippet>657</a>) -&gt; ! {
-<a href=#658 id=658 data-nosnippet>658</a>    <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
-<a href=#659 id=659 data-nosnippet>659</a>        restore_first_task_xsave(rsp_ptr, fpu_ptr, xcr0);
-<a href=#660 id=660 data-nosnippet>660</a>    } <span class="kw">else </span>{
-<a href=#661 id=661 data-nosnippet>661</a>        restore_first_task_fxsave(rsp_ptr, fpu_ptr);
-<a href=#662 id=662 data-nosnippet>662</a>    }
-<a href=#663 id=663 data-nosnippet>663</a>}
-<a href=#664 id=664 data-nosnippet>664</a>
-<a href=#665 id=665 data-nosnippet>665</a><span class="comment">// ── FXSAVE path (legacy, no XSAVE support) ──
-<a href=#666 id=666 data-nosnippet>666</a>
-<a href=#667 id=667 data-nosnippet>667</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu
-<a href=#668 id=668 data-nosnippet>668</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#669 id=669 data-nosnippet>669</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_fxsave(
-<a href=#670 id=670 data-nosnippet>670</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
-<a href=#671 id=671 data-nosnippet>671</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#672 id=672 data-nosnippet>672</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
-<a href=#673 id=673 data-nosnippet>673</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#674 id=674 data-nosnippet>674</a>) {
-<a href=#675 id=675 data-nosnippet>675</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#676 id=676 data-nosnippet>676</a>        <span class="string">"fxsave [rdx]"</span>,
-<a href=#677 id=677 data-nosnippet>677</a>        <span class="string">"push rbx"</span>,
-<a href=#678 id=678 data-nosnippet>678</a>        <span class="string">"push rbp"</span>,
-<a href=#679 id=679 data-nosnippet>679</a>        <span class="string">"push r12"</span>,
-<a href=#680 id=680 data-nosnippet>680</a>        <span class="string">"push r13"</span>,
-<a href=#681 id=681 data-nosnippet>681</a>        <span class="string">"push r14"</span>,
-<a href=#682 id=682 data-nosnippet>682</a>        <span class="string">"push r15"</span>,
-<a href=#683 id=683 data-nosnippet>683</a>        <span class="string">"mov [rdi], rsp"</span>,
-<a href=#684 id=684 data-nosnippet>684</a>        <span class="string">"mov rsp, [rsi]"</span>,
-<a href=#685 id=685 data-nosnippet>685</a>        <span class="string">"pop r15"</span>,
-<a href=#686 id=686 data-nosnippet>686</a>        <span class="string">"pop r14"</span>,
-<a href=#687 id=687 data-nosnippet>687</a>        <span class="string">"pop r13"</span>,
-<a href=#688 id=688 data-nosnippet>688</a>        <span class="string">"pop r12"</span>,
-<a href=#689 id=689 data-nosnippet>689</a>        <span class="string">"pop rbp"</span>,
-<a href=#690 id=690 data-nosnippet>690</a>        <span class="string">"pop rbx"</span>,
-<a href=#691 id=691 data-nosnippet>691</a>        <span class="string">"fxrstor [rcx]"</span>,
-<a href=#692 id=692 data-nosnippet>692</a>        <span class="string">"ret"</span>,
-<a href=#693 id=693 data-nosnippet>693</a>    );
-<a href=#694 id=694 data-nosnippet>694</a>}
-<a href=#695 id=695 data-nosnippet>695</a>
-<a href=#696 id=696 data-nosnippet>696</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr
-<a href=#697 id=697 data-nosnippet>697</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#698 id=698 data-nosnippet>698</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_fxsave(
-<a href=#699 id=699 data-nosnippet>699</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#700 id=700 data-nosnippet>700</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#701 id=701 data-nosnippet>701</a>) -&gt; ! {
-<a href=#702 id=702 data-nosnippet>702</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#703 id=703 data-nosnippet>703</a>        <span class="string">"mov rsp, [rdi]"</span>,
-<a href=#704 id=704 data-nosnippet>704</a>        <span class="string">"pop r15"</span>,
-<a href=#705 id=705 data-nosnippet>705</a>        <span class="string">"pop r14"</span>,
-<a href=#706 id=706 data-nosnippet>706</a>        <span class="string">"pop r13"</span>,
-<a href=#707 id=707 data-nosnippet>707</a>        <span class="string">"pop r12"</span>,
-<a href=#708 id=708 data-nosnippet>708</a>        <span class="string">"pop rbp"</span>,
-<a href=#709 id=709 data-nosnippet>709</a>        <span class="string">"pop rbx"</span>,
-<a href=#710 id=710 data-nosnippet>710</a>        <span class="string">"fxrstor [rsi]"</span>,
-<a href=#711 id=711 data-nosnippet>711</a>        <span class="string">"ret"</span>,
-<a href=#712 id=712 data-nosnippet>712</a>    );
-<a href=#713 id=713 data-nosnippet>713</a>}
-<a href=#714 id=714 data-nosnippet>714</a>
-<a href=#715 id=715 data-nosnippet>715</a><span class="comment">// ── XSAVE path (with XCR0 switching per-silo) ──
-<a href=#716 id=716 data-nosnippet>716</a>
-<a href=#717 id=717 data-nosnippet>717</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu, r8=new_xcr0
-<a href=#718 id=718 data-nosnippet>718</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#719 id=719 data-nosnippet>719</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_xsave(
-<a href=#720 id=720 data-nosnippet>720</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
-<a href=#721 id=721 data-nosnippet>721</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#722 id=722 data-nosnippet>722</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
-<a href=#723 id=723 data-nosnippet>723</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#724 id=724 data-nosnippet>724</a>    _new_xcr0: u64,
-<a href=#725 id=725 data-nosnippet>725</a>) {
-<a href=#726 id=726 data-nosnippet>726</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#727 id=727 data-nosnippet>727</a>        <span class="string">"mov r10, rdx"</span>,
-<a href=#728 id=728 data-nosnippet>728</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
-<a href=#729 id=729 data-nosnippet>729</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
-<a href=#730 id=730 data-nosnippet>730</a>        <span class="string">"xsave [r10]"</span>,
-<a href=#731 id=731 data-nosnippet>731</a>        <span class="string">"push rbx"</span>,
-<a href=#732 id=732 data-nosnippet>732</a>        <span class="string">"push rbp"</span>,
-<a href=#733 id=733 data-nosnippet>733</a>        <span class="string">"push r12"</span>,
-<a href=#734 id=734 data-nosnippet>734</a>        <span class="string">"push r13"</span>,
-<a href=#735 id=735 data-nosnippet>735</a>        <span class="string">"push r14"</span>,
-<a href=#736 id=736 data-nosnippet>736</a>        <span class="string">"push r15"</span>,
-<a href=#737 id=737 data-nosnippet>737</a>        <span class="string">"mov [rdi], rsp"</span>,
-<a href=#738 id=738 data-nosnippet>738</a>        <span class="string">"mov rsp, [rsi]"</span>,
-<a href=#739 id=739 data-nosnippet>739</a>        <span class="string">"pop r15"</span>,
-<a href=#740 id=740 data-nosnippet>740</a>        <span class="string">"pop r14"</span>,
-<a href=#741 id=741 data-nosnippet>741</a>        <span class="string">"pop r13"</span>,
-<a href=#742 id=742 data-nosnippet>742</a>        <span class="string">"pop r12"</span>,
-<a href=#743 id=743 data-nosnippet>743</a>        <span class="string">"pop rbp"</span>,
-<a href=#744 id=744 data-nosnippet>744</a>        <span class="string">"pop rbx"</span>,
-<a href=#745 id=745 data-nosnippet>745</a>        <span class="string">"test r8, r8"</span>,
-<a href=#746 id=746 data-nosnippet>746</a>        <span class="string">"jz 2f"</span>,
-<a href=#747 id=747 data-nosnippet>747</a>        <span class="string">"push rcx"</span>,
-<a href=#748 id=748 data-nosnippet>748</a>        <span class="string">"mov ecx, 0"</span>,
-<a href=#749 id=749 data-nosnippet>749</a>        <span class="string">"mov eax, r8d"</span>,
-<a href=#750 id=750 data-nosnippet>750</a>        <span class="string">"shr r8, 32"</span>,
-<a href=#751 id=751 data-nosnippet>751</a>        <span class="string">"mov edx, r8d"</span>,
-<a href=#752 id=752 data-nosnippet>752</a>        <span class="string">"xsetbv"</span>,
-<a href=#753 id=753 data-nosnippet>753</a>        <span class="string">"pop rcx"</span>,
-<a href=#754 id=754 data-nosnippet>754</a>        <span class="string">"2:"</span>,
-<a href=#755 id=755 data-nosnippet>755</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
-<a href=#756 id=756 data-nosnippet>756</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
-<a href=#757 id=757 data-nosnippet>757</a>        <span class="string">"xrstor [rcx]"</span>,
-<a href=#758 id=758 data-nosnippet>758</a>        <span class="string">"ret"</span>,
-<a href=#759 id=759 data-nosnippet>759</a>    );
-<a href=#760 id=760 data-nosnippet>760</a>}
-<a href=#761 id=761 data-nosnippet>761</a>
-<a href=#762 id=762 data-nosnippet>762</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr, rdx=xcr0
-<a href=#763 id=763 data-nosnippet>763</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#764 id=764 data-nosnippet>764</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_xsave(
-<a href=#765 id=765 data-nosnippet>765</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#766 id=766 data-nosnippet>766</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#767 id=767 data-nosnippet>767</a>    _xcr0: u64,
-<a href=#768 id=768 data-nosnippet>768</a>) -&gt; ! {
-<a href=#769 id=769 data-nosnippet>769</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#770 id=770 data-nosnippet>770</a>        <span class="string">"mov rsp, [rdi]"</span>,
-<a href=#771 id=771 data-nosnippet>771</a>        <span class="string">"pop r15"</span>,
-<a href=#772 id=772 data-nosnippet>772</a>        <span class="string">"pop r14"</span>,
-<a href=#773 id=773 data-nosnippet>773</a>        <span class="string">"pop r13"</span>,
-<a href=#774 id=774 data-nosnippet>774</a>        <span class="string">"pop r12"</span>,
-<a href=#775 id=775 data-nosnippet>775</a>        <span class="string">"pop rbp"</span>,
-<a href=#776 id=776 data-nosnippet>776</a>        <span class="string">"pop rbx"</span>,
-<a href=#777 id=777 data-nosnippet>777</a>        <span class="string">"test rdx, rdx"</span>,
-<a href=#778 id=778 data-nosnippet>778</a>        <span class="string">"jz 2f"</span>,
-<a href=#779 id=779 data-nosnippet>779</a>        <span class="string">"push rsi"</span>,
-<a href=#780 id=780 data-nosnippet>780</a>        <span class="string">"mov ecx, 0"</span>,
-<a href=#781 id=781 data-nosnippet>781</a>        <span class="string">"mov eax, edx"</span>,
-<a href=#782 id=782 data-nosnippet>782</a>        <span class="string">"shr rdx, 32"</span>,
-<a href=#783 id=783 data-nosnippet>783</a>        <span class="string">"xsetbv"</span>,
-<a href=#784 id=784 data-nosnippet>784</a>        <span class="string">"pop rsi"</span>,
-<a href=#785 id=785 data-nosnippet>785</a>        <span class="string">"2:"</span>,
-<a href=#786 id=786 data-nosnippet>786</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
-<a href=#787 id=787 data-nosnippet>787</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
-<a href=#788 id=788 data-nosnippet>788</a>        <span class="string">"xrstor [rsi]"</span>,
-<a href=#789 id=789 data-nosnippet>789</a>        <span class="string">"ret"</span>,
-<a href=#790 id=790 data-nosnippet>790</a>    );
-<a href=#791 id=791 data-nosnippet>791</a>}
+<a href=#486 id=486 data-nosnippet>486</a>        <span class="kw">let </span>fpu_state = ExtendedState::new();
+<a href=#487 id=487 data-nosnippet>487</a>        <span class="kw">let </span>xcr0_mask = fpu_state.xcr0_mask;
+<a href=#488 id=488 data-nosnippet>488</a>
+<a href=#489 id=489 data-nosnippet>489</a>        <span class="macro">log::debug!</span>(
+<a href=#490 id=490 data-nosnippet>490</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} kstack={:?} kstack_kib={}"</span>,
+<a href=#491 id=491 data-nosnippet>491</a>            name,
+<a href=#492 id=492 data-nosnippet>492</a>            id.as_u64(),
+<a href=#493 id=493 data-nosnippet>493</a>            pid,
+<a href=#494 id=494 data-nosnippet>494</a>            tid,
+<a href=#495 id=495 data-nosnippet>495</a>            kernel_stack.virt_base,
+<a href=#496 id=496 data-nosnippet>496</a>            kernel_stack.size / <span class="number">1024
+<a href=#497 id=497 data-nosnippet>497</a>        </span>);
+<a href=#498 id=498 data-nosnippet>498</a>
+<a href=#499 id=499 data-nosnippet>499</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
+<a href=#500 id=500 data-nosnippet>500</a>            id,
+<a href=#501 id=501 data-nosnippet>501</a>            pid,
+<a href=#502 id=502 data-nosnippet>502</a>            tid,
+<a href=#503 id=503 data-nosnippet>503</a>            tgid,
+<a href=#504 id=504 data-nosnippet>504</a>            pgid: AtomicU32::new(pid),
+<a href=#505 id=505 data-nosnippet>505</a>            sid: AtomicU32::new(pid),
+<a href=#506 id=506 data-nosnippet>506</a>            uid: AtomicU32::new(<span class="number">0</span>),
+<a href=#507 id=507 data-nosnippet>507</a>            euid: AtomicU32::new(<span class="number">0</span>),
+<a href=#508 id=508 data-nosnippet>508</a>            gid: AtomicU32::new(<span class="number">0</span>),
+<a href=#509 id=509 data-nosnippet>509</a>            egid: AtomicU32::new(<span class="number">0</span>),
+<a href=#510 id=510 data-nosnippet>510</a>            state: SyncUnsafeCell::new(TaskState::Ready),
+<a href=#511 id=511 data-nosnippet>511</a>            priority,
+<a href=#512 id=512 data-nosnippet>512</a>            context: SyncUnsafeCell::new(context),
+<a href=#513 id=513 data-nosnippet>513</a>            kernel_stack,
+<a href=#514 id=514 data-nosnippet>514</a>            user_stack: <span class="prelude-val">None</span>,
+<a href=#515 id=515 data-nosnippet>515</a>            name,
+<a href=#516 id=516 data-nosnippet>516</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, <span class="kw">crate</span>::memory::kernel_address_space().clone())),
+<a href=#517 id=517 data-nosnippet>517</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#518 id=518 data-nosnippet>518</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#519 id=519 data-nosnippet>519</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
+<a href=#520 id=520 data-nosnippet>520</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
+<a href=#521 id=521 data-nosnippet>521</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
+<a href=#522 id=522 data-nosnippet>522</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
+<a href=#523 id=523 data-nosnippet>523</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
+<a href=#524 id=524 data-nosnippet>524</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
+<a href=#525 id=525 data-nosnippet>525</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
+<a href=#526 id=526 data-nosnippet>526</a>            ticks: AtomicU64::new(<span class="number">0</span>),
+<a href=#527 id=527 data-nosnippet>527</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
+<a href=#528 id=528 data-nosnippet>528</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
+<a href=#529 id=529 data-nosnippet>529</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
+<a href=#530 id=530 data-nosnippet>530</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
+<a href=#531 id=531 data-nosnippet>531</a>            fpu_state: SyncUnsafeCell::new(fpu_state),
+<a href=#532 id=532 data-nosnippet>532</a>            xcr0_mask: AtomicU64::new(xcr0_mask),
+<a href=#533 id=533 data-nosnippet>533</a>        }))
+<a href=#534 id=534 data-nosnippet>534</a>    }
+<a href=#535 id=535 data-nosnippet>535</a>
+<a href=#536 id=536 data-nosnippet>536</a>    <span class="doccomment">/// Create a new user task with its own address space (stub for future use).
+<a href=#537 id=537 data-nosnippet>537</a>    ///
+<a href=#538 id=538 data-nosnippet>538</a>    /// The entry point and user stack must already be mapped in the given address space.
+<a href=#539 id=539 data-nosnippet>539</a>    </span><span class="kw">pub fn </span>new_user_task(
+<a href=#540 id=540 data-nosnippet>540</a>        entry_point: u64,
+<a href=#541 id=541 data-nosnippet>541</a>        address_space: Arc&lt;AddressSpace&gt;,
+<a href=#542 id=542 data-nosnippet>542</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#543 id=543 data-nosnippet>543</a>        priority: TaskPriority,
+<a href=#544 id=544 data-nosnippet>544</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#545 id=545 data-nosnippet>545</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="self">Self</span>::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
+<a href=#546 id=546 data-nosnippet>546</a>        <span class="kw">let </span>context = CpuContext::new(entry_point, <span class="kw-2">&amp;</span>kernel_stack);
+<a href=#547 id=547 data-nosnippet>547</a>        <span class="kw">let </span>id = TaskId::new();
+<a href=#548 id=548 data-nosnippet>548</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
+<a href=#549 id=549 data-nosnippet>549</a>        <span class="kw">let </span>fpu_state = ExtendedState::new();
+<a href=#550 id=550 data-nosnippet>550</a>        <span class="kw">let </span>xcr0_mask = fpu_state.xcr0_mask;
+<a href=#551 id=551 data-nosnippet>551</a>
+<a href=#552 id=552 data-nosnippet>552</a>        <span class="macro">log::debug!</span>(
+<a href=#553 id=553 data-nosnippet>553</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} user_as_cr3={:#x}"</span>,
+<a href=#554 id=554 data-nosnippet>554</a>            name,
+<a href=#555 id=555 data-nosnippet>555</a>            id.as_u64(),
+<a href=#556 id=556 data-nosnippet>556</a>            pid,
+<a href=#557 id=557 data-nosnippet>557</a>            tid,
+<a href=#558 id=558 data-nosnippet>558</a>            address_space.cr3().as_u64()
+<a href=#559 id=559 data-nosnippet>559</a>        );
+<a href=#560 id=560 data-nosnippet>560</a>
+<a href=#561 id=561 data-nosnippet>561</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
+<a href=#562 id=562 data-nosnippet>562</a>            id,
+<a href=#563 id=563 data-nosnippet>563</a>            pid,
+<a href=#564 id=564 data-nosnippet>564</a>            tid,
+<a href=#565 id=565 data-nosnippet>565</a>            tgid,
+<a href=#566 id=566 data-nosnippet>566</a>            pgid: AtomicU32::new(pid),
+<a href=#567 id=567 data-nosnippet>567</a>            sid: AtomicU32::new(pid),
+<a href=#568 id=568 data-nosnippet>568</a>            uid: AtomicU32::new(<span class="number">0</span>),
+<a href=#569 id=569 data-nosnippet>569</a>            euid: AtomicU32::new(<span class="number">0</span>),
+<a href=#570 id=570 data-nosnippet>570</a>            gid: AtomicU32::new(<span class="number">0</span>),
+<a href=#571 id=571 data-nosnippet>571</a>            egid: AtomicU32::new(<span class="number">0</span>),
+<a href=#572 id=572 data-nosnippet>572</a>            state: SyncUnsafeCell::new(TaskState::Ready),
+<a href=#573 id=573 data-nosnippet>573</a>            priority,
+<a href=#574 id=574 data-nosnippet>574</a>            context: SyncUnsafeCell::new(context),
+<a href=#575 id=575 data-nosnippet>575</a>            kernel_stack,
+<a href=#576 id=576 data-nosnippet>576</a>            user_stack: <span class="prelude-val">None</span>,
+<a href=#577 id=577 data-nosnippet>577</a>            name,
+<a href=#578 id=578 data-nosnippet>578</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, address_space)),
+<a href=#579 id=579 data-nosnippet>579</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#580 id=580 data-nosnippet>580</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#581 id=581 data-nosnippet>581</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
+<a href=#582 id=582 data-nosnippet>582</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
+<a href=#583 id=583 data-nosnippet>583</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
+<a href=#584 id=584 data-nosnippet>584</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
+<a href=#585 id=585 data-nosnippet>585</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
+<a href=#586 id=586 data-nosnippet>586</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
+<a href=#587 id=587 data-nosnippet>587</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
+<a href=#588 id=588 data-nosnippet>588</a>            ticks: AtomicU64::new(<span class="number">0</span>),
+<a href=#589 id=589 data-nosnippet>589</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
+<a href=#590 id=590 data-nosnippet>590</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
+<a href=#591 id=591 data-nosnippet>591</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
+<a href=#592 id=592 data-nosnippet>592</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
+<a href=#593 id=593 data-nosnippet>593</a>            fpu_state: SyncUnsafeCell::new(fpu_state),
+<a href=#594 id=594 data-nosnippet>594</a>            xcr0_mask: AtomicU64::new(xcr0_mask),
+<a href=#595 id=595 data-nosnippet>595</a>        }))
+<a href=#596 id=596 data-nosnippet>596</a>    }
+<a href=#597 id=597 data-nosnippet>597</a>
+<a href=#598 id=598 data-nosnippet>598</a>    <span class="doccomment">/// Reset all signal handlers to SIG_DFL (default).
+<a href=#599 id=599 data-nosnippet>599</a>    ///
+<a href=#600 id=600 data-nosnippet>600</a>    /// Called during execve to reset signal handlers as per POSIX:
+<a href=#601 id=601 data-nosnippet>601</a>    /// handlers set to catch signals are reset to SIG_DFL, but SIG_IGN
+<a href=#602 id=602 data-nosnippet>602</a>    /// remains ignored (implementation simplification: we reset all).
+<a href=#603 id=603 data-nosnippet>603</a>    </span><span class="kw">pub fn </span>reset_signals(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+<a href=#604 id=604 data-nosnippet>604</a>        <span class="comment">// SAFETY: We have a valid reference to the task.
+<a href=#605 id=605 data-nosnippet>605</a>        </span><span class="kw">unsafe </span>{
+<a href=#606 id=606 data-nosnippet>606</a>            <span class="kw">let </span>actions = <span class="kw-2">&amp;mut *</span><span class="self">self</span>.process.signal_actions.get();
+<a href=#607 id=607 data-nosnippet>607</a>            <span class="kw">for </span>action <span class="kw">in </span>actions.iter_mut() {
+<a href=#608 id=608 data-nosnippet>608</a>                <span class="kw-2">*</span>action = <span class="kw">super</span>::signal::SigActionData::default();
+<a href=#609 id=609 data-nosnippet>609</a>            }
+<a href=#610 id=610 data-nosnippet>610</a>        }
+<a href=#611 id=611 data-nosnippet>611</a>    }
+<a href=#612 id=612 data-nosnippet>612</a>
+<a href=#613 id=613 data-nosnippet>613</a>    <span class="doccomment">/// Returns true if this is a kernel task (shares the kernel address space).
+<a href=#614 id=614 data-nosnippet>614</a>    </span><span class="kw">pub fn </span>is_kernel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#615 id=615 data-nosnippet>615</a>        <span class="comment">// SAFETY: address_space is immutable for the lifetime of the Arc?
+<a href=#616 id=616 data-nosnippet>616</a>        // Actually we just updated it to SyncUnsafeCell.
+<a href=#617 id=617 data-nosnippet>617</a>        </span><span class="kw">unsafe </span>{ (<span class="kw-2">*</span><span class="self">self</span>.process.address_space.get()).is_kernel() }
+<a href=#618 id=618 data-nosnippet>618</a>    }
+<a href=#619 id=619 data-nosnippet>619</a>
+<a href=#620 id=620 data-nosnippet>620</a>    <span class="doccomment">/// Allocate POSIX identifiers for a new process leader.
+<a href=#621 id=621 data-nosnippet>621</a>    </span><span class="kw">pub fn </span>allocate_process_ids() -&gt; (Pid, Tid, Pid) {
+<a href=#622 id=622 data-nosnippet>622</a>        <span class="kw">let </span>pid = next_pid();
+<a href=#623 id=623 data-nosnippet>623</a>        <span class="kw">let </span>tid = next_tid();
+<a href=#624 id=624 data-nosnippet>624</a>        (pid, tid, pid)
+<a href=#625 id=625 data-nosnippet>625</a>    }
+<a href=#626 id=626 data-nosnippet>626</a>}
+<a href=#627 id=627 data-nosnippet>627</a>
+<a href=#628 id=628 data-nosnippet>628</a><span class="doccomment">/// Context switch dispatcher. Picks the xsave or fxsave path based on host
+<a href=#629 id=629 data-nosnippet>629</a>/// capabilities, then performs the full save/swap/restore sequence.
+<a href=#630 id=630 data-nosnippet>630</a>///
+<a href=#631 id=631 data-nosnippet>631</a>/// # Safety
+<a href=#632 id=632 data-nosnippet>632</a>/// Caller must ensure all pointers in `target` are valid and interrupts are disabled.
+<a href=#633 id=633 data-nosnippet>633</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_switch_context(target: <span class="kw-2">&amp;</span><span class="kw">super</span>::scheduler::SwitchTarget) {
+<a href=#634 id=634 data-nosnippet>634</a>    <span class="comment">// Temporary safety mode: force legacy FXSAVE/FXRSTOR path.
+<a href=#635 id=635 data-nosnippet>635</a>    // This avoids XSAVE/XRSTOR state-size mismatches that can corrupt task memory.
+<a href=#636 id=636 data-nosnippet>636</a>    </span><span class="kw">let _ </span>= target.old_xcr0;
+<a href=#637 id=637 data-nosnippet>637</a>    <span class="kw">let _ </span>= target.new_xcr0;
+<a href=#638 id=638 data-nosnippet>638</a>    switch_context_fxsave(
+<a href=#639 id=639 data-nosnippet>639</a>        target.old_rsp_ptr,
+<a href=#640 id=640 data-nosnippet>640</a>        target.new_rsp_ptr,
+<a href=#641 id=641 data-nosnippet>641</a>        target.old_fpu_ptr,
+<a href=#642 id=642 data-nosnippet>642</a>        target.new_fpu_ptr,
+<a href=#643 id=643 data-nosnippet>643</a>    );
+<a href=#644 id=644 data-nosnippet>644</a>}
+<a href=#645 id=645 data-nosnippet>645</a>
+<a href=#646 id=646 data-nosnippet>646</a><span class="doccomment">/// First-task restore dispatcher. Like `do_switch_context` but without
+<a href=#647 id=647 data-nosnippet>647</a>/// saving old state (there is no previous task).
+<a href=#648 id=648 data-nosnippet>648</a>///
+<a href=#649 id=649 data-nosnippet>649</a>/// # Safety
+<a href=#650 id=650 data-nosnippet>650</a>/// Caller must ensure pointers are valid and interrupts are disabled. Never returns.
+<a href=#651 id=651 data-nosnippet>651</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_restore_first_task(
+<a href=#652 id=652 data-nosnippet>652</a>    rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#653 id=653 data-nosnippet>653</a>    fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#654 id=654 data-nosnippet>654</a>    xcr0: u64,
+<a href=#655 id=655 data-nosnippet>655</a>) -&gt; ! {
+<a href=#656 id=656 data-nosnippet>656</a>    <span class="kw">let _ </span>= xcr0;
+<a href=#657 id=657 data-nosnippet>657</a>    restore_first_task_fxsave(rsp_ptr, fpu_ptr);
+<a href=#658 id=658 data-nosnippet>658</a>}
+<a href=#659 id=659 data-nosnippet>659</a>
+<a href=#660 id=660 data-nosnippet>660</a><span class="comment">// ── FXSAVE path (legacy, no XSAVE support) ──
+<a href=#661 id=661 data-nosnippet>661</a>
+<a href=#662 id=662 data-nosnippet>662</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu
+<a href=#663 id=663 data-nosnippet>663</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#664 id=664 data-nosnippet>664</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_fxsave(
+<a href=#665 id=665 data-nosnippet>665</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#666 id=666 data-nosnippet>666</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#667 id=667 data-nosnippet>667</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#668 id=668 data-nosnippet>668</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#669 id=669 data-nosnippet>669</a>) {
+<a href=#670 id=670 data-nosnippet>670</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#671 id=671 data-nosnippet>671</a>        <span class="string">"fxsave [rdx]"</span>,
+<a href=#672 id=672 data-nosnippet>672</a>        <span class="string">"push rbx"</span>,
+<a href=#673 id=673 data-nosnippet>673</a>        <span class="string">"push rbp"</span>,
+<a href=#674 id=674 data-nosnippet>674</a>        <span class="string">"push r12"</span>,
+<a href=#675 id=675 data-nosnippet>675</a>        <span class="string">"push r13"</span>,
+<a href=#676 id=676 data-nosnippet>676</a>        <span class="string">"push r14"</span>,
+<a href=#677 id=677 data-nosnippet>677</a>        <span class="string">"push r15"</span>,
+<a href=#678 id=678 data-nosnippet>678</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#679 id=679 data-nosnippet>679</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#680 id=680 data-nosnippet>680</a>        <span class="string">"pop r15"</span>,
+<a href=#681 id=681 data-nosnippet>681</a>        <span class="string">"pop r14"</span>,
+<a href=#682 id=682 data-nosnippet>682</a>        <span class="string">"pop r13"</span>,
+<a href=#683 id=683 data-nosnippet>683</a>        <span class="string">"pop r12"</span>,
+<a href=#684 id=684 data-nosnippet>684</a>        <span class="string">"pop rbp"</span>,
+<a href=#685 id=685 data-nosnippet>685</a>        <span class="string">"pop rbx"</span>,
+<a href=#686 id=686 data-nosnippet>686</a>        <span class="string">"fxrstor [rcx]"</span>,
+<a href=#687 id=687 data-nosnippet>687</a>        <span class="string">"ret"</span>,
+<a href=#688 id=688 data-nosnippet>688</a>    );
+<a href=#689 id=689 data-nosnippet>689</a>}
+<a href=#690 id=690 data-nosnippet>690</a>
+<a href=#691 id=691 data-nosnippet>691</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr
+<a href=#692 id=692 data-nosnippet>692</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#693 id=693 data-nosnippet>693</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_fxsave(
+<a href=#694 id=694 data-nosnippet>694</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#695 id=695 data-nosnippet>695</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#696 id=696 data-nosnippet>696</a>) -&gt; ! {
+<a href=#697 id=697 data-nosnippet>697</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#698 id=698 data-nosnippet>698</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#699 id=699 data-nosnippet>699</a>        <span class="string">"pop r15"</span>,
+<a href=#700 id=700 data-nosnippet>700</a>        <span class="string">"pop r14"</span>,
+<a href=#701 id=701 data-nosnippet>701</a>        <span class="string">"pop r13"</span>,
+<a href=#702 id=702 data-nosnippet>702</a>        <span class="string">"pop r12"</span>,
+<a href=#703 id=703 data-nosnippet>703</a>        <span class="string">"pop rbp"</span>,
+<a href=#704 id=704 data-nosnippet>704</a>        <span class="string">"pop rbx"</span>,
+<a href=#705 id=705 data-nosnippet>705</a>        <span class="string">"fxrstor [rsi]"</span>,
+<a href=#706 id=706 data-nosnippet>706</a>        <span class="string">"ret"</span>,
+<a href=#707 id=707 data-nosnippet>707</a>    );
+<a href=#708 id=708 data-nosnippet>708</a>}
+<a href=#709 id=709 data-nosnippet>709</a>
+<a href=#710 id=710 data-nosnippet>710</a><span class="comment">// ── XSAVE path (with XCR0 switching per-silo) ──
+<a href=#711 id=711 data-nosnippet>711</a>
+<a href=#712 id=712 data-nosnippet>712</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu, r8=new_xcr0, r9=old_xcr0
+<a href=#713 id=713 data-nosnippet>713</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#714 id=714 data-nosnippet>714</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_xsave(
+<a href=#715 id=715 data-nosnippet>715</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#716 id=716 data-nosnippet>716</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#717 id=717 data-nosnippet>717</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#718 id=718 data-nosnippet>718</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#719 id=719 data-nosnippet>719</a>    _new_xcr0: u64,
+<a href=#720 id=720 data-nosnippet>720</a>    _old_xcr0: u64,
+<a href=#721 id=721 data-nosnippet>721</a>) {
+<a href=#722 id=722 data-nosnippet>722</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#723 id=723 data-nosnippet>723</a>        <span class="string">"mov r10, rdx"</span>,
+<a href=#724 id=724 data-nosnippet>724</a>        <span class="string">"mov r11, r8"</span>,
+<a href=#725 id=725 data-nosnippet>725</a>        <span class="string">"test r11, r11"</span>,
+<a href=#726 id=726 data-nosnippet>726</a>        <span class="string">"jnz 10f"</span>,
+<a href=#727 id=727 data-nosnippet>727</a>        <span class="string">"mov r11, 3"</span>,
+<a href=#728 id=728 data-nosnippet>728</a>        <span class="string">"10:"</span>,
+<a href=#729 id=729 data-nosnippet>729</a>        <span class="string">"test r9, r9"</span>,
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="string">"jnz 11f"</span>,
+<a href=#731 id=731 data-nosnippet>731</a>        <span class="string">"mov r9, 3"</span>,
+<a href=#732 id=732 data-nosnippet>732</a>        <span class="string">"11:"</span>,
+<a href=#733 id=733 data-nosnippet>733</a>        <span class="string">"mov eax, r9d"</span>,
+<a href=#734 id=734 data-nosnippet>734</a>        <span class="string">"shr r9, 32"</span>,
+<a href=#735 id=735 data-nosnippet>735</a>        <span class="string">"mov edx, r9d"</span>,
+<a href=#736 id=736 data-nosnippet>736</a>        <span class="string">"xsave [r10]"</span>,
+<a href=#737 id=737 data-nosnippet>737</a>        <span class="string">"push rbx"</span>,
+<a href=#738 id=738 data-nosnippet>738</a>        <span class="string">"push rbp"</span>,
+<a href=#739 id=739 data-nosnippet>739</a>        <span class="string">"push r12"</span>,
+<a href=#740 id=740 data-nosnippet>740</a>        <span class="string">"push r13"</span>,
+<a href=#741 id=741 data-nosnippet>741</a>        <span class="string">"push r14"</span>,
+<a href=#742 id=742 data-nosnippet>742</a>        <span class="string">"push r15"</span>,
+<a href=#743 id=743 data-nosnippet>743</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#744 id=744 data-nosnippet>744</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#745 id=745 data-nosnippet>745</a>        <span class="string">"pop r15"</span>,
+<a href=#746 id=746 data-nosnippet>746</a>        <span class="string">"pop r14"</span>,
+<a href=#747 id=747 data-nosnippet>747</a>        <span class="string">"pop r13"</span>,
+<a href=#748 id=748 data-nosnippet>748</a>        <span class="string">"pop r12"</span>,
+<a href=#749 id=749 data-nosnippet>749</a>        <span class="string">"pop rbp"</span>,
+<a href=#750 id=750 data-nosnippet>750</a>        <span class="string">"pop rbx"</span>,
+<a href=#751 id=751 data-nosnippet>751</a>        <span class="string">"push rcx"</span>,
+<a href=#752 id=752 data-nosnippet>752</a>        <span class="string">"mov ecx, 0"</span>,
+<a href=#753 id=753 data-nosnippet>753</a>        <span class="string">"mov eax, r11d"</span>,
+<a href=#754 id=754 data-nosnippet>754</a>        <span class="string">"mov r8, r11"</span>,
+<a href=#755 id=755 data-nosnippet>755</a>        <span class="string">"shr r8, 32"</span>,
+<a href=#756 id=756 data-nosnippet>756</a>        <span class="string">"mov edx, r8d"</span>,
+<a href=#757 id=757 data-nosnippet>757</a>        <span class="string">"xsetbv"</span>,
+<a href=#758 id=758 data-nosnippet>758</a>        <span class="string">"pop rcx"</span>,
+<a href=#759 id=759 data-nosnippet>759</a>        <span class="string">"mov eax, r11d"</span>,
+<a href=#760 id=760 data-nosnippet>760</a>        <span class="string">"mov r8, r11"</span>,
+<a href=#761 id=761 data-nosnippet>761</a>        <span class="string">"shr r8, 32"</span>,
+<a href=#762 id=762 data-nosnippet>762</a>        <span class="string">"mov edx, r8d"</span>,
+<a href=#763 id=763 data-nosnippet>763</a>        <span class="string">"xrstor [rcx]"</span>,
+<a href=#764 id=764 data-nosnippet>764</a>        <span class="string">"ret"</span>,
+<a href=#765 id=765 data-nosnippet>765</a>    );
+<a href=#766 id=766 data-nosnippet>766</a>}
+<a href=#767 id=767 data-nosnippet>767</a>
+<a href=#768 id=768 data-nosnippet>768</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr, rdx=xcr0
+<a href=#769 id=769 data-nosnippet>769</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#770 id=770 data-nosnippet>770</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_xsave(
+<a href=#771 id=771 data-nosnippet>771</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#772 id=772 data-nosnippet>772</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#773 id=773 data-nosnippet>773</a>    _xcr0: u64,
+<a href=#774 id=774 data-nosnippet>774</a>) -&gt; ! {
+<a href=#775 id=775 data-nosnippet>775</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#776 id=776 data-nosnippet>776</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#777 id=777 data-nosnippet>777</a>        <span class="string">"pop r15"</span>,
+<a href=#778 id=778 data-nosnippet>778</a>        <span class="string">"pop r14"</span>,
+<a href=#779 id=779 data-nosnippet>779</a>        <span class="string">"pop r13"</span>,
+<a href=#780 id=780 data-nosnippet>780</a>        <span class="string">"pop r12"</span>,
+<a href=#781 id=781 data-nosnippet>781</a>        <span class="string">"pop rbp"</span>,
+<a href=#782 id=782 data-nosnippet>782</a>        <span class="string">"pop rbx"</span>,
+<a href=#783 id=783 data-nosnippet>783</a>        <span class="string">"mov r8, rdx"</span>,
+<a href=#784 id=784 data-nosnippet>784</a>        <span class="string">"test r8, r8"</span>,
+<a href=#785 id=785 data-nosnippet>785</a>        <span class="string">"jnz 10f"</span>,
+<a href=#786 id=786 data-nosnippet>786</a>        <span class="string">"mov r8, 3"</span>,
+<a href=#787 id=787 data-nosnippet>787</a>        <span class="string">"10:"</span>,
+<a href=#788 id=788 data-nosnippet>788</a>        <span class="string">"mov r9, r8"</span>,
+<a href=#789 id=789 data-nosnippet>789</a>        <span class="string">"push rsi"</span>,
+<a href=#790 id=790 data-nosnippet>790</a>        <span class="string">"mov ecx, 0"</span>,
+<a href=#791 id=791 data-nosnippet>791</a>        <span class="string">"mov eax, r8d"</span>,
+<a href=#792 id=792 data-nosnippet>792</a>        <span class="string">"shr r8, 32"</span>,
+<a href=#793 id=793 data-nosnippet>793</a>        <span class="string">"mov edx, r8d"</span>,
+<a href=#794 id=794 data-nosnippet>794</a>        <span class="string">"xsetbv"</span>,
+<a href=#795 id=795 data-nosnippet>795</a>        <span class="string">"pop rsi"</span>,
+<a href=#796 id=796 data-nosnippet>796</a>        <span class="string">"mov eax, r9d"</span>,
+<a href=#797 id=797 data-nosnippet>797</a>        <span class="string">"shr r9, 32"</span>,
+<a href=#798 id=798 data-nosnippet>798</a>        <span class="string">"mov edx, r9d"</span>,
+<a href=#799 id=799 data-nosnippet>799</a>        <span class="string">"xrstor [rsi]"</span>,
+<a href=#800 id=800 data-nosnippet>800</a>        <span class="string">"ret"</span>,
+<a href=#801 id=801 data-nosnippet>801</a>    );
+<a href=#802 id=802 data-nosnippet>802</a>}
 </code></pre></div></section></main></body></html>

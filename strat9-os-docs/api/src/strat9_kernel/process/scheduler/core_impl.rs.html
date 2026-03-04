@@ -288,180 +288,195 @@
 <a href=#288 id=288 data-nosnippet>288</a>        </span><span class="kw">unsafe </span>{
 <a href=#289 id=289 data-nosnippet>289</a>            <span class="kw-2">*</span>next_task.state.get() = TaskState::Running;
 <a href=#290 id=290 data-nosnippet>290</a>        }
-<a href=#291 id=291 data-nosnippet>291</a>        <span class="self">self</span>.cpus[cpu_index].current_task = <span class="prelude-val">Some</span>(next_task.clone());
-<a href=#292 id=292 data-nosnippet>292</a>        <span class="comment">// Reset the runtime accounting for the new task
-<a href=#293 id=293 data-nosnippet>293</a>        </span><span class="self">self</span>.cpus[cpu_index].current_runtime = <span class="kw">crate</span>::process::sched::CurrentRuntime::new();
-<a href=#294 id=294 data-nosnippet>294</a>        sched_trace(<span class="macro">format_args!</span>(
-<a href=#295 id=295 data-nosnippet>295</a>            <span class="string">"cpu={} pick_next task={} policy={:?}"</span>,
-<a href=#296 id=296 data-nosnippet>296</a>            cpu_index,
-<a href=#297 id=297 data-nosnippet>297</a>            next_task.id.as_u64(),
-<a href=#298 id=298 data-nosnippet>298</a>            next_task.sched_policy()
-<a href=#299 id=299 data-nosnippet>299</a>        ));
-<a href=#300 id=300 data-nosnippet>300</a>        next_task
-<a href=#301 id=301 data-nosnippet>301</a>    }
-<a href=#302 id=302 data-nosnippet>302</a>
-<a href=#303 id=303 data-nosnippet>303</a>    <span class="doccomment">/// Try to steal one task from the most-loaded other CPU.
-<a href=#304 id=304 data-nosnippet>304</a>    ///
-<a href=#305 id=305 data-nosnippet>305</a>    /// We steal from the **back** of the source queue (the task added most
-<a href=#306 id=306 data-nosnippet>306</a>    /// recently — least likely to have warm cache data on that CPU).
-<a href=#307 id=307 data-nosnippet>307</a>    /// We only steal when the source has ≥ 2 tasks, so it keeps at least one.
-<a href=#308 id=308 data-nosnippet>308</a>    </span><span class="kw">pub fn </span>steal_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dst_cpu: usize, now_tick: u64) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;Task&gt;&gt; {
-<a href=#309 id=309 data-nosnippet>309</a>        <span class="kw">if </span>!cpu_is_valid(dst_cpu) || dst_cpu &gt;= <span class="self">self</span>.cpus.len() {
-<a href=#310 id=310 data-nosnippet>310</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#311 id=311 data-nosnippet>311</a>        }
-<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span>last = LAST_STEAL_TICK[dst_cpu].load(Ordering::Relaxed);
-<a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">if </span>now_tick.saturating_sub(last) &lt; STEAL_COOLDOWN_TICKS {
-<a href=#314 id=314 data-nosnippet>314</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#315 id=315 data-nosnippet>315</a>        }
-<a href=#316 id=316 data-nosnippet>316</a>
-<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span>dst_load = {
-<a href=#318 id=318 data-nosnippet>318</a>            <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[dst_cpu];
-<a href=#319 id=319 data-nosnippet>319</a>            cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some())
-<a href=#320 id=320 data-nosnippet>320</a>        };
-<a href=#321 id=321 data-nosnippet>321</a>
-<a href=#322 id=322 data-nosnippet>322</a>        <span class="comment">// Find the busiest CPU that isn't ourselves.
-<a href=#323 id=323 data-nosnippet>323</a>        </span><span class="kw">let </span>(best_src, best_src_load) = (<span class="number">0</span>..<span class="self">self</span>.cpus.len())
-<a href=#324 id=324 data-nosnippet>324</a>            .filter(|<span class="kw-2">&amp;</span>i| i != dst_cpu)
-<a href=#325 id=325 data-nosnippet>325</a>            .map(|i| {
-<a href=#326 id=326 data-nosnippet>326</a>                <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[i];
-<a href=#327 id=327 data-nosnippet>327</a>                <span class="kw">let </span>load = cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some());
-<a href=#328 id=328 data-nosnippet>328</a>                (i, load)
-<a href=#329 id=329 data-nosnippet>329</a>            })
-<a href=#330 id=330 data-nosnippet>330</a>            .max_by_key(|(<span class="kw">_</span>, load)| <span class="kw-2">*</span>load)<span class="question-mark">?</span>;
-<a href=#331 id=331 data-nosnippet>331</a>
-<a href=#332 id=332 data-nosnippet>332</a>        <span class="kw">if </span>best_src_load &lt; dst_load.saturating_add(STEAL_IMBALANCE_MIN) {
-<a href=#333 id=333 data-nosnippet>333</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#334 id=334 data-nosnippet>334</a>        }
-<a href=#335 id=335 data-nosnippet>335</a>
-<a href=#336 id=336 data-nosnippet>336</a>        <span class="comment">// Only steal if source will still have work left.
-<a href=#337 id=337 data-nosnippet>337</a>        </span><span class="kw">if </span><span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() &lt; <span class="number">2 </span>{
-<a href=#338 id=338 data-nosnippet>338</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#339 id=339 data-nosnippet>339</a>        }
-<a href=#340 id=340 data-nosnippet>340</a>
-<a href=#341 id=341 data-nosnippet>341</a>        <span class="kw">let </span>task = <span class="self">self</span>.cpus[best_src]
-<a href=#342 id=342 data-nosnippet>342</a>            .class_rqs
-<a href=#343 id=343 data-nosnippet>343</a>            .steal_candidate(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)<span class="question-mark">?</span>;
-<a href=#344 id=344 data-nosnippet>344</a>        <span class="comment">// Update the task-&gt;CPU mapping so wake/resume route correctly.
-<a href=#345 id=345 data-nosnippet>345</a>        </span><span class="self">self</span>.task_cpu.insert(task.id, dst_cpu);
-<a href=#346 id=346 data-nosnippet>346</a>        <span class="macro">log::trace!</span>(
-<a href=#347 id=347 data-nosnippet>347</a>            <span class="string">"WS: CPU {} stole task {:?} from CPU {} (src had {} tasks)"</span>,
-<a href=#348 id=348 data-nosnippet>348</a>            dst_cpu,
-<a href=#349 id=349 data-nosnippet>349</a>            task.id,
-<a href=#350 id=350 data-nosnippet>350</a>            best_src,
-<a href=#351 id=351 data-nosnippet>351</a>            <span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() + <span class="number">1
-<a href=#352 id=352 data-nosnippet>352</a>        </span>);
-<a href=#353 id=353 data-nosnippet>353</a>        sched_trace(<span class="macro">format_args!</span>(
-<a href=#354 id=354 data-nosnippet>354</a>            <span class="string">"work-steal dst_cpu={} src_cpu={} task={}"</span>,
-<a href=#355 id=355 data-nosnippet>355</a>            dst_cpu,
-<a href=#356 id=356 data-nosnippet>356</a>            best_src,
-<a href=#357 id=357 data-nosnippet>357</a>            task.id.as_u64()
-<a href=#358 id=358 data-nosnippet>358</a>        ));
-<a href=#359 id=359 data-nosnippet>359</a>        <span class="kw">if </span>cpu_is_valid(dst_cpu) {
-<a href=#360 id=360 data-nosnippet>360</a>            CPU_STEAL_IN_COUNT[dst_cpu].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#361 id=361 data-nosnippet>361</a>        }
-<a href=#362 id=362 data-nosnippet>362</a>        <span class="kw">if </span>cpu_is_valid(best_src) {
-<a href=#363 id=363 data-nosnippet>363</a>            CPU_STEAL_OUT_COUNT[best_src].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#291 id=291 data-nosnippet>291</a>        <span class="kw">let </span>cloned = next_task.clone();
+<a href=#292 id=292 data-nosnippet>292</a>        <span class="kw">let </span>strong_after = Arc::strong_count(<span class="kw-2">&amp;</span>cloned);
+<a href=#293 id=293 data-nosnippet>293</a>        <span class="self">self</span>.cpus[cpu_index].current_task = <span class="prelude-val">Some</span>(cloned);
+<a href=#294 id=294 data-nosnippet>294</a>        <span class="comment">// Reset the runtime accounting for the new task
+<a href=#295 id=295 data-nosnippet>295</a>        </span><span class="self">self</span>.cpus[cpu_index].current_runtime = <span class="kw">crate</span>::process::sched::CurrentRuntime::new();
+<a href=#296 id=296 data-nosnippet>296</a>        sched_trace(<span class="macro">format_args!</span>(
+<a href=#297 id=297 data-nosnippet>297</a>            <span class="string">"cpu={} pick_next task={} policy={:?} strong={}"</span>,
+<a href=#298 id=298 data-nosnippet>298</a>            cpu_index,
+<a href=#299 id=299 data-nosnippet>299</a>            next_task.id.as_u64(),
+<a href=#300 id=300 data-nosnippet>300</a>            next_task.sched_policy(),
+<a href=#301 id=301 data-nosnippet>301</a>            strong_after,
+<a href=#302 id=302 data-nosnippet>302</a>        ));
+<a href=#303 id=303 data-nosnippet>303</a>        next_task
+<a href=#304 id=304 data-nosnippet>304</a>    }
+<a href=#305 id=305 data-nosnippet>305</a>
+<a href=#306 id=306 data-nosnippet>306</a>    <span class="doccomment">/// Try to steal one task from the most-loaded other CPU.
+<a href=#307 id=307 data-nosnippet>307</a>    ///
+<a href=#308 id=308 data-nosnippet>308</a>    /// We steal from the **back** of the source queue (the task added most
+<a href=#309 id=309 data-nosnippet>309</a>    /// recently — least likely to have warm cache data on that CPU).
+<a href=#310 id=310 data-nosnippet>310</a>    /// We only steal when the source has ≥ 2 tasks, so it keeps at least one.
+<a href=#311 id=311 data-nosnippet>311</a>    </span><span class="kw">pub fn </span>steal_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dst_cpu: usize, now_tick: u64) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;Task&gt;&gt; {
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">if </span>!cpu_is_valid(dst_cpu) || dst_cpu &gt;= <span class="self">self</span>.cpus.len() {
+<a href=#313 id=313 data-nosnippet>313</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#314 id=314 data-nosnippet>314</a>        }
+<a href=#315 id=315 data-nosnippet>315</a>        <span class="kw">let </span>last = LAST_STEAL_TICK[dst_cpu].load(Ordering::Relaxed);
+<a href=#316 id=316 data-nosnippet>316</a>        <span class="kw">if </span>now_tick.saturating_sub(last) &lt; STEAL_COOLDOWN_TICKS {
+<a href=#317 id=317 data-nosnippet>317</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#318 id=318 data-nosnippet>318</a>        }
+<a href=#319 id=319 data-nosnippet>319</a>
+<a href=#320 id=320 data-nosnippet>320</a>        <span class="kw">let </span>dst_load = {
+<a href=#321 id=321 data-nosnippet>321</a>            <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[dst_cpu];
+<a href=#322 id=322 data-nosnippet>322</a>            cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some())
+<a href=#323 id=323 data-nosnippet>323</a>        };
+<a href=#324 id=324 data-nosnippet>324</a>
+<a href=#325 id=325 data-nosnippet>325</a>        <span class="comment">// Find the busiest CPU that isn't ourselves.
+<a href=#326 id=326 data-nosnippet>326</a>        </span><span class="kw">let </span>(best_src, best_src_load) = (<span class="number">0</span>..<span class="self">self</span>.cpus.len())
+<a href=#327 id=327 data-nosnippet>327</a>            .filter(|<span class="kw-2">&amp;</span>i| i != dst_cpu)
+<a href=#328 id=328 data-nosnippet>328</a>            .map(|i| {
+<a href=#329 id=329 data-nosnippet>329</a>                <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[i];
+<a href=#330 id=330 data-nosnippet>330</a>                <span class="kw">let </span>load = cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some());
+<a href=#331 id=331 data-nosnippet>331</a>                (i, load)
+<a href=#332 id=332 data-nosnippet>332</a>            })
+<a href=#333 id=333 data-nosnippet>333</a>            .max_by_key(|(<span class="kw">_</span>, load)| <span class="kw-2">*</span>load)<span class="question-mark">?</span>;
+<a href=#334 id=334 data-nosnippet>334</a>
+<a href=#335 id=335 data-nosnippet>335</a>        <span class="kw">if </span>best_src_load &lt; dst_load.saturating_add(STEAL_IMBALANCE_MIN) {
+<a href=#336 id=336 data-nosnippet>336</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#337 id=337 data-nosnippet>337</a>        }
+<a href=#338 id=338 data-nosnippet>338</a>
+<a href=#339 id=339 data-nosnippet>339</a>        <span class="comment">// Only steal if source will still have work left.
+<a href=#340 id=340 data-nosnippet>340</a>        </span><span class="kw">if </span><span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() &lt; <span class="number">2 </span>{
+<a href=#341 id=341 data-nosnippet>341</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#342 id=342 data-nosnippet>342</a>        }
+<a href=#343 id=343 data-nosnippet>343</a>
+<a href=#344 id=344 data-nosnippet>344</a>        <span class="kw">let </span>task = <span class="self">self</span>.cpus[best_src]
+<a href=#345 id=345 data-nosnippet>345</a>            .class_rqs
+<a href=#346 id=346 data-nosnippet>346</a>            .steal_candidate(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)<span class="question-mark">?</span>;
+<a href=#347 id=347 data-nosnippet>347</a>        <span class="comment">// Update the task-&gt;CPU mapping so wake/resume route correctly.
+<a href=#348 id=348 data-nosnippet>348</a>        </span><span class="self">self</span>.task_cpu.insert(task.id, dst_cpu);
+<a href=#349 id=349 data-nosnippet>349</a>        <span class="macro">log::trace!</span>(
+<a href=#350 id=350 data-nosnippet>350</a>            <span class="string">"WS: CPU {} stole task {:?} from CPU {} (src had {} tasks)"</span>,
+<a href=#351 id=351 data-nosnippet>351</a>            dst_cpu,
+<a href=#352 id=352 data-nosnippet>352</a>            task.id,
+<a href=#353 id=353 data-nosnippet>353</a>            best_src,
+<a href=#354 id=354 data-nosnippet>354</a>            <span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() + <span class="number">1
+<a href=#355 id=355 data-nosnippet>355</a>        </span>);
+<a href=#356 id=356 data-nosnippet>356</a>        sched_trace(<span class="macro">format_args!</span>(
+<a href=#357 id=357 data-nosnippet>357</a>            <span class="string">"work-steal dst_cpu={} src_cpu={} task={}"</span>,
+<a href=#358 id=358 data-nosnippet>358</a>            dst_cpu,
+<a href=#359 id=359 data-nosnippet>359</a>            best_src,
+<a href=#360 id=360 data-nosnippet>360</a>            task.id.as_u64()
+<a href=#361 id=361 data-nosnippet>361</a>        ));
+<a href=#362 id=362 data-nosnippet>362</a>        <span class="kw">if </span>cpu_is_valid(dst_cpu) {
+<a href=#363 id=363 data-nosnippet>363</a>            CPU_STEAL_IN_COUNT[dst_cpu].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
 <a href=#364 id=364 data-nosnippet>364</a>        }
-<a href=#365 id=365 data-nosnippet>365</a>        LAST_STEAL_TICK[dst_cpu].store(now_tick, Ordering::Relaxed);
-<a href=#366 id=366 data-nosnippet>366</a>        <span class="prelude-val">Some</span>(task)
-<a href=#367 id=367 data-nosnippet>367</a>    }
-<a href=#368 id=368 data-nosnippet>368</a>
-<a href=#369 id=369 data-nosnippet>369</a>    <span class="doccomment">/// Prepare a context switch: pick next task, update TSS and CR3,
-<a href=#370 id=370 data-nosnippet>370</a>    /// return raw pointers for `switch_context()`.
-<a href=#371 id=371 data-nosnippet>371</a>    ///
-<a href=#372 id=372 data-nosnippet>372</a>    /// Returns `None` if there's nothing to switch to (same task selected,
-<a href=#373 id=373 data-nosnippet>373</a>    /// or no current task).
-<a href=#374 id=374 data-nosnippet>374</a>    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>yield_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; <span class="prelude-ty">Option</span>&lt;SwitchTarget&gt; {
-<a href=#375 id=375 data-nosnippet>375</a>        <span class="kw">if </span>cpu_index &gt;= <span class="self">self</span>.cpus.len() {
-<a href=#376 id=376 data-nosnippet>376</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#377 id=377 data-nosnippet>377</a>        }
-<a href=#378 id=378 data-nosnippet>378</a>        <span class="comment">// Must have a current task to yield from
-<a href=#379 id=379 data-nosnippet>379</a>        </span><span class="kw">let </span>current = <span class="self">self</span>.cpus[cpu_index].current_task.as_ref()<span class="question-mark">?</span>.clone();
-<a href=#380 id=380 data-nosnippet>380</a>
-<a href=#381 id=381 data-nosnippet>381</a>        <span class="comment">// Pick the next task
-<a href=#382 id=382 data-nosnippet>382</a>        </span><span class="kw">let </span>next = <span class="self">self</span>.pick_next_task(cpu_index);
-<a href=#383 id=383 data-nosnippet>383</a>
-<a href=#384 id=384 data-nosnippet>384</a>        <span class="comment">// Don't switch to ourselves
-<a href=#385 id=385 data-nosnippet>385</a>        </span><span class="kw">if </span>Arc::ptr_eq(<span class="kw-2">&amp;</span>current, <span class="kw-2">&amp;</span>next) {
-<a href=#386 id=386 data-nosnippet>386</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#387 id=387 data-nosnippet>387</a>        }
-<a href=#388 id=388 data-nosnippet>388</a>        <span class="kw">if </span>cpu_is_valid(cpu_index) {
-<a href=#389 id=389 data-nosnippet>389</a>            CPU_SWITCH_COUNT[cpu_index].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#390 id=390 data-nosnippet>390</a>        }
-<a href=#391 id=391 data-nosnippet>391</a>
-<a href=#392 id=392 data-nosnippet>392</a>        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = validate_task_context(<span class="kw-2">&amp;</span>next) {
-<a href=#393 id=393 data-nosnippet>393</a>            <span class="macro">panic!</span>(
-<a href=#394 id=394 data-nosnippet>394</a>                <span class="string">"scheduler: refusing to switch to invalid task '{}' (id={:?}): {}"</span>,
-<a href=#395 id=395 data-nosnippet>395</a>                next.name, next.id, e
-<a href=#396 id=396 data-nosnippet>396</a>            );
-<a href=#397 id=397 data-nosnippet>397</a>        }
-<a href=#398 id=398 data-nosnippet>398</a>
-<a href=#399 id=399 data-nosnippet>399</a>        <span class="comment">// Update TSS.rsp0 for the new task (needed for Ring 3 -&gt; Ring 0 transitions)
-<a href=#400 id=400 data-nosnippet>400</a>        </span><span class="kw">let </span>stack_top = next.kernel_stack.virt_base.as_u64() + next.kernel_stack.size <span class="kw">as </span>u64;
-<a href=#401 id=401 data-nosnippet>401</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack(x86_64::VirtAddr::new(stack_top));
-<a href=#402 id=402 data-nosnippet>402</a>
-<a href=#403 id=403 data-nosnippet>403</a>        <span class="comment">// Update SYSCALL kernel RSP for the new task
-<a href=#404 id=404 data-nosnippet>404</a>        </span><span class="kw">crate</span>::arch::x86_64::syscall::set_kernel_rsp(stack_top);
+<a href=#365 id=365 data-nosnippet>365</a>        <span class="kw">if </span>cpu_is_valid(best_src) {
+<a href=#366 id=366 data-nosnippet>366</a>            CPU_STEAL_OUT_COUNT[best_src].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#367 id=367 data-nosnippet>367</a>        }
+<a href=#368 id=368 data-nosnippet>368</a>        LAST_STEAL_TICK[dst_cpu].store(now_tick, Ordering::Relaxed);
+<a href=#369 id=369 data-nosnippet>369</a>        <span class="prelude-val">Some</span>(task)
+<a href=#370 id=370 data-nosnippet>370</a>    }
+<a href=#371 id=371 data-nosnippet>371</a>
+<a href=#372 id=372 data-nosnippet>372</a>    <span class="doccomment">/// Prepare a context switch: pick next task, update TSS and CR3,
+<a href=#373 id=373 data-nosnippet>373</a>    /// return raw pointers for `switch_context()`.
+<a href=#374 id=374 data-nosnippet>374</a>    ///
+<a href=#375 id=375 data-nosnippet>375</a>    /// Returns `None` if there's nothing to switch to (same task selected,
+<a href=#376 id=376 data-nosnippet>376</a>    /// or no current task).
+<a href=#377 id=377 data-nosnippet>377</a>    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>yield_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; <span class="prelude-ty">Option</span>&lt;SwitchTarget&gt; {
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw">if </span>cpu_index &gt;= <span class="self">self</span>.cpus.len() {
+<a href=#379 id=379 data-nosnippet>379</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#380 id=380 data-nosnippet>380</a>        }
+<a href=#381 id=381 data-nosnippet>381</a>        <span class="comment">// Must have a current task to yield from
+<a href=#382 id=382 data-nosnippet>382</a>        </span><span class="kw">let </span>current_ref = <span class="self">self</span>.cpus[cpu_index].current_task.as_ref()<span class="question-mark">?</span>;
+<a href=#383 id=383 data-nosnippet>383</a>        <span class="kw">let </span>strong_before = Arc::strong_count(current_ref);
+<a href=#384 id=384 data-nosnippet>384</a>        <span class="kw">if </span>strong_before == <span class="number">0 </span>|| strong_before &gt; (isize::MAX <span class="kw">as </span>usize) {
+<a href=#385 id=385 data-nosnippet>385</a>            <span class="macro">log::error!</span>(
+<a href=#386 id=386 data-nosnippet>386</a>                <span class="string">"[sched] CORRUPT Arc in yield_cpu before clone! cpu={} strong={:#x} task={} ptr={:p}"</span>,
+<a href=#387 id=387 data-nosnippet>387</a>                cpu_index, strong_before,
+<a href=#388 id=388 data-nosnippet>388</a>                current_ref.id.as_u64(),
+<a href=#389 id=389 data-nosnippet>389</a>                Arc::as_ptr(current_ref) <span class="kw">as </span><span class="kw-2">*const </span>u8,
+<a href=#390 id=390 data-nosnippet>390</a>            );
+<a href=#391 id=391 data-nosnippet>391</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#392 id=392 data-nosnippet>392</a>        }
+<a href=#393 id=393 data-nosnippet>393</a>        <span class="kw">let </span>current = current_ref.clone();
+<a href=#394 id=394 data-nosnippet>394</a>
+<a href=#395 id=395 data-nosnippet>395</a>        <span class="comment">// Pick the next task
+<a href=#396 id=396 data-nosnippet>396</a>        </span><span class="kw">let </span>next = <span class="self">self</span>.pick_next_task(cpu_index);
+<a href=#397 id=397 data-nosnippet>397</a>
+<a href=#398 id=398 data-nosnippet>398</a>        <span class="comment">// Don't switch to ourselves
+<a href=#399 id=399 data-nosnippet>399</a>        </span><span class="kw">if </span>Arc::ptr_eq(<span class="kw-2">&amp;</span>current, <span class="kw-2">&amp;</span>next) {
+<a href=#400 id=400 data-nosnippet>400</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#401 id=401 data-nosnippet>401</a>        }
+<a href=#402 id=402 data-nosnippet>402</a>        <span class="kw">if </span>cpu_is_valid(cpu_index) {
+<a href=#403 id=403 data-nosnippet>403</a>            CPU_SWITCH_COUNT[cpu_index].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#404 id=404 data-nosnippet>404</a>        }
 <a href=#405 id=405 data-nosnippet>405</a>
-<a href=#406 id=406 data-nosnippet>406</a>        <span class="comment">// Switch CR3 if the new task has a different address space
-<a href=#407 id=407 data-nosnippet>407</a>        // SAFETY: The new task's address space has a valid PML4 with the kernel half mapped.
-<a href=#408 id=408 data-nosnippet>408</a>        </span><span class="kw">unsafe </span>{
-<a href=#409 id=409 data-nosnippet>409</a>            (<span class="kw-2">*</span>next.process.address_space.get()).switch_to();
-<a href=#410 id=410 data-nosnippet>410</a>        }
-<a href=#411 id=411 data-nosnippet>411</a>
-<a href=#412 id=412 data-nosnippet>412</a>        <span class="prelude-val">Some</span>(SwitchTarget {
-<a href=#413 id=413 data-nosnippet>413</a>            old_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw </span><span class="kw-2">mut </span>(<span class="kw-2">*</span>current.context.get()).saved_rsp },
-<a href=#414 id=414 data-nosnippet>414</a>            new_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw const </span>(<span class="kw-2">*</span>next.context.get()).saved_rsp },
-<a href=#415 id=415 data-nosnippet>415</a>            old_fpu_ptr: current.fpu_state.get() <span class="kw">as </span><span class="kw-2">*mut </span>u8,
-<a href=#416 id=416 data-nosnippet>416</a>            new_fpu_ptr: next.fpu_state.get() <span class="kw">as </span><span class="kw-2">*const </span>u8,
-<a href=#417 id=417 data-nosnippet>417</a>            new_xcr0: next.xcr0_mask.load(core::sync::atomic::Ordering::Relaxed),
-<a href=#418 id=418 data-nosnippet>418</a>        })
-<a href=#419 id=419 data-nosnippet>419</a>    }
-<a href=#420 id=420 data-nosnippet>420</a>
-<a href=#421 id=421 data-nosnippet>421</a>    <span class="doccomment">/// Performs the select cpu for task operation.
-<a href=#422 id=422 data-nosnippet>422</a>    </span><span class="kw">fn </span>select_cpu_for_task(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-<a href=#423 id=423 data-nosnippet>423</a>        <span class="kw">let </span><span class="kw-2">mut </span>best = <span class="number">0usize</span>;
-<a href=#424 id=424 data-nosnippet>424</a>        <span class="kw">let </span><span class="kw-2">mut </span>best_load = usize::MAX;
-<a href=#425 id=425 data-nosnippet>425</a>        <span class="kw">for </span>(idx, cpu) <span class="kw">in </span><span class="self">self</span>.cpus.iter().enumerate() {
-<a href=#426 id=426 data-nosnippet>426</a>            <span class="kw">let </span><span class="kw-2">mut </span>load = cpu.class_rqs.runnable_len();
-<a href=#427 id=427 data-nosnippet>427</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = cpu.current_task.as_ref() {
-<a href=#428 id=428 data-nosnippet>428</a>                <span class="kw">if </span><span class="self">self</span>.class_table.class_for_task(current)
-<a href=#429 id=429 data-nosnippet>429</a>                    != <span class="kw">crate</span>::process::sched::SchedClassId::Idle
-<a href=#430 id=430 data-nosnippet>430</a>                {
-<a href=#431 id=431 data-nosnippet>431</a>                    load += <span class="number">1</span>;
-<a href=#432 id=432 data-nosnippet>432</a>                }
-<a href=#433 id=433 data-nosnippet>433</a>            }
-<a href=#434 id=434 data-nosnippet>434</a>            <span class="kw">if </span>load &lt; best_load {
-<a href=#435 id=435 data-nosnippet>435</a>                best = idx;
-<a href=#436 id=436 data-nosnippet>436</a>                best_load = load;
-<a href=#437 id=437 data-nosnippet>437</a>            }
-<a href=#438 id=438 data-nosnippet>438</a>        }
-<a href=#439 id=439 data-nosnippet>439</a>        best
-<a href=#440 id=440 data-nosnippet>440</a>    }
-<a href=#441 id=441 data-nosnippet>441</a>
-<a href=#442 id=442 data-nosnippet>442</a>    <span class="doccomment">/// Performs the migrate ready tasks for new class table operation.
-<a href=#443 id=443 data-nosnippet>443</a>    </span><span class="kw">pub fn </span>migrate_ready_tasks_for_new_class_table(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#444 id=444 data-nosnippet>444</a>        <span class="kw">let </span><span class="kw-2">mut </span>ready: Vec&lt;(TaskId, Arc&lt;Task&gt;, usize)&gt; = Vec::new();
-<a href=#445 id=445 data-nosnippet>445</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span><span class="self">self</span>.all_tasks.iter() {
-<a href=#446 id=446 data-nosnippet>446</a>            <span class="comment">// SAFETY: scheduler lock is held by caller; task state is synchronized by scheduler.
-<a href=#447 id=447 data-nosnippet>447</a>            </span><span class="kw">let </span>state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
-<a href=#448 id=448 data-nosnippet>448</a>            <span class="kw">if </span>state != TaskState::Ready {
-<a href=#449 id=449 data-nosnippet>449</a>                <span class="kw">continue</span>;
-<a href=#450 id=450 data-nosnippet>450</a>            }
-<a href=#451 id=451 data-nosnippet>451</a>            <span class="kw">let </span>cpu = <span class="self">self</span>.task_cpu.get(id).copied().unwrap_or(<span class="number">0</span>);
-<a href=#452 id=452 data-nosnippet>452</a>            ready.push((<span class="kw-2">*</span>id, task.clone(), cpu));
+<a href=#406 id=406 data-nosnippet>406</a>        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = validate_task_context(<span class="kw-2">&amp;</span>next) {
+<a href=#407 id=407 data-nosnippet>407</a>            <span class="macro">panic!</span>(
+<a href=#408 id=408 data-nosnippet>408</a>                <span class="string">"scheduler: refusing to switch to invalid task '{}' (id={:?}): {}"</span>,
+<a href=#409 id=409 data-nosnippet>409</a>                next.name, next.id, e
+<a href=#410 id=410 data-nosnippet>410</a>            );
+<a href=#411 id=411 data-nosnippet>411</a>        }
+<a href=#412 id=412 data-nosnippet>412</a>
+<a href=#413 id=413 data-nosnippet>413</a>        <span class="comment">// Update TSS.rsp0 for the new task (needed for Ring 3 -&gt; Ring 0 transitions)
+<a href=#414 id=414 data-nosnippet>414</a>        </span><span class="kw">let </span>stack_top = next.kernel_stack.virt_base.as_u64() + next.kernel_stack.size <span class="kw">as </span>u64;
+<a href=#415 id=415 data-nosnippet>415</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack(x86_64::VirtAddr::new(stack_top));
+<a href=#416 id=416 data-nosnippet>416</a>
+<a href=#417 id=417 data-nosnippet>417</a>        <span class="comment">// Update SYSCALL kernel RSP for the new task
+<a href=#418 id=418 data-nosnippet>418</a>        </span><span class="kw">crate</span>::arch::x86_64::syscall::set_kernel_rsp(stack_top);
+<a href=#419 id=419 data-nosnippet>419</a>
+<a href=#420 id=420 data-nosnippet>420</a>        <span class="comment">// Switch CR3 if the new task has a different address space
+<a href=#421 id=421 data-nosnippet>421</a>        // SAFETY: The new task's address space has a valid PML4 with the kernel half mapped.
+<a href=#422 id=422 data-nosnippet>422</a>        </span><span class="kw">unsafe </span>{
+<a href=#423 id=423 data-nosnippet>423</a>            (<span class="kw-2">*</span>next.process.address_space.get()).switch_to();
+<a href=#424 id=424 data-nosnippet>424</a>        }
+<a href=#425 id=425 data-nosnippet>425</a>
+<a href=#426 id=426 data-nosnippet>426</a>        <span class="prelude-val">Some</span>(SwitchTarget {
+<a href=#427 id=427 data-nosnippet>427</a>            old_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw </span><span class="kw-2">mut </span>(<span class="kw-2">*</span>current.context.get()).saved_rsp },
+<a href=#428 id=428 data-nosnippet>428</a>            new_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw const </span>(<span class="kw-2">*</span>next.context.get()).saved_rsp },
+<a href=#429 id=429 data-nosnippet>429</a>            old_fpu_ptr: current.fpu_state.get() <span class="kw">as </span><span class="kw-2">*mut </span>u8,
+<a href=#430 id=430 data-nosnippet>430</a>            new_fpu_ptr: next.fpu_state.get() <span class="kw">as </span><span class="kw-2">*const </span>u8,
+<a href=#431 id=431 data-nosnippet>431</a>            old_xcr0: current.xcr0_mask.load(core::sync::atomic::Ordering::Relaxed),
+<a href=#432 id=432 data-nosnippet>432</a>            new_xcr0: next.xcr0_mask.load(core::sync::atomic::Ordering::Relaxed),
+<a href=#433 id=433 data-nosnippet>433</a>        })
+<a href=#434 id=434 data-nosnippet>434</a>    }
+<a href=#435 id=435 data-nosnippet>435</a>
+<a href=#436 id=436 data-nosnippet>436</a>    <span class="doccomment">/// Performs the select cpu for task operation.
+<a href=#437 id=437 data-nosnippet>437</a>    </span><span class="kw">fn </span>select_cpu_for_task(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+<a href=#438 id=438 data-nosnippet>438</a>        <span class="kw">let </span><span class="kw-2">mut </span>best = <span class="number">0usize</span>;
+<a href=#439 id=439 data-nosnippet>439</a>        <span class="kw">let </span><span class="kw-2">mut </span>best_load = usize::MAX;
+<a href=#440 id=440 data-nosnippet>440</a>        <span class="kw">for </span>(idx, cpu) <span class="kw">in </span><span class="self">self</span>.cpus.iter().enumerate() {
+<a href=#441 id=441 data-nosnippet>441</a>            <span class="kw">let </span><span class="kw-2">mut </span>load = cpu.class_rqs.runnable_len();
+<a href=#442 id=442 data-nosnippet>442</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = cpu.current_task.as_ref() {
+<a href=#443 id=443 data-nosnippet>443</a>                <span class="kw">if </span><span class="self">self</span>.class_table.class_for_task(current)
+<a href=#444 id=444 data-nosnippet>444</a>                    != <span class="kw">crate</span>::process::sched::SchedClassId::Idle
+<a href=#445 id=445 data-nosnippet>445</a>                {
+<a href=#446 id=446 data-nosnippet>446</a>                    load += <span class="number">1</span>;
+<a href=#447 id=447 data-nosnippet>447</a>                }
+<a href=#448 id=448 data-nosnippet>448</a>            }
+<a href=#449 id=449 data-nosnippet>449</a>            <span class="kw">if </span>load &lt; best_load {
+<a href=#450 id=450 data-nosnippet>450</a>                best = idx;
+<a href=#451 id=451 data-nosnippet>451</a>                best_load = load;
+<a href=#452 id=452 data-nosnippet>452</a>            }
 <a href=#453 id=453 data-nosnippet>453</a>        }
-<a href=#454 id=454 data-nosnippet>454</a>
-<a href=#455 id=455 data-nosnippet>455</a>        <span class="kw">for </span>(id, task, cpu_idx) <span class="kw">in </span>ready {
-<a href=#456 id=456 data-nosnippet>456</a>            <span class="kw">let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_idx) <span class="kw">else </span>{
-<a href=#457 id=457 data-nosnippet>457</a>                <span class="kw">continue</span>;
-<a href=#458 id=458 data-nosnippet>458</a>            };
-<a href=#459 id=459 data-nosnippet>459</a>            <span class="kw">if </span>cpu.class_rqs.remove(id) {
-<a href=#460 id=460 data-nosnippet>460</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
-<a href=#461 id=461 data-nosnippet>461</a>                cpu.class_rqs.enqueue(class, task);
-<a href=#462 id=462 data-nosnippet>462</a>                cpu.need_resched = <span class="bool-val">true</span>;
-<a href=#463 id=463 data-nosnippet>463</a>            }
-<a href=#464 id=464 data-nosnippet>464</a>        }
-<a href=#465 id=465 data-nosnippet>465</a>    }
-<a href=#466 id=466 data-nosnippet>466</a>}
+<a href=#454 id=454 data-nosnippet>454</a>        best
+<a href=#455 id=455 data-nosnippet>455</a>    }
+<a href=#456 id=456 data-nosnippet>456</a>
+<a href=#457 id=457 data-nosnippet>457</a>    <span class="doccomment">/// Performs the migrate ready tasks for new class table operation.
+<a href=#458 id=458 data-nosnippet>458</a>    </span><span class="kw">pub fn </span>migrate_ready_tasks_for_new_class_table(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#459 id=459 data-nosnippet>459</a>        <span class="kw">let </span><span class="kw-2">mut </span>ready: Vec&lt;(TaskId, Arc&lt;Task&gt;, usize)&gt; = Vec::new();
+<a href=#460 id=460 data-nosnippet>460</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span><span class="self">self</span>.all_tasks.iter() {
+<a href=#461 id=461 data-nosnippet>461</a>            <span class="comment">// SAFETY: scheduler lock is held by caller; task state is synchronized by scheduler.
+<a href=#462 id=462 data-nosnippet>462</a>            </span><span class="kw">let </span>state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
+<a href=#463 id=463 data-nosnippet>463</a>            <span class="kw">if </span>state != TaskState::Ready {
+<a href=#464 id=464 data-nosnippet>464</a>                <span class="kw">continue</span>;
+<a href=#465 id=465 data-nosnippet>465</a>            }
+<a href=#466 id=466 data-nosnippet>466</a>            <span class="kw">let </span>cpu = <span class="self">self</span>.task_cpu.get(id).copied().unwrap_or(<span class="number">0</span>);
+<a href=#467 id=467 data-nosnippet>467</a>            ready.push((<span class="kw-2">*</span>id, task.clone(), cpu));
+<a href=#468 id=468 data-nosnippet>468</a>        }
+<a href=#469 id=469 data-nosnippet>469</a>
+<a href=#470 id=470 data-nosnippet>470</a>        <span class="kw">for </span>(id, task, cpu_idx) <span class="kw">in </span>ready {
+<a href=#471 id=471 data-nosnippet>471</a>            <span class="kw">let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_idx) <span class="kw">else </span>{
+<a href=#472 id=472 data-nosnippet>472</a>                <span class="kw">continue</span>;
+<a href=#473 id=473 data-nosnippet>473</a>            };
+<a href=#474 id=474 data-nosnippet>474</a>            <span class="kw">if </span>cpu.class_rqs.remove(id) {
+<a href=#475 id=475 data-nosnippet>475</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
+<a href=#476 id=476 data-nosnippet>476</a>                cpu.class_rqs.enqueue(class, task);
+<a href=#477 id=477 data-nosnippet>477</a>                cpu.need_resched = <span class="bool-val">true</span>;
+<a href=#478 id=478 data-nosnippet>478</a>            }
+<a href=#479 id=479 data-nosnippet>479</a>        }
+<a href=#480 id=480 data-nosnippet>480</a>    }
+<a href=#481 id=481 data-nosnippet>481</a>}
 </code></pre></div></section></main></body></html>
