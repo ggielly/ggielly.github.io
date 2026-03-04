@@ -12,611 +12,781 @@
 <a href=#12 id=12 data-nosnippet>12</a><span class="doccomment">/// POSIX thread ID.
 <a href=#13 id=13 data-nosnippet>13</a></span><span class="kw">pub type </span>Tid = u32;
 <a href=#14 id=14 data-nosnippet>14</a>
-<a href=#15 id=15 data-nosnippet>15</a><span class="attr">#[inline]
-<a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">fn </span>next_pid() -&gt; Pid {
-<a href=#17 id=17 data-nosnippet>17</a>    <span class="kw">static </span>NEXT_PID: AtomicU32 = AtomicU32::new(<span class="number">1</span>);
-<a href=#18 id=18 data-nosnippet>18</a>    NEXT_PID.fetch_add(<span class="number">1</span>, Ordering::SeqCst)
-<a href=#19 id=19 data-nosnippet>19</a>}
-<a href=#20 id=20 data-nosnippet>20</a>
-<a href=#21 id=21 data-nosnippet>21</a><span class="attr">#[inline]
-<a href=#22 id=22 data-nosnippet>22</a></span><span class="kw">fn </span>next_tid() -&gt; Tid {
-<a href=#23 id=23 data-nosnippet>23</a>    <span class="kw">static </span>NEXT_TID: AtomicU32 = AtomicU32::new(<span class="number">1</span>);
-<a href=#24 id=24 data-nosnippet>24</a>    NEXT_TID.fetch_add(<span class="number">1</span>, Ordering::SeqCst)
-<a href=#25 id=25 data-nosnippet>25</a>}
-<a href=#26 id=26 data-nosnippet>26</a>
-<a href=#27 id=27 data-nosnippet>27</a><span class="doccomment">/// Unique identifier for a task
-<a href=#28 id=28 data-nosnippet>28</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-<a href=#29 id=29 data-nosnippet>29</a></span><span class="kw">pub struct </span>TaskId(u64);
-<a href=#30 id=30 data-nosnippet>30</a>
-<a href=#31 id=31 data-nosnippet>31</a><span class="kw">impl </span>TaskId {
-<a href=#32 id=32 data-nosnippet>32</a>    <span class="doccomment">/// Generate a new unique task ID
-<a href=#33 id=33 data-nosnippet>33</a>    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-<a href=#34 id=34 data-nosnippet>34</a>        <span class="kw">static </span>NEXT_ID: AtomicU64 = AtomicU64::new(<span class="number">0</span>);
-<a href=#35 id=35 data-nosnippet>35</a>        TaskId(NEXT_ID.fetch_add(<span class="number">1</span>, Ordering::SeqCst))
-<a href=#36 id=36 data-nosnippet>36</a>    }
-<a href=#37 id=37 data-nosnippet>37</a>
-<a href=#38 id=38 data-nosnippet>38</a>    <span class="doccomment">/// Get the raw u64 value
-<a href=#39 id=39 data-nosnippet>39</a>    </span><span class="kw">pub fn </span>as_u64(<span class="self">self</span>) -&gt; u64 {
-<a href=#40 id=40 data-nosnippet>40</a>        <span class="self">self</span>.<span class="number">0
-<a href=#41 id=41 data-nosnippet>41</a>    </span>}
-<a href=#42 id=42 data-nosnippet>42</a>
-<a href=#43 id=43 data-nosnippet>43</a>    <span class="doccomment">/// Create a TaskId from a raw u64 (for IPC reply routing).
-<a href=#44 id=44 data-nosnippet>44</a>    </span><span class="kw">pub fn </span>from_u64(raw: u64) -&gt; <span class="self">Self </span>{
-<a href=#45 id=45 data-nosnippet>45</a>        TaskId(raw)
-<a href=#46 id=46 data-nosnippet>46</a>    }
-<a href=#47 id=47 data-nosnippet>47</a>}
-<a href=#48 id=48 data-nosnippet>48</a>
-<a href=#49 id=49 data-nosnippet>49</a><span class="kw">impl </span>core::fmt::Display <span class="kw">for </span>TaskId {
-<a href=#50 id=50 data-nosnippet>50</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
-<a href=#51 id=51 data-nosnippet>51</a>        <span class="macro">write!</span>(f, <span class="string">"{}"</span>, <span class="self">self</span>.<span class="number">0</span>)
-<a href=#52 id=52 data-nosnippet>52</a>    }
-<a href=#53 id=53 data-nosnippet>53</a>}
-<a href=#54 id=54 data-nosnippet>54</a>
-<a href=#55 id=55 data-nosnippet>55</a><span class="doccomment">/// Priority levels for tasks
-<a href=#56 id=56 data-nosnippet>56</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-<a href=#57 id=57 data-nosnippet>57</a></span><span class="kw">pub enum </span>TaskPriority {
-<a href=#58 id=58 data-nosnippet>58</a>    Idle = <span class="number">0</span>,
-<a href=#59 id=59 data-nosnippet>59</a>    Low = <span class="number">1</span>,
-<a href=#60 id=60 data-nosnippet>60</a>    Normal = <span class="number">2</span>,
-<a href=#61 id=61 data-nosnippet>61</a>    High = <span class="number">3</span>,
-<a href=#62 id=62 data-nosnippet>62</a>    Realtime = <span class="number">4</span>,
-<a href=#63 id=63 data-nosnippet>63</a>}
-<a href=#64 id=64 data-nosnippet>64</a>
-<a href=#65 id=65 data-nosnippet>65</a><span class="doccomment">/// State of a task in the scheduler
-<a href=#66 id=66 data-nosnippet>66</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-<a href=#67 id=67 data-nosnippet>67</a></span><span class="kw">pub enum </span>TaskState {
-<a href=#68 id=68 data-nosnippet>68</a>    <span class="doccomment">/// Task is ready to be scheduled
-<a href=#69 id=69 data-nosnippet>69</a>    </span>Ready,
-<a href=#70 id=70 data-nosnippet>70</a>    <span class="doccomment">/// Task is currently running
-<a href=#71 id=71 data-nosnippet>71</a>    </span>Running,
-<a href=#72 id=72 data-nosnippet>72</a>    <span class="doccomment">/// Task is blocked waiting for an event
-<a href=#73 id=73 data-nosnippet>73</a>    </span>Blocked,
-<a href=#74 id=74 data-nosnippet>74</a>    <span class="doccomment">/// Task has exited
-<a href=#75 id=75 data-nosnippet>75</a>    </span>Dead,
-<a href=#76 id=76 data-nosnippet>76</a>}
-<a href=#77 id=77 data-nosnippet>77</a>
-<a href=#78 id=78 data-nosnippet>78</a><span class="kw">use </span>core::cell::UnsafeCell;
-<a href=#79 id=79 data-nosnippet>79</a>
-<a href=#80 id=80 data-nosnippet>80</a><span class="doccomment">/// A wrapper around UnsafeCell that implements Sync for TaskState
-<a href=#81 id=81 data-nosnippet>81</a></span><span class="kw">pub struct </span>SyncUnsafeCell&lt;T&gt; {
-<a href=#82 id=82 data-nosnippet>82</a>    inner: UnsafeCell&lt;T&gt;,
-<a href=#83 id=83 data-nosnippet>83</a>}
-<a href=#84 id=84 data-nosnippet>84</a>
-<a href=#85 id=85 data-nosnippet>85</a><span class="kw">unsafe impl</span>&lt;T&gt; Sync <span class="kw">for </span>SyncUnsafeCell&lt;T&gt; {}
-<a href=#86 id=86 data-nosnippet>86</a>
-<a href=#87 id=87 data-nosnippet>87</a><span class="kw">impl</span>&lt;T&gt; SyncUnsafeCell&lt;T&gt; {
-<a href=#88 id=88 data-nosnippet>88</a>    <span class="kw">pub const fn </span>new(value: T) -&gt; <span class="self">Self </span>{
-<a href=#89 id=89 data-nosnippet>89</a>        <span class="self">Self </span>{
-<a href=#90 id=90 data-nosnippet>90</a>            inner: UnsafeCell::new(value),
-<a href=#91 id=91 data-nosnippet>91</a>        }
-<a href=#92 id=92 data-nosnippet>92</a>    }
-<a href=#93 id=93 data-nosnippet>93</a>
-<a href=#94 id=94 data-nosnippet>94</a>    <span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">*mut </span>T {
-<a href=#95 id=95 data-nosnippet>95</a>        <span class="self">self</span>.inner.get()
+<a href=#15 id=15 data-nosnippet>15</a><span class="doccomment">/// Performs the next pid operation.
+<a href=#16 id=16 data-nosnippet>16</a></span><span class="attr">#[inline]
+<a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">fn </span>next_pid() -&gt; Pid {
+<a href=#18 id=18 data-nosnippet>18</a>    <span class="kw">static </span>NEXT_PID: AtomicU32 = AtomicU32::new(<span class="number">1</span>);
+<a href=#19 id=19 data-nosnippet>19</a>    NEXT_PID.fetch_add(<span class="number">1</span>, Ordering::SeqCst)
+<a href=#20 id=20 data-nosnippet>20</a>}
+<a href=#21 id=21 data-nosnippet>21</a>
+<a href=#22 id=22 data-nosnippet>22</a><span class="doccomment">/// Performs the next tid operation.
+<a href=#23 id=23 data-nosnippet>23</a></span><span class="attr">#[inline]
+<a href=#24 id=24 data-nosnippet>24</a></span><span class="kw">fn </span>next_tid() -&gt; Tid {
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">static </span>NEXT_TID: AtomicU32 = AtomicU32::new(<span class="number">1</span>);
+<a href=#26 id=26 data-nosnippet>26</a>    NEXT_TID.fetch_add(<span class="number">1</span>, Ordering::SeqCst)
+<a href=#27 id=27 data-nosnippet>27</a>}
+<a href=#28 id=28 data-nosnippet>28</a>
+<a href=#29 id=29 data-nosnippet>29</a><span class="doccomment">/// Unique identifier for a task
+<a href=#30 id=30 data-nosnippet>30</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+<a href=#31 id=31 data-nosnippet>31</a></span><span class="kw">pub struct </span>TaskId(u64);
+<a href=#32 id=32 data-nosnippet>32</a>
+<a href=#33 id=33 data-nosnippet>33</a><span class="kw">impl </span>TaskId {
+<a href=#34 id=34 data-nosnippet>34</a>    <span class="doccomment">/// Generate a new unique task ID
+<a href=#35 id=35 data-nosnippet>35</a>    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+<a href=#36 id=36 data-nosnippet>36</a>        <span class="kw">static </span>NEXT_ID: AtomicU64 = AtomicU64::new(<span class="number">0</span>);
+<a href=#37 id=37 data-nosnippet>37</a>        TaskId(NEXT_ID.fetch_add(<span class="number">1</span>, Ordering::SeqCst))
+<a href=#38 id=38 data-nosnippet>38</a>    }
+<a href=#39 id=39 data-nosnippet>39</a>
+<a href=#40 id=40 data-nosnippet>40</a>    <span class="doccomment">/// Get the raw u64 value
+<a href=#41 id=41 data-nosnippet>41</a>    </span><span class="kw">pub fn </span>as_u64(<span class="self">self</span>) -&gt; u64 {
+<a href=#42 id=42 data-nosnippet>42</a>        <span class="self">self</span>.<span class="number">0
+<a href=#43 id=43 data-nosnippet>43</a>    </span>}
+<a href=#44 id=44 data-nosnippet>44</a>
+<a href=#45 id=45 data-nosnippet>45</a>    <span class="doccomment">/// Create a TaskId from a raw u64 (for IPC reply routing).
+<a href=#46 id=46 data-nosnippet>46</a>    </span><span class="kw">pub fn </span>from_u64(raw: u64) -&gt; <span class="self">Self </span>{
+<a href=#47 id=47 data-nosnippet>47</a>        TaskId(raw)
+<a href=#48 id=48 data-nosnippet>48</a>    }
+<a href=#49 id=49 data-nosnippet>49</a>}
+<a href=#50 id=50 data-nosnippet>50</a>
+<a href=#51 id=51 data-nosnippet>51</a><span class="kw">impl </span>core::fmt::Display <span class="kw">for </span>TaskId {
+<a href=#52 id=52 data-nosnippet>52</a>    <span class="doccomment">/// Performs the fmt operation.
+<a href=#53 id=53 data-nosnippet>53</a>    </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
+<a href=#54 id=54 data-nosnippet>54</a>        <span class="macro">write!</span>(f, <span class="string">"{}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+<a href=#55 id=55 data-nosnippet>55</a>    }
+<a href=#56 id=56 data-nosnippet>56</a>}
+<a href=#57 id=57 data-nosnippet>57</a>
+<a href=#58 id=58 data-nosnippet>58</a><span class="doccomment">/// Priority levels for tasks
+<a href=#59 id=59 data-nosnippet>59</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+<a href=#60 id=60 data-nosnippet>60</a></span><span class="kw">pub enum </span>TaskPriority {
+<a href=#61 id=61 data-nosnippet>61</a>    Idle = <span class="number">0</span>,
+<a href=#62 id=62 data-nosnippet>62</a>    Low = <span class="number">1</span>,
+<a href=#63 id=63 data-nosnippet>63</a>    Normal = <span class="number">2</span>,
+<a href=#64 id=64 data-nosnippet>64</a>    High = <span class="number">3</span>,
+<a href=#65 id=65 data-nosnippet>65</a>    Realtime = <span class="number">4</span>,
+<a href=#66 id=66 data-nosnippet>66</a>}
+<a href=#67 id=67 data-nosnippet>67</a>
+<a href=#68 id=68 data-nosnippet>68</a><span class="doccomment">/// State of a task in the scheduler
+<a href=#69 id=69 data-nosnippet>69</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+<a href=#70 id=70 data-nosnippet>70</a></span><span class="kw">pub enum </span>TaskState {
+<a href=#71 id=71 data-nosnippet>71</a>    <span class="doccomment">/// Task is ready to be scheduled
+<a href=#72 id=72 data-nosnippet>72</a>    </span>Ready,
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Task is currently running
+<a href=#74 id=74 data-nosnippet>74</a>    </span>Running,
+<a href=#75 id=75 data-nosnippet>75</a>    <span class="doccomment">/// Task is blocked waiting for an event
+<a href=#76 id=76 data-nosnippet>76</a>    </span>Blocked,
+<a href=#77 id=77 data-nosnippet>77</a>    <span class="doccomment">/// Task has exited
+<a href=#78 id=78 data-nosnippet>78</a>    </span>Dead,
+<a href=#79 id=79 data-nosnippet>79</a>}
+<a href=#80 id=80 data-nosnippet>80</a>
+<a href=#81 id=81 data-nosnippet>81</a><span class="kw">use </span>core::cell::UnsafeCell;
+<a href=#82 id=82 data-nosnippet>82</a>
+<a href=#83 id=83 data-nosnippet>83</a><span class="doccomment">/// A wrapper around UnsafeCell that implements Sync for TaskState
+<a href=#84 id=84 data-nosnippet>84</a></span><span class="kw">pub struct </span>SyncUnsafeCell&lt;T&gt; {
+<a href=#85 id=85 data-nosnippet>85</a>    inner: UnsafeCell&lt;T&gt;,
+<a href=#86 id=86 data-nosnippet>86</a>}
+<a href=#87 id=87 data-nosnippet>87</a>
+<a href=#88 id=88 data-nosnippet>88</a><span class="kw">unsafe impl</span>&lt;T&gt; Sync <span class="kw">for </span>SyncUnsafeCell&lt;T&gt; {}
+<a href=#89 id=89 data-nosnippet>89</a>
+<a href=#90 id=90 data-nosnippet>90</a><span class="kw">impl</span>&lt;T&gt; SyncUnsafeCell&lt;T&gt; {
+<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Creates a new instance.
+<a href=#92 id=92 data-nosnippet>92</a>    </span><span class="kw">pub const fn </span>new(value: T) -&gt; <span class="self">Self </span>{
+<a href=#93 id=93 data-nosnippet>93</a>        <span class="self">Self </span>{
+<a href=#94 id=94 data-nosnippet>94</a>            inner: UnsafeCell::new(value),
+<a href=#95 id=95 data-nosnippet>95</a>        }
 <a href=#96 id=96 data-nosnippet>96</a>    }
-<a href=#97 id=97 data-nosnippet>97</a>}
-<a href=#98 id=98 data-nosnippet>98</a>
-<a href=#99 id=99 data-nosnippet>99</a><span class="attr">#[derive(Debug)]
-<a href=#100 id=100 data-nosnippet>100</a>#[repr(C, align(<span class="number">16</span>))]
-<a href=#101 id=101 data-nosnippet>101</a></span><span class="kw">pub struct </span>FpuState {
-<a href=#102 id=102 data-nosnippet>102</a>    <span class="kw">pub </span>data: [u8; <span class="number">512</span>],
-<a href=#103 id=103 data-nosnippet>103</a>}
-<a href=#104 id=104 data-nosnippet>104</a>
-<a href=#105 id=105 data-nosnippet>105</a><span class="kw">impl </span>FpuState {
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="kw">pub const fn </span>new() -&gt; <span class="self">Self </span>{
-<a href=#107 id=107 data-nosnippet>107</a>        <span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0</span>; <span class="number">512</span>];
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="comment">// Default x87 FPU Control Word (FCW) = 0x037F
-<a href=#109 id=109 data-nosnippet>109</a>        </span>data[<span class="number">0</span>] = <span class="number">0x7F</span>;
-<a href=#110 id=110 data-nosnippet>110</a>        data[<span class="number">1</span>] = <span class="number">0x03</span>;
-<a href=#111 id=111 data-nosnippet>111</a>        <span class="comment">// Default MXCSR = 0x1F80
-<a href=#112 id=112 data-nosnippet>112</a>        </span>data[<span class="number">24</span>] = <span class="number">0x80</span>;
-<a href=#113 id=113 data-nosnippet>113</a>        data[<span class="number">25</span>] = <span class="number">0x1F</span>;
-<a href=#114 id=114 data-nosnippet>114</a>        <span class="self">Self </span>{ data }
-<a href=#115 id=115 data-nosnippet>115</a>    }
-<a href=#116 id=116 data-nosnippet>116</a>}
-<a href=#117 id=117 data-nosnippet>117</a>
-<a href=#118 id=118 data-nosnippet>118</a><span class="doccomment">/// Represents a single task/thread in the system
-<a href=#119 id=119 data-nosnippet>119</a></span><span class="kw">pub struct </span>Task {
-<a href=#120 id=120 data-nosnippet>120</a>    <span class="doccomment">/// Unique identifier for this task
-<a href=#121 id=121 data-nosnippet>121</a>    </span><span class="kw">pub </span>id: TaskId,
-<a href=#122 id=122 data-nosnippet>122</a>    <span class="doccomment">/// Process identifier visible to userspace.
-<a href=#123 id=123 data-nosnippet>123</a>    </span><span class="kw">pub </span>pid: Pid,
-<a href=#124 id=124 data-nosnippet>124</a>    <span class="doccomment">/// Thread identifier visible to userspace.
-<a href=#125 id=125 data-nosnippet>125</a>    </span><span class="kw">pub </span>tid: Tid,
-<a href=#126 id=126 data-nosnippet>126</a>    <span class="doccomment">/// Thread-group identifier (equals process leader PID).
-<a href=#127 id=127 data-nosnippet>127</a>    </span><span class="kw">pub </span>tgid: Pid,
-<a href=#128 id=128 data-nosnippet>128</a>    <span class="doccomment">/// Process group id (job-control group).
-<a href=#129 id=129 data-nosnippet>129</a>    </span><span class="kw">pub </span>pgid: AtomicU32,
-<a href=#130 id=130 data-nosnippet>130</a>    <span class="doccomment">/// Session id.
-<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">pub </span>sid: AtomicU32,
-<a href=#132 id=132 data-nosnippet>132</a>    <span class="doccomment">/// real user id.
-<a href=#133 id=133 data-nosnippet>133</a>    </span><span class="kw">pub </span>uid: AtomicU32,
-<a href=#134 id=134 data-nosnippet>134</a>    <span class="doccomment">/// effective user id.
-<a href=#135 id=135 data-nosnippet>135</a>    </span><span class="kw">pub </span>euid: AtomicU32,
-<a href=#136 id=136 data-nosnippet>136</a>    <span class="doccomment">/// real group id.
-<a href=#137 id=137 data-nosnippet>137</a>    </span><span class="kw">pub </span>gid: AtomicU32,
-<a href=#138 id=138 data-nosnippet>138</a>    <span class="doccomment">/// effective group id.
-<a href=#139 id=139 data-nosnippet>139</a>    </span><span class="kw">pub </span>egid: AtomicU32,
-<a href=#140 id=140 data-nosnippet>140</a>    <span class="doccomment">/// Current state of the task
-<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="kw">pub </span>state: SyncUnsafeCell&lt;TaskState&gt;,
-<a href=#142 id=142 data-nosnippet>142</a>    <span class="doccomment">/// Priority level of the task
-<a href=#143 id=143 data-nosnippet>143</a>    </span><span class="kw">pub </span>priority: TaskPriority,
-<a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Saved CPU context for this task (just the stack pointer)
-<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub </span>context: SyncUnsafeCell&lt;CpuContext&gt;,
-<a href=#146 id=146 data-nosnippet>146</a>    <span class="doccomment">/// Kernel stack for this task
-<a href=#147 id=147 data-nosnippet>147</a>    </span><span class="kw">pub </span>kernel_stack: KernelStack,
-<a href=#148 id=148 data-nosnippet>148</a>    <span class="doccomment">/// User stack for this task (if applicable)
-<a href=#149 id=149 data-nosnippet>149</a>    </span><span class="kw">pub </span>user_stack: <span class="prelude-ty">Option</span>&lt;UserStack&gt;,
-<a href=#150 id=150 data-nosnippet>150</a>    <span class="doccomment">/// Task name for debugging purposes
-<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="kw">pub </span>name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#152 id=152 data-nosnippet>152</a>    <span class="doccomment">/// Capabilities granted to this task
-<a href=#153 id=153 data-nosnippet>153</a>    /// Address space for this task (kernel tasks share the kernel AS)
-<a href=#154 id=154 data-nosnippet>154</a>    </span><span class="kw">pub </span>process: Arc&lt;<span class="kw">crate</span>::process::process::Process&gt;,
-<a href=#155 id=155 data-nosnippet>155</a>    <span class="doccomment">/// File descriptor table for this task
-<a href=#156 id=156 data-nosnippet>156</a>    /// Pending signals for this task
-<a href=#157 id=157 data-nosnippet>157</a>    </span><span class="kw">pub </span>pending_signals: <span class="kw">super</span>::signal::SignalSet,
-<a href=#158 id=158 data-nosnippet>158</a>    <span class="doccomment">/// Blocked signals mask for this task
-<a href=#159 id=159 data-nosnippet>159</a>    </span><span class="kw">pub </span>blocked_signals: <span class="kw">super</span>::signal::SignalSet,
-<a href=#160 id=160 data-nosnippet>160</a>    <span class="doccomment">/// Signal actions (handlers) for this task
-<a href=#161 id=161 data-nosnippet>161</a>    /// Signal alternate stack for this task
-<a href=#162 id=162 data-nosnippet>162</a>    </span><span class="kw">pub </span>signal_stack: SyncUnsafeCell&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw">super</span>::signal::SigStack&gt;&gt;,
-<a href=#163 id=163 data-nosnippet>163</a>    <span class="doccomment">/// Interval timers (ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF)
-<a href=#164 id=164 data-nosnippet>164</a>    </span><span class="kw">pub </span>itimers: <span class="kw">super</span>::timer::ITimers,
-<a href=#165 id=165 data-nosnippet>165</a>    <span class="doccomment">/// Pending wakeup flag: set by `wake_task()` when the task is not yet
-<a href=#166 id=166 data-nosnippet>166</a>    /// in `blocked_tasks` (it is still transitioning to Blocked state).
-<a href=#167 id=167 data-nosnippet>167</a>    /// Checked by `block_current_task()` — if set, the task skips blocking
-<a href=#168 id=168 data-nosnippet>168</a>    /// and continues execution, preventing a lost-wakeup race.
-<a href=#169 id=169 data-nosnippet>169</a>    </span><span class="kw">pub </span>wake_pending: AtomicBool,
-<a href=#170 id=170 data-nosnippet>170</a>    <span class="doccomment">/// Sleep deadline in nanoseconds (monotonic). If non-zero, the task
-<a href=#171 id=171 data-nosnippet>171</a>    /// is sleeping until this time. Checked by the scheduler to auto-wake.
-<a href=#172 id=172 data-nosnippet>172</a>    </span><span class="kw">pub </span>wake_deadline_ns: AtomicU64,
-<a href=#173 id=173 data-nosnippet>173</a>    <span class="doccomment">/// Program break (end of heap), in bytes. 0 = not yet initialised.
-<a href=#174 id=174 data-nosnippet>174</a>    /// Lazily set to `BRK_BASE` on the first `sys_brk` call.
-<a href=#175 id=175 data-nosnippet>175</a>    /// mmap_hint: next candidate virtual address for anonymous mmap allocations
-<a href=#176 id=176 data-nosnippet>176</a>    /// User-space entry point for ring3 trampoline (ELF tasks only, 0 otherwise).
-<a href=#177 id=177 data-nosnippet>177</a>    </span><span class="kw">pub </span>trampoline_entry: AtomicU64,
-<a href=#178 id=178 data-nosnippet>178</a>    <span class="doccomment">/// User-space stack top for ring3 trampoline (ELF tasks only, 0 otherwise).
-<a href=#179 id=179 data-nosnippet>179</a>    </span><span class="kw">pub </span>trampoline_stack_top: AtomicU64,
-<a href=#180 id=180 data-nosnippet>180</a>    <span class="doccomment">/// First argument (RDI) passed to the user process on entry (e.g. bootstrap cap handle).
-<a href=#181 id=181 data-nosnippet>181</a>    </span><span class="kw">pub </span>trampoline_arg0: AtomicU64,
-<a href=#182 id=182 data-nosnippet>182</a>    <span class="doccomment">/// Total CPU ticks consumed by this task
-<a href=#183 id=183 data-nosnippet>183</a>    </span><span class="kw">pub </span>ticks: AtomicU64,
-<a href=#184 id=184 data-nosnippet>184</a>    <span class="doccomment">/// Scheduling policy (Fair, RealTime, Idle)
-<a href=#185 id=185 data-nosnippet>185</a>    </span><span class="kw">pub </span>sched_policy: SyncUnsafeCell&lt;<span class="kw">crate</span>::process::sched::SchedPolicy&gt;,
-<a href=#186 id=186 data-nosnippet>186</a>    <span class="doccomment">/// Virtual runtime for CFS
-<a href=#187 id=187 data-nosnippet>187</a>    </span><span class="kw">pub </span>vruntime: AtomicU64,
-<a href=#188 id=188 data-nosnippet>188</a>    <span class="doccomment">/// TID address for futex-based thread join (set_tid_address).
-<a href=#189 id=189 data-nosnippet>189</a>    /// The kernel writes 0 here when the thread exits, then futex_wake.
-<a href=#190 id=190 data-nosnippet>190</a>    </span><span class="kw">pub </span>clear_child_tid: AtomicU64,
-<a href=#191 id=191 data-nosnippet>191</a>    <span class="doccomment">/// Current working directory (POSIX, inherited by children).
-<a href=#192 id=192 data-nosnippet>192</a>    /// File creation mask (inherited by children, NOT reset by exec).
-<a href=#193 id=193 data-nosnippet>193</a>    /// User-space FS.base (TLS on x86_64, set via arch_prctl ARCH_SET_FS).
-<a href=#194 id=194 data-nosnippet>194</a>    /// Saved/restored across context switches.
-<a href=#195 id=195 data-nosnippet>195</a>    </span><span class="kw">pub </span>user_fs_base: AtomicU64,
-<a href=#196 id=196 data-nosnippet>196</a>    <span class="doccomment">/// FPU/SSE/AVX state saved during context switch.
-<a href=#197 id=197 data-nosnippet>197</a>    </span><span class="kw">pub </span>fpu_state: SyncUnsafeCell&lt;FpuState&gt;,
-<a href=#198 id=198 data-nosnippet>198</a>}
-<a href=#199 id=199 data-nosnippet>199</a>
-<a href=#200 id=200 data-nosnippet>200</a><span class="kw">impl </span>Task {
-<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">pub fn </span>default_sched_policy(priority: TaskPriority) -&gt; <span class="kw">crate</span>::process::sched::SchedPolicy {
-<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">use </span><span class="kw">crate</span>::process::sched::{nice::Nice, real_time::RealTimePriority, SchedPolicy};
-<a href=#203 id=203 data-nosnippet>203</a>        <span class="kw">match </span>priority {
-<a href=#204 id=204 data-nosnippet>204</a>            TaskPriority::Idle =&gt; SchedPolicy::Idle,
-<a href=#205 id=205 data-nosnippet>205</a>            TaskPriority::Realtime =&gt; SchedPolicy::RealTimeRR {
-<a href=#206 id=206 data-nosnippet>206</a>                prio: RealTimePriority::new(<span class="number">50</span>),
-<a href=#207 id=207 data-nosnippet>207</a>            },
-<a href=#208 id=208 data-nosnippet>208</a>            TaskPriority::High =&gt; SchedPolicy::Fair(Nice::new(-<span class="number">10</span>)),
-<a href=#209 id=209 data-nosnippet>209</a>            TaskPriority::Low =&gt; SchedPolicy::Fair(Nice::new(<span class="number">10</span>)),
-<a href=#210 id=210 data-nosnippet>210</a>            TaskPriority::Normal =&gt; SchedPolicy::Fair(Nice::default()),
-<a href=#211 id=211 data-nosnippet>211</a>        }
-<a href=#212 id=212 data-nosnippet>212</a>    }
-<a href=#213 id=213 data-nosnippet>213</a>
-<a href=#214 id=214 data-nosnippet>214</a>    <span class="doccomment">/// Get the current scheduling policy of the task
-<a href=#215 id=215 data-nosnippet>215</a>    </span><span class="kw">pub fn </span>sched_policy(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">crate</span>::process::sched::SchedPolicy {
-<a href=#216 id=216 data-nosnippet>216</a>        <span class="kw">unsafe </span>{ <span class="kw-2">*</span><span class="self">self</span>.sched_policy.get() }
-<a href=#217 id=217 data-nosnippet>217</a>    }
-<a href=#218 id=218 data-nosnippet>218</a>
-<a href=#219 id=219 data-nosnippet>219</a>    <span class="doccomment">/// Set the scheduling policy of the task
-<a href=#220 id=220 data-nosnippet>220</a>    </span><span class="kw">pub fn </span>set_sched_policy(<span class="kw-2">&amp;</span><span class="self">self</span>, policy: <span class="kw">crate</span>::process::sched::SchedPolicy) {
-<a href=#221 id=221 data-nosnippet>221</a>        <span class="kw">unsafe </span>{
-<a href=#222 id=222 data-nosnippet>222</a>            <span class="kw-2">*</span><span class="self">self</span>.sched_policy.get() = policy;
-<a href=#223 id=223 data-nosnippet>223</a>        }
-<a href=#224 id=224 data-nosnippet>224</a>    }
-<a href=#225 id=225 data-nosnippet>225</a>
-<a href=#226 id=226 data-nosnippet>226</a>    <span class="doccomment">/// Get virtual runtime
-<a href=#227 id=227 data-nosnippet>227</a>    </span><span class="kw">pub fn </span>vruntime(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
-<a href=#228 id=228 data-nosnippet>228</a>        <span class="self">self</span>.vruntime.load(Ordering::Relaxed)
-<a href=#229 id=229 data-nosnippet>229</a>    }
-<a href=#230 id=230 data-nosnippet>230</a>
-<a href=#231 id=231 data-nosnippet>231</a>    <span class="doccomment">/// Set virtual runtime
-<a href=#232 id=232 data-nosnippet>232</a>    </span><span class="kw">pub fn </span>set_vruntime(<span class="kw-2">&amp;</span><span class="self">self</span>, vruntime: u64) {
-<a href=#233 id=233 data-nosnippet>233</a>        <span class="self">self</span>.vruntime.store(vruntime, Ordering::Relaxed);
-<a href=#234 id=234 data-nosnippet>234</a>    }
-<a href=#235 id=235 data-nosnippet>235</a>}
-<a href=#236 id=236 data-nosnippet>236</a>
-<a href=#237 id=237 data-nosnippet>237</a><span class="doccomment">/// CPU context saved/restored during context switches.
-<a href=#238 id=238 data-nosnippet>238</a>///
-<a href=#239 id=239 data-nosnippet>239</a>/// Only stores the saved RSP. All callee-saved registers (rbx, rbp, r12-r15)
-<a href=#240 id=240 data-nosnippet>240</a>/// are pushed onto the task's kernel stack by `switch_context()`.
-<a href=#241 id=241 data-nosnippet>241</a></span><span class="attr">#[repr(C)]
-<a href=#242 id=242 data-nosnippet>242</a></span><span class="kw">pub struct </span>CpuContext {
-<a href=#243 id=243 data-nosnippet>243</a>    <span class="doccomment">/// Saved stack pointer (points into the task's kernel stack)
-<a href=#244 id=244 data-nosnippet>244</a>    </span><span class="kw">pub </span>saved_rsp: u64,
-<a href=#245 id=245 data-nosnippet>245</a>}
-<a href=#246 id=246 data-nosnippet>246</a>
-<a href=#247 id=247 data-nosnippet>247</a><span class="kw">impl </span>CpuContext {
-<a href=#248 id=248 data-nosnippet>248</a>    <span class="doccomment">/// Create a new CPU context for a task starting at the given entry point.
-<a href=#249 id=249 data-nosnippet>249</a>    ///
-<a href=#250 id=250 data-nosnippet>250</a>    /// Sets up a fake stack frame on the kernel stack that looks like
-<a href=#251 id=251 data-nosnippet>251</a>    /// `switch_context()` just pushed callee-saved registers. When
-<a href=#252 id=252 data-nosnippet>252</a>    /// `switch_context()` or `restore_first_task()` pops them and does `ret`,
-<a href=#253 id=253 data-nosnippet>253</a>    /// it will jump to `task_entry_trampoline`, which enables interrupts
-<a href=#254 id=254 data-nosnippet>254</a>    /// and jumps to the real entry point (stored in r12).
-<a href=#255 id=255 data-nosnippet>255</a>    ///
-<a href=#256 id=256 data-nosnippet>256</a>    /// Stack layout (growing downward):
-<a href=#257 id=257 data-nosnippet>257</a>    /// ```text
-<a href=#258 id=258 data-nosnippet>258</a>    /// [stack_top]
-<a href=#259 id=259 data-nosnippet>259</a>    ///   task_entry_trampoline   &lt;- ret target
-<a href=#260 id=260 data-nosnippet>260</a>    ///   0  (r15)
-<a href=#261 id=261 data-nosnippet>261</a>    ///   0  (r14)
-<a href=#262 id=262 data-nosnippet>262</a>    ///   0  (r13)
-<a href=#263 id=263 data-nosnippet>263</a>    ///   entry_point (r12)      &lt;- trampoline reads this
-<a href=#264 id=264 data-nosnippet>264</a>    ///   0  (rbp)
-<a href=#265 id=265 data-nosnippet>265</a>    ///   0  (rbx)
-<a href=#266 id=266 data-nosnippet>266</a>    ///   &lt;- saved_rsp points here
-<a href=#267 id=267 data-nosnippet>267</a>    /// ```
-<a href=#268 id=268 data-nosnippet>268</a>    </span><span class="kw">pub fn </span>new(entry_point: u64, kernel_stack: <span class="kw-2">&amp;</span>KernelStack) -&gt; <span class="self">Self </span>{
-<a href=#269 id=269 data-nosnippet>269</a>        <span class="kw">let </span>stack_top = kernel_stack.virt_base.as_u64() + kernel_stack.size <span class="kw">as </span>u64;
-<a href=#270 id=270 data-nosnippet>270</a>
-<a href=#271 id=271 data-nosnippet>271</a>        <span class="comment">// We need to push 7 values (each 8 bytes) onto the stack
-<a href=#272 id=272 data-nosnippet>272</a>        </span><span class="kw">let </span>initial_rsp = stack_top - <span class="number">7 </span>* <span class="number">8</span>;
-<a href=#273 id=273 data-nosnippet>273</a>
-<a href=#274 id=274 data-nosnippet>274</a>        <span class="comment">// SAFETY: We own this stack memory and it's properly allocated and zeroed.
-<a href=#275 id=275 data-nosnippet>275</a>        // The stack region [virt_base, virt_base + size) is valid.
-<a href=#276 id=276 data-nosnippet>276</a>        </span><span class="kw">unsafe </span>{
-<a href=#277 id=277 data-nosnippet>277</a>            <span class="kw">let </span>stack = initial_rsp <span class="kw">as </span><span class="kw-2">*mut </span>u64;
-<a href=#278 id=278 data-nosnippet>278</a>            <span class="comment">// Push order must match switch_context pops (LIFO, but we write linearly from RSP up):
-<a href=#279 id=279 data-nosnippet>279</a>            // [RSP+0]  = r15
-<a href=#280 id=280 data-nosnippet>280</a>            // [RSP+8]  = r14
-<a href=#281 id=281 data-nosnippet>281</a>            // [RSP+16] = r13
-<a href=#282 id=282 data-nosnippet>282</a>            // [RSP+24] = r12 (entry point)
-<a href=#283 id=283 data-nosnippet>283</a>            // [RSP+32] = rbp
-<a href=#284 id=284 data-nosnippet>284</a>            // [RSP+40] = rbx
-<a href=#285 id=285 data-nosnippet>285</a>            // [RSP+48] = ret (trampoline)
-<a href=#286 id=286 data-nosnippet>286</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">0</span>) = <span class="number">0</span>; <span class="comment">// r15
-<a href=#287 id=287 data-nosnippet>287</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">1</span>) = <span class="number">0</span>; <span class="comment">// r14
-<a href=#288 id=288 data-nosnippet>288</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">2</span>) = <span class="number">0</span>; <span class="comment">// r13
-<a href=#289 id=289 data-nosnippet>289</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">3</span>) = entry_point; <span class="comment">// r12 (trampoline target)
-<a href=#290 id=290 data-nosnippet>290</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">4</span>) = <span class="number">0</span>; <span class="comment">// rbp
-<a href=#291 id=291 data-nosnippet>291</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">5</span>) = <span class="number">0</span>; <span class="comment">// rbx
-<a href=#292 id=292 data-nosnippet>292</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">6</span>) = task_entry_trampoline <span class="kw">as </span><span class="kw-2">*const </span>() <span class="kw">as </span>u64; <span class="comment">// ret address
-<a href=#293 id=293 data-nosnippet>293</a>        </span>}
-<a href=#294 id=294 data-nosnippet>294</a>
-<a href=#295 id=295 data-nosnippet>295</a>        CpuContext {
-<a href=#296 id=296 data-nosnippet>296</a>            saved_rsp: initial_rsp,
-<a href=#297 id=297 data-nosnippet>297</a>        }
-<a href=#298 id=298 data-nosnippet>298</a>    }
-<a href=#299 id=299 data-nosnippet>299</a>}
-<a href=#300 id=300 data-nosnippet>300</a>
-<a href=#301 id=301 data-nosnippet>301</a><span class="doccomment">/// Trampoline for newly created tasks.
-<a href=#302 id=302 data-nosnippet>302</a>///
-<a href=#303 id=303 data-nosnippet>303</a>/// When a new task is first scheduled, `switch_context()` pops the fake
-<a href=#304 id=304 data-nosnippet>304</a>/// callee-saved registers and `ret`s here. We enable interrupts (the new
-<a href=#305 id=305 data-nosnippet>305</a>/// task starts with IF=0 because the scheduler disables interrupts) and
-<a href=#306 id=306 data-nosnippet>306</a>/// jump to the real entry point stored in r12.
-<a href=#307 id=307 data-nosnippet>307</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#308 id=308 data-nosnippet>308</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>task_entry_trampoline() {
-<a href=#309 id=309 data-nosnippet>309</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#310 id=310 data-nosnippet>310</a>        <span class="string">"call {finish_switch}"</span>,
-<a href=#311 id=311 data-nosnippet>311</a>        <span class="string">"sti"</span>,          <span class="comment">// Enable interrupts for the new task
-<a href=#312 id=312 data-nosnippet>312</a>        </span><span class="string">"call {mark_tlb_ready}"</span>,
-<a href=#313 id=313 data-nosnippet>313</a>        <span class="string">"mov rdi, r13"</span>, <span class="comment">// Bootstrap arg (seeded cap handle)
-<a href=#314 id=314 data-nosnippet>314</a>        </span><span class="string">"jmp r12"</span>,      <span class="comment">// Jump to real entry point (loaded from initial stack frame)
-<a href=#315 id=315 data-nosnippet>315</a>        </span>finish_switch = sym <span class="kw">crate</span>::process::scheduler::finish_switch,
-<a href=#316 id=316 data-nosnippet>316</a>        mark_tlb_ready = sym <span class="kw">crate</span>::arch::x86_64::percpu::mark_tlb_ready_current,
-<a href=#317 id=317 data-nosnippet>317</a>    );
-<a href=#318 id=318 data-nosnippet>318</a>}
-<a href=#319 id=319 data-nosnippet>319</a>
-<a href=#320 id=320 data-nosnippet>320</a><span class="doccomment">/// Kernel stack for a task
-<a href=#321 id=321 data-nosnippet>321</a></span><span class="kw">pub struct </span>KernelStack {
-<a href=#322 id=322 data-nosnippet>322</a>    <span class="doccomment">/// Physical address of the stack
-<a href=#323 id=323 data-nosnippet>323</a>    </span><span class="kw">pub </span>base: PhysAddr,
-<a href=#324 id=324 data-nosnippet>324</a>    <span class="doccomment">/// Virtual address of the stack
-<a href=#325 id=325 data-nosnippet>325</a>    </span><span class="kw">pub </span>virt_base: VirtAddr,
-<a href=#326 id=326 data-nosnippet>326</a>    <span class="doccomment">/// Size of the stack
-<a href=#327 id=327 data-nosnippet>327</a>    </span><span class="kw">pub </span>size: usize,
-<a href=#328 id=328 data-nosnippet>328</a>}
-<a href=#329 id=329 data-nosnippet>329</a>
-<a href=#330 id=330 data-nosnippet>330</a><span class="kw">impl </span>KernelStack {
-<a href=#331 id=331 data-nosnippet>331</a>    <span class="doccomment">/// Allocate a new kernel stack using the buddy allocator
-<a href=#332 id=332 data-nosnippet>332</a>    </span><span class="kw">pub fn </span>allocate(size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#333 id=333 data-nosnippet>333</a>        <span class="kw">use </span><span class="kw">crate</span>::memory::{get_allocator, FrameAllocator};
-<a href=#334 id=334 data-nosnippet>334</a>
-<a href=#335 id=335 data-nosnippet>335</a>        <span class="comment">// Calculate number of pages needed (round up)
-<a href=#336 id=336 data-nosnippet>336</a>        </span><span class="kw">let </span>pages = (size + <span class="number">4095</span>) / <span class="number">4096</span>;
-<a href=#337 id=337 data-nosnippet>337</a>        <span class="kw">let </span>order = pages.next_power_of_two().trailing_zeros() <span class="kw">as </span>u8;
-<a href=#338 id=338 data-nosnippet>338</a>
-<a href=#339 id=339 data-nosnippet>339</a>        <span class="comment">// Allocate physical frames from buddy allocator
-<a href=#340 id=340 data-nosnippet>340</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>lock = get_allocator().lock();
-<a href=#341 id=341 data-nosnippet>341</a>        <span class="kw">let </span>allocator = lock.as_mut().ok_or(<span class="string">"Allocator not initialized"</span>)<span class="question-mark">?</span>;
-<a href=#342 id=342 data-nosnippet>342</a>        <span class="kw">let </span>frame = allocator
-<a href=#343 id=343 data-nosnippet>343</a>            .alloc(order)
-<a href=#344 id=344 data-nosnippet>344</a>            .map_err(|<span class="kw">_</span>| <span class="string">"Failed to allocate kernel stack"</span>)<span class="question-mark">?</span>;
-<a href=#345 id=345 data-nosnippet>345</a>        drop(lock);
-<a href=#346 id=346 data-nosnippet>346</a>
-<a href=#347 id=347 data-nosnippet>347</a>        <span class="kw">let </span>phys_base = frame.start_address;
-<a href=#348 id=348 data-nosnippet>348</a>        <span class="kw">let </span>virt_base = VirtAddr::new(<span class="kw">crate</span>::memory::phys_to_virt(phys_base.as_u64()));
-<a href=#349 id=349 data-nosnippet>349</a>
-<a href=#350 id=350 data-nosnippet>350</a>        <span class="comment">// Zero out the stack for safety
-<a href=#351 id=351 data-nosnippet>351</a>        </span><span class="kw">unsafe </span>{
-<a href=#352 id=352 data-nosnippet>352</a>            core::ptr::write_bytes(virt_base.as_mut_ptr::&lt;u8&gt;(), <span class="number">0</span>, size);
-<a href=#353 id=353 data-nosnippet>353</a>        }
-<a href=#354 id=354 data-nosnippet>354</a>
-<a href=#355 id=355 data-nosnippet>355</a>        <span class="prelude-val">Ok</span>(KernelStack {
-<a href=#356 id=356 data-nosnippet>356</a>            base: phys_base,
-<a href=#357 id=357 data-nosnippet>357</a>            virt_base,
-<a href=#358 id=358 data-nosnippet>358</a>            size,
-<a href=#359 id=359 data-nosnippet>359</a>        })
-<a href=#360 id=360 data-nosnippet>360</a>    }
-<a href=#361 id=361 data-nosnippet>361</a>}
-<a href=#362 id=362 data-nosnippet>362</a>
-<a href=#363 id=363 data-nosnippet>363</a><span class="kw">impl </span>Drop <span class="kw">for </span>KernelStack {
-<a href=#364 id=364 data-nosnippet>364</a>    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#365 id=365 data-nosnippet>365</a>        <span class="kw">use </span><span class="kw">crate</span>::memory::{frame::PhysFrame, get_allocator, FrameAllocator};
-<a href=#366 id=366 data-nosnippet>366</a>
-<a href=#367 id=367 data-nosnippet>367</a>        <span class="kw">let </span>pages = (<span class="self">self</span>.size + <span class="number">4095</span>) / <span class="number">4096</span>;
-<a href=#368 id=368 data-nosnippet>368</a>        <span class="kw">let </span>order = pages.next_power_of_two().trailing_zeros() <span class="kw">as </span>u8;
-<a href=#369 id=369 data-nosnippet>369</a>        <span class="kw">let </span>frame = PhysFrame {
-<a href=#370 id=370 data-nosnippet>370</a>            start_address: <span class="self">self</span>.base,
-<a href=#371 id=371 data-nosnippet>371</a>        };
-<a href=#372 id=372 data-nosnippet>372</a>
-<a href=#373 id=373 data-nosnippet>373</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>allocator) = <span class="kw-2">*</span>get_allocator().lock() {
-<a href=#374 id=374 data-nosnippet>374</a>            allocator.free(frame, order);
-<a href=#375 id=375 data-nosnippet>375</a>        }
-<a href=#376 id=376 data-nosnippet>376</a>    }
-<a href=#377 id=377 data-nosnippet>377</a>}
-<a href=#378 id=378 data-nosnippet>378</a>
-<a href=#379 id=379 data-nosnippet>379</a><span class="doccomment">/// User stack for a task (when running in userspace)
-<a href=#380 id=380 data-nosnippet>380</a></span><span class="kw">pub struct </span>UserStack {
-<a href=#381 id=381 data-nosnippet>381</a>    <span class="doccomment">/// Virtual address of the user stack
-<a href=#382 id=382 data-nosnippet>382</a>    </span><span class="kw">pub </span>virt_base: VirtAddr,
-<a href=#383 id=383 data-nosnippet>383</a>    <span class="doccomment">/// Size of the stack
-<a href=#384 id=384 data-nosnippet>384</a>    </span><span class="kw">pub </span>size: usize,
-<a href=#385 id=385 data-nosnippet>385</a>}
-<a href=#386 id=386 data-nosnippet>386</a>
-<a href=#387 id=387 data-nosnippet>387</a><span class="kw">impl </span>Task {
-<a href=#388 id=388 data-nosnippet>388</a>    <span class="doccomment">/// Default kernel stack size (16 KB)
-<a href=#389 id=389 data-nosnippet>389</a>    </span><span class="kw">pub const </span>DEFAULT_STACK_SIZE: usize = <span class="number">16384</span>;
+<a href=#97 id=97 data-nosnippet>97</a>
+<a href=#98 id=98 data-nosnippet>98</a>    <span class="doccomment">/// Performs the get operation.
+<a href=#99 id=99 data-nosnippet>99</a>    </span><span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">*mut </span>T {
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="self">self</span>.inner.get()
+<a href=#101 id=101 data-nosnippet>101</a>    }
+<a href=#102 id=102 data-nosnippet>102</a>}
+<a href=#103 id=103 data-nosnippet>103</a>
+<a href=#104 id=104 data-nosnippet>104</a><span class="doccomment">/// FPU/SSE/AVX extended state, saved and restored on context switch.
+<a href=#105 id=105 data-nosnippet>105</a>///
+<a href=#106 id=106 data-nosnippet>106</a>/// When XSAVE is available, uses `xsave`/`xrstor` with a variable-size area.
+<a href=#107 id=107 data-nosnippet>107</a>/// Falls back to `fxsave`/`fxrstor` (512 bytes) on older CPUs.
+<a href=#108 id=108 data-nosnippet>108</a></span><span class="attr">#[repr(C, align(<span class="number">64</span>))]
+<a href=#109 id=109 data-nosnippet>109</a></span><span class="kw">pub struct </span>ExtendedState {
+<a href=#110 id=110 data-nosnippet>110</a>    <span class="kw">pub </span>data: [u8; <span class="self">Self</span>::MAX_XSAVE_SIZE],
+<a href=#111 id=111 data-nosnippet>111</a>    <span class="kw">pub </span>size: usize,
+<a href=#112 id=112 data-nosnippet>112</a>    <span class="kw">pub </span>uses_xsave: bool,
+<a href=#113 id=113 data-nosnippet>113</a>    <span class="kw">pub </span>xcr0_mask: u64,
+<a href=#114 id=114 data-nosnippet>114</a>}
+<a href=#115 id=115 data-nosnippet>115</a>
+<a href=#116 id=116 data-nosnippet>116</a><span class="kw">impl </span>core::fmt::Debug <span class="kw">for </span>ExtendedState {
+<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
+<a href=#118 id=118 data-nosnippet>118</a>        f.debug_struct(<span class="string">"ExtendedState"</span>)
+<a href=#119 id=119 data-nosnippet>119</a>            .field(<span class="string">"size"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.size)
+<a href=#120 id=120 data-nosnippet>120</a>            .field(<span class="string">"uses_xsave"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.uses_xsave)
+<a href=#121 id=121 data-nosnippet>121</a>            .field(<span class="string">"xcr0_mask"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.xcr0_mask)
+<a href=#122 id=122 data-nosnippet>122</a>            .finish()
+<a href=#123 id=123 data-nosnippet>123</a>    }
+<a href=#124 id=124 data-nosnippet>124</a>}
+<a href=#125 id=125 data-nosnippet>125</a>
+<a href=#126 id=126 data-nosnippet>126</a><span class="kw">impl </span>ExtendedState {
+<a href=#127 id=127 data-nosnippet>127</a>    <span class="kw">pub const </span>FXSAVE_SIZE: usize = <span class="number">512</span>;
+<a href=#128 id=128 data-nosnippet>128</a>    <span class="kw">pub const </span>MAX_XSAVE_SIZE: usize = <span class="number">2688</span>;
+<a href=#129 id=129 data-nosnippet>129</a>
+<a href=#130 id=130 data-nosnippet>130</a>    <span class="doccomment">/// Create a new default state using the host's maximum capabilities.
+<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">let </span>(uses_xsave, size, max_xcr0) =
+<a href=#133 id=133 data-nosnippet>133</a>            <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
+<a href=#134 id=134 data-nosnippet>134</a>                <span class="kw">let </span>h = <span class="kw">crate</span>::arch::x86_64::cpuid::host();
+<a href=#135 id=135 data-nosnippet>135</a>                (<span class="bool-val">true</span>, h.xsave_size.min(<span class="self">Self</span>::MAX_XSAVE_SIZE), h.max_xcr0)
+<a href=#136 id=136 data-nosnippet>136</a>            } <span class="kw">else </span>{
+<a href=#137 id=137 data-nosnippet>137</a>                (<span class="bool-val">false</span>, <span class="self">Self</span>::FXSAVE_SIZE, <span class="number">0x3</span>)
+<a href=#138 id=138 data-nosnippet>138</a>            };
+<a href=#139 id=139 data-nosnippet>139</a>
+<a href=#140 id=140 data-nosnippet>140</a>        <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">Self </span>{
+<a href=#141 id=141 data-nosnippet>141</a>            data: [<span class="number">0u8</span>; <span class="self">Self</span>::MAX_XSAVE_SIZE],
+<a href=#142 id=142 data-nosnippet>142</a>            size,
+<a href=#143 id=143 data-nosnippet>143</a>            uses_xsave,
+<a href=#144 id=144 data-nosnippet>144</a>            xcr0_mask: max_xcr0,
+<a href=#145 id=145 data-nosnippet>145</a>        };
+<a href=#146 id=146 data-nosnippet>146</a>        state.set_defaults();
+<a href=#147 id=147 data-nosnippet>147</a>        state
+<a href=#148 id=148 data-nosnippet>148</a>    }
+<a href=#149 id=149 data-nosnippet>149</a>
+<a href=#150 id=150 data-nosnippet>150</a>    <span class="doccomment">/// Create a state for a specific XCR0 mask (per-silo feature restriction).
+<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="kw">pub fn </span>for_xcr0(xcr0: u64) -&gt; <span class="self">Self </span>{
+<a href=#152 id=152 data-nosnippet>152</a>        <span class="kw">let </span>uses_xsave = <span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave();
+<a href=#153 id=153 data-nosnippet>153</a>        <span class="kw">let </span>size = <span class="kw">if </span>uses_xsave {
+<a href=#154 id=154 data-nosnippet>154</a>            <span class="kw">crate</span>::arch::x86_64::cpuid::xsave_size_for_xcr0(xcr0)
+<a href=#155 id=155 data-nosnippet>155</a>                .min(<span class="self">Self</span>::MAX_XSAVE_SIZE)
+<a href=#156 id=156 data-nosnippet>156</a>        } <span class="kw">else </span>{
+<a href=#157 id=157 data-nosnippet>157</a>            <span class="self">Self</span>::FXSAVE_SIZE
+<a href=#158 id=158 data-nosnippet>158</a>        };
+<a href=#159 id=159 data-nosnippet>159</a>
+<a href=#160 id=160 data-nosnippet>160</a>        <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">Self </span>{
+<a href=#161 id=161 data-nosnippet>161</a>            data: [<span class="number">0u8</span>; <span class="self">Self</span>::MAX_XSAVE_SIZE],
+<a href=#162 id=162 data-nosnippet>162</a>            size,
+<a href=#163 id=163 data-nosnippet>163</a>            uses_xsave,
+<a href=#164 id=164 data-nosnippet>164</a>            xcr0_mask: xcr0,
+<a href=#165 id=165 data-nosnippet>165</a>        };
+<a href=#166 id=166 data-nosnippet>166</a>        state.set_defaults();
+<a href=#167 id=167 data-nosnippet>167</a>        state
+<a href=#168 id=168 data-nosnippet>168</a>    }
+<a href=#169 id=169 data-nosnippet>169</a>
+<a href=#170 id=170 data-nosnippet>170</a>    <span class="kw">fn </span>set_defaults(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#171 id=171 data-nosnippet>171</a>        <span class="comment">// x87 FCW = 0x037F
+<a href=#172 id=172 data-nosnippet>172</a>        </span><span class="self">self</span>.data[<span class="number">0</span>] = <span class="number">0x7F</span>;
+<a href=#173 id=173 data-nosnippet>173</a>        <span class="self">self</span>.data[<span class="number">1</span>] = <span class="number">0x03</span>;
+<a href=#174 id=174 data-nosnippet>174</a>        <span class="comment">// MXCSR = 0x1F80
+<a href=#175 id=175 data-nosnippet>175</a>        </span><span class="self">self</span>.data[<span class="number">24</span>] = <span class="number">0x80</span>;
+<a href=#176 id=176 data-nosnippet>176</a>        <span class="self">self</span>.data[<span class="number">25</span>] = <span class="number">0x1F</span>;
+<a href=#177 id=177 data-nosnippet>177</a>    }
+<a href=#178 id=178 data-nosnippet>178</a>
+<a href=#179 id=179 data-nosnippet>179</a>    <span class="doccomment">/// Copy the state from another `ExtendedState`.
+<a href=#180 id=180 data-nosnippet>180</a>    </span><span class="kw">pub fn </span>copy_from(<span class="kw-2">&amp;mut </span><span class="self">self</span>, other: <span class="kw-2">&amp;</span>ExtendedState) {
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="kw">let </span>len = other.size.min(<span class="self">self</span>.size);
+<a href=#182 id=182 data-nosnippet>182</a>        <span class="self">self</span>.data[..len].copy_from_slice(<span class="kw-2">&amp;</span>other.data[..len]);
+<a href=#183 id=183 data-nosnippet>183</a>    }
+<a href=#184 id=184 data-nosnippet>184</a>}
+<a href=#185 id=185 data-nosnippet>185</a>
+<a href=#186 id=186 data-nosnippet>186</a><span class="doccomment">/// Represents a single task/thread in the system
+<a href=#187 id=187 data-nosnippet>187</a></span><span class="kw">pub struct </span>Task {
+<a href=#188 id=188 data-nosnippet>188</a>    <span class="doccomment">/// Unique identifier for this task
+<a href=#189 id=189 data-nosnippet>189</a>    </span><span class="kw">pub </span>id: TaskId,
+<a href=#190 id=190 data-nosnippet>190</a>    <span class="doccomment">/// Process identifier visible to userspace.
+<a href=#191 id=191 data-nosnippet>191</a>    </span><span class="kw">pub </span>pid: Pid,
+<a href=#192 id=192 data-nosnippet>192</a>    <span class="doccomment">/// Thread identifier visible to userspace.
+<a href=#193 id=193 data-nosnippet>193</a>    </span><span class="kw">pub </span>tid: Tid,
+<a href=#194 id=194 data-nosnippet>194</a>    <span class="doccomment">/// Thread-group identifier (equals process leader PID).
+<a href=#195 id=195 data-nosnippet>195</a>    </span><span class="kw">pub </span>tgid: Pid,
+<a href=#196 id=196 data-nosnippet>196</a>    <span class="doccomment">/// Process group id (job-control group).
+<a href=#197 id=197 data-nosnippet>197</a>    </span><span class="kw">pub </span>pgid: AtomicU32,
+<a href=#198 id=198 data-nosnippet>198</a>    <span class="doccomment">/// Session id.
+<a href=#199 id=199 data-nosnippet>199</a>    </span><span class="kw">pub </span>sid: AtomicU32,
+<a href=#200 id=200 data-nosnippet>200</a>    <span class="doccomment">/// real user id.
+<a href=#201 id=201 data-nosnippet>201</a>    </span><span class="kw">pub </span>uid: AtomicU32,
+<a href=#202 id=202 data-nosnippet>202</a>    <span class="doccomment">/// effective user id.
+<a href=#203 id=203 data-nosnippet>203</a>    </span><span class="kw">pub </span>euid: AtomicU32,
+<a href=#204 id=204 data-nosnippet>204</a>    <span class="doccomment">/// real group id.
+<a href=#205 id=205 data-nosnippet>205</a>    </span><span class="kw">pub </span>gid: AtomicU32,
+<a href=#206 id=206 data-nosnippet>206</a>    <span class="doccomment">/// effective group id.
+<a href=#207 id=207 data-nosnippet>207</a>    </span><span class="kw">pub </span>egid: AtomicU32,
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="doccomment">/// Current state of the task
+<a href=#209 id=209 data-nosnippet>209</a>    </span><span class="kw">pub </span>state: SyncUnsafeCell&lt;TaskState&gt;,
+<a href=#210 id=210 data-nosnippet>210</a>    <span class="doccomment">/// Priority level of the task
+<a href=#211 id=211 data-nosnippet>211</a>    </span><span class="kw">pub </span>priority: TaskPriority,
+<a href=#212 id=212 data-nosnippet>212</a>    <span class="doccomment">/// Saved CPU context for this task (just the stack pointer)
+<a href=#213 id=213 data-nosnippet>213</a>    </span><span class="kw">pub </span>context: SyncUnsafeCell&lt;CpuContext&gt;,
+<a href=#214 id=214 data-nosnippet>214</a>    <span class="doccomment">/// Kernel stack for this task
+<a href=#215 id=215 data-nosnippet>215</a>    </span><span class="kw">pub </span>kernel_stack: KernelStack,
+<a href=#216 id=216 data-nosnippet>216</a>    <span class="doccomment">/// User stack for this task (if applicable)
+<a href=#217 id=217 data-nosnippet>217</a>    </span><span class="kw">pub </span>user_stack: <span class="prelude-ty">Option</span>&lt;UserStack&gt;,
+<a href=#218 id=218 data-nosnippet>218</a>    <span class="doccomment">/// Task name for debugging purposes
+<a href=#219 id=219 data-nosnippet>219</a>    </span><span class="kw">pub </span>name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#220 id=220 data-nosnippet>220</a>    <span class="doccomment">/// Capabilities granted to this task
+<a href=#221 id=221 data-nosnippet>221</a>    /// Address space for this task (kernel tasks share the kernel AS)
+<a href=#222 id=222 data-nosnippet>222</a>    </span><span class="kw">pub </span>process: Arc&lt;<span class="kw">crate</span>::process::process::Process&gt;,
+<a href=#223 id=223 data-nosnippet>223</a>    <span class="doccomment">/// File descriptor table for this task
+<a href=#224 id=224 data-nosnippet>224</a>    /// Pending signals for this task
+<a href=#225 id=225 data-nosnippet>225</a>    </span><span class="kw">pub </span>pending_signals: <span class="kw">super</span>::signal::SignalSet,
+<a href=#226 id=226 data-nosnippet>226</a>    <span class="doccomment">/// Blocked signals mask for this task
+<a href=#227 id=227 data-nosnippet>227</a>    </span><span class="kw">pub </span>blocked_signals: <span class="kw">super</span>::signal::SignalSet,
+<a href=#228 id=228 data-nosnippet>228</a>    <span class="doccomment">/// Signal actions (handlers) for this task
+<a href=#229 id=229 data-nosnippet>229</a>    /// Signal alternate stack for this task
+<a href=#230 id=230 data-nosnippet>230</a>    </span><span class="kw">pub </span>signal_stack: SyncUnsafeCell&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw">super</span>::signal::SigStack&gt;&gt;,
+<a href=#231 id=231 data-nosnippet>231</a>    <span class="doccomment">/// Interval timers (ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF)
+<a href=#232 id=232 data-nosnippet>232</a>    </span><span class="kw">pub </span>itimers: <span class="kw">super</span>::timer::ITimers,
+<a href=#233 id=233 data-nosnippet>233</a>    <span class="doccomment">/// Pending wakeup flag: set by `wake_task()` when the task is not yet
+<a href=#234 id=234 data-nosnippet>234</a>    /// in `blocked_tasks` (it is still transitioning to Blocked state).
+<a href=#235 id=235 data-nosnippet>235</a>    /// Checked by `block_current_task()` — if set, the task skips blocking
+<a href=#236 id=236 data-nosnippet>236</a>    /// and continues execution, preventing a lost-wakeup race.
+<a href=#237 id=237 data-nosnippet>237</a>    </span><span class="kw">pub </span>wake_pending: AtomicBool,
+<a href=#238 id=238 data-nosnippet>238</a>    <span class="doccomment">/// Sleep deadline in nanoseconds (monotonic). If non-zero, the task
+<a href=#239 id=239 data-nosnippet>239</a>    /// is sleeping until this time. Checked by the scheduler to auto-wake.
+<a href=#240 id=240 data-nosnippet>240</a>    </span><span class="kw">pub </span>wake_deadline_ns: AtomicU64,
+<a href=#241 id=241 data-nosnippet>241</a>    <span class="doccomment">/// Program break (end of heap), in bytes. 0 = not yet initialised.
+<a href=#242 id=242 data-nosnippet>242</a>    /// Lazily set to `BRK_BASE` on the first `sys_brk` call.
+<a href=#243 id=243 data-nosnippet>243</a>    /// mmap_hint: next candidate virtual address for anonymous mmap allocations
+<a href=#244 id=244 data-nosnippet>244</a>    /// User-space entry point for ring3 trampoline (ELF tasks only, 0 otherwise).
+<a href=#245 id=245 data-nosnippet>245</a>    </span><span class="kw">pub </span>trampoline_entry: AtomicU64,
+<a href=#246 id=246 data-nosnippet>246</a>    <span class="doccomment">/// User-space stack top for ring3 trampoline (ELF tasks only, 0 otherwise).
+<a href=#247 id=247 data-nosnippet>247</a>    </span><span class="kw">pub </span>trampoline_stack_top: AtomicU64,
+<a href=#248 id=248 data-nosnippet>248</a>    <span class="doccomment">/// First argument (RDI) passed to the user process on entry (e.g. bootstrap cap handle).
+<a href=#249 id=249 data-nosnippet>249</a>    </span><span class="kw">pub </span>trampoline_arg0: AtomicU64,
+<a href=#250 id=250 data-nosnippet>250</a>    <span class="doccomment">/// Total CPU ticks consumed by this task
+<a href=#251 id=251 data-nosnippet>251</a>    </span><span class="kw">pub </span>ticks: AtomicU64,
+<a href=#252 id=252 data-nosnippet>252</a>    <span class="doccomment">/// Scheduling policy (Fair, RealTime, Idle)
+<a href=#253 id=253 data-nosnippet>253</a>    </span><span class="kw">pub </span>sched_policy: SyncUnsafeCell&lt;<span class="kw">crate</span>::process::sched::SchedPolicy&gt;,
+<a href=#254 id=254 data-nosnippet>254</a>    <span class="doccomment">/// Virtual runtime for CFS
+<a href=#255 id=255 data-nosnippet>255</a>    </span><span class="kw">pub </span>vruntime: AtomicU64,
+<a href=#256 id=256 data-nosnippet>256</a>    <span class="doccomment">/// TID address for futex-based thread join (set_tid_address).
+<a href=#257 id=257 data-nosnippet>257</a>    /// The kernel writes 0 here when the thread exits, then futex_wake.
+<a href=#258 id=258 data-nosnippet>258</a>    </span><span class="kw">pub </span>clear_child_tid: AtomicU64,
+<a href=#259 id=259 data-nosnippet>259</a>    <span class="doccomment">/// Current working directory (POSIX, inherited by children).
+<a href=#260 id=260 data-nosnippet>260</a>    /// File creation mask (inherited by children, NOT reset by exec).
+<a href=#261 id=261 data-nosnippet>261</a>    /// User-space FS.base (TLS on x86_64, set via arch_prctl ARCH_SET_FS).
+<a href=#262 id=262 data-nosnippet>262</a>    /// Saved/restored across context switches.
+<a href=#263 id=263 data-nosnippet>263</a>    </span><span class="kw">pub </span>user_fs_base: AtomicU64,
+<a href=#264 id=264 data-nosnippet>264</a>    <span class="doccomment">/// FPU/SSE/AVX extended state saved during context switch.
+<a href=#265 id=265 data-nosnippet>265</a>    </span><span class="kw">pub </span>fpu_state: SyncUnsafeCell&lt;ExtendedState&gt;,
+<a href=#266 id=266 data-nosnippet>266</a>    <span class="doccomment">/// XCR0 mask for this task (inherited from its silo).
+<a href=#267 id=267 data-nosnippet>267</a>    </span><span class="kw">pub </span>xcr0_mask: AtomicU64,
+<a href=#268 id=268 data-nosnippet>268</a>}
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a><span class="kw">impl </span>Task {
+<a href=#271 id=271 data-nosnippet>271</a>    <span class="doccomment">/// Performs the default sched policy operation.
+<a href=#272 id=272 data-nosnippet>272</a>    </span><span class="kw">pub fn </span>default_sched_policy(priority: TaskPriority) -&gt; <span class="kw">crate</span>::process::sched::SchedPolicy {
+<a href=#273 id=273 data-nosnippet>273</a>        <span class="kw">use </span><span class="kw">crate</span>::process::sched::{nice::Nice, real_time::RealTimePriority, SchedPolicy};
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="kw">match </span>priority {
+<a href=#275 id=275 data-nosnippet>275</a>            TaskPriority::Idle =&gt; SchedPolicy::Idle,
+<a href=#276 id=276 data-nosnippet>276</a>            TaskPriority::Realtime =&gt; SchedPolicy::RealTimeRR {
+<a href=#277 id=277 data-nosnippet>277</a>                prio: RealTimePriority::new(<span class="number">50</span>),
+<a href=#278 id=278 data-nosnippet>278</a>            },
+<a href=#279 id=279 data-nosnippet>279</a>            TaskPriority::High =&gt; SchedPolicy::Fair(Nice::new(-<span class="number">10</span>)),
+<a href=#280 id=280 data-nosnippet>280</a>            TaskPriority::Low =&gt; SchedPolicy::Fair(Nice::new(<span class="number">10</span>)),
+<a href=#281 id=281 data-nosnippet>281</a>            TaskPriority::Normal =&gt; SchedPolicy::Fair(Nice::default()),
+<a href=#282 id=282 data-nosnippet>282</a>        }
+<a href=#283 id=283 data-nosnippet>283</a>    }
+<a href=#284 id=284 data-nosnippet>284</a>
+<a href=#285 id=285 data-nosnippet>285</a>    <span class="doccomment">/// Get the current scheduling policy of the task
+<a href=#286 id=286 data-nosnippet>286</a>    </span><span class="kw">pub fn </span>sched_policy(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">crate</span>::process::sched::SchedPolicy {
+<a href=#287 id=287 data-nosnippet>287</a>        <span class="kw">unsafe </span>{ <span class="kw-2">*</span><span class="self">self</span>.sched_policy.get() }
+<a href=#288 id=288 data-nosnippet>288</a>    }
+<a href=#289 id=289 data-nosnippet>289</a>
+<a href=#290 id=290 data-nosnippet>290</a>    <span class="doccomment">/// Set the scheduling policy of the task
+<a href=#291 id=291 data-nosnippet>291</a>    </span><span class="kw">pub fn </span>set_sched_policy(<span class="kw-2">&amp;</span><span class="self">self</span>, policy: <span class="kw">crate</span>::process::sched::SchedPolicy) {
+<a href=#292 id=292 data-nosnippet>292</a>        <span class="kw">unsafe </span>{
+<a href=#293 id=293 data-nosnippet>293</a>            <span class="kw-2">*</span><span class="self">self</span>.sched_policy.get() = policy;
+<a href=#294 id=294 data-nosnippet>294</a>        }
+<a href=#295 id=295 data-nosnippet>295</a>    }
+<a href=#296 id=296 data-nosnippet>296</a>
+<a href=#297 id=297 data-nosnippet>297</a>    <span class="doccomment">/// Get virtual runtime
+<a href=#298 id=298 data-nosnippet>298</a>    </span><span class="kw">pub fn </span>vruntime(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+<a href=#299 id=299 data-nosnippet>299</a>        <span class="self">self</span>.vruntime.load(Ordering::Relaxed)
+<a href=#300 id=300 data-nosnippet>300</a>    }
+<a href=#301 id=301 data-nosnippet>301</a>
+<a href=#302 id=302 data-nosnippet>302</a>    <span class="doccomment">/// Set virtual runtime
+<a href=#303 id=303 data-nosnippet>303</a>    </span><span class="kw">pub fn </span>set_vruntime(<span class="kw-2">&amp;</span><span class="self">self</span>, vruntime: u64) {
+<a href=#304 id=304 data-nosnippet>304</a>        <span class="self">self</span>.vruntime.store(vruntime, Ordering::Relaxed);
+<a href=#305 id=305 data-nosnippet>305</a>    }
+<a href=#306 id=306 data-nosnippet>306</a>}
+<a href=#307 id=307 data-nosnippet>307</a>
+<a href=#308 id=308 data-nosnippet>308</a><span class="doccomment">/// CPU context saved/restored during context switches.
+<a href=#309 id=309 data-nosnippet>309</a>///
+<a href=#310 id=310 data-nosnippet>310</a>/// Only stores the saved RSP. All callee-saved registers (rbx, rbp, r12-r15)
+<a href=#311 id=311 data-nosnippet>311</a>/// are pushed onto the task's kernel stack by `switch_context()`.
+<a href=#312 id=312 data-nosnippet>312</a></span><span class="attr">#[repr(C)]
+<a href=#313 id=313 data-nosnippet>313</a></span><span class="kw">pub struct </span>CpuContext {
+<a href=#314 id=314 data-nosnippet>314</a>    <span class="doccomment">/// Saved stack pointer (points into the task's kernel stack)
+<a href=#315 id=315 data-nosnippet>315</a>    </span><span class="kw">pub </span>saved_rsp: u64,
+<a href=#316 id=316 data-nosnippet>316</a>}
+<a href=#317 id=317 data-nosnippet>317</a>
+<a href=#318 id=318 data-nosnippet>318</a><span class="kw">impl </span>CpuContext {
+<a href=#319 id=319 data-nosnippet>319</a>    <span class="doccomment">/// Create a new CPU context for a task starting at the given entry point.
+<a href=#320 id=320 data-nosnippet>320</a>    ///
+<a href=#321 id=321 data-nosnippet>321</a>    /// Sets up a fake stack frame on the kernel stack that looks like
+<a href=#322 id=322 data-nosnippet>322</a>    /// `switch_context()` just pushed callee-saved registers. When
+<a href=#323 id=323 data-nosnippet>323</a>    /// `switch_context()` or `restore_first_task()` pops them and does `ret`,
+<a href=#324 id=324 data-nosnippet>324</a>    /// it will jump to `task_entry_trampoline`, which enables interrupts
+<a href=#325 id=325 data-nosnippet>325</a>    /// and jumps to the real entry point (stored in r12).
+<a href=#326 id=326 data-nosnippet>326</a>    ///
+<a href=#327 id=327 data-nosnippet>327</a>    /// Stack layout (growing downward):
+<a href=#328 id=328 data-nosnippet>328</a>    /// ```text
+<a href=#329 id=329 data-nosnippet>329</a>    /// [stack_top]
+<a href=#330 id=330 data-nosnippet>330</a>    ///   task_entry_trampoline   &lt;- ret target
+<a href=#331 id=331 data-nosnippet>331</a>    ///   0  (r15)
+<a href=#332 id=332 data-nosnippet>332</a>    ///   0  (r14)
+<a href=#333 id=333 data-nosnippet>333</a>    ///   0  (r13)
+<a href=#334 id=334 data-nosnippet>334</a>    ///   entry_point (r12)      &lt;- trampoline reads this
+<a href=#335 id=335 data-nosnippet>335</a>    ///   0  (rbp)
+<a href=#336 id=336 data-nosnippet>336</a>    ///   0  (rbx)
+<a href=#337 id=337 data-nosnippet>337</a>    ///   &lt;- saved_rsp points here
+<a href=#338 id=338 data-nosnippet>338</a>    /// ```
+<a href=#339 id=339 data-nosnippet>339</a>    </span><span class="kw">pub fn </span>new(entry_point: u64, kernel_stack: <span class="kw-2">&amp;</span>KernelStack) -&gt; <span class="self">Self </span>{
+<a href=#340 id=340 data-nosnippet>340</a>        <span class="kw">let </span>stack_top = kernel_stack.virt_base.as_u64() + kernel_stack.size <span class="kw">as </span>u64;
+<a href=#341 id=341 data-nosnippet>341</a>
+<a href=#342 id=342 data-nosnippet>342</a>        <span class="comment">// We need to push 7 values (each 8 bytes) onto the stack
+<a href=#343 id=343 data-nosnippet>343</a>        </span><span class="kw">let </span>initial_rsp = stack_top - <span class="number">7 </span>* <span class="number">8</span>;
+<a href=#344 id=344 data-nosnippet>344</a>
+<a href=#345 id=345 data-nosnippet>345</a>        <span class="comment">// SAFETY: We own this stack memory and it's properly allocated and zeroed.
+<a href=#346 id=346 data-nosnippet>346</a>        // The stack region [virt_base, virt_base + size) is valid.
+<a href=#347 id=347 data-nosnippet>347</a>        </span><span class="kw">unsafe </span>{
+<a href=#348 id=348 data-nosnippet>348</a>            <span class="kw">let </span>stack = initial_rsp <span class="kw">as </span><span class="kw-2">*mut </span>u64;
+<a href=#349 id=349 data-nosnippet>349</a>            <span class="comment">// Push order must match switch_context pops (LIFO, but we write linearly from RSP up):
+<a href=#350 id=350 data-nosnippet>350</a>            // [RSP+0]  = r15
+<a href=#351 id=351 data-nosnippet>351</a>            // [RSP+8]  = r14
+<a href=#352 id=352 data-nosnippet>352</a>            // [RSP+16] = r13
+<a href=#353 id=353 data-nosnippet>353</a>            // [RSP+24] = r12 (entry point)
+<a href=#354 id=354 data-nosnippet>354</a>            // [RSP+32] = rbp
+<a href=#355 id=355 data-nosnippet>355</a>            // [RSP+40] = rbx
+<a href=#356 id=356 data-nosnippet>356</a>            // [RSP+48] = ret (trampoline)
+<a href=#357 id=357 data-nosnippet>357</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">0</span>) = <span class="number">0</span>; <span class="comment">// r15
+<a href=#358 id=358 data-nosnippet>358</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">1</span>) = <span class="number">0</span>; <span class="comment">// r14
+<a href=#359 id=359 data-nosnippet>359</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">2</span>) = <span class="number">0</span>; <span class="comment">// r13
+<a href=#360 id=360 data-nosnippet>360</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">3</span>) = entry_point; <span class="comment">// r12 (trampoline target)
+<a href=#361 id=361 data-nosnippet>361</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">4</span>) = <span class="number">0</span>; <span class="comment">// rbp
+<a href=#362 id=362 data-nosnippet>362</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">5</span>) = <span class="number">0</span>; <span class="comment">// rbx
+<a href=#363 id=363 data-nosnippet>363</a>            </span><span class="kw-2">*</span>stack.add(<span class="number">6</span>) = task_entry_trampoline <span class="kw">as </span><span class="kw-2">*const </span>() <span class="kw">as </span>u64; <span class="comment">// ret address
+<a href=#364 id=364 data-nosnippet>364</a>        </span>}
+<a href=#365 id=365 data-nosnippet>365</a>
+<a href=#366 id=366 data-nosnippet>366</a>        CpuContext {
+<a href=#367 id=367 data-nosnippet>367</a>            saved_rsp: initial_rsp,
+<a href=#368 id=368 data-nosnippet>368</a>        }
+<a href=#369 id=369 data-nosnippet>369</a>    }
+<a href=#370 id=370 data-nosnippet>370</a>}
+<a href=#371 id=371 data-nosnippet>371</a>
+<a href=#372 id=372 data-nosnippet>372</a><span class="doccomment">/// Trampoline for newly created tasks.
+<a href=#373 id=373 data-nosnippet>373</a>///
+<a href=#374 id=374 data-nosnippet>374</a>/// When a new task is first scheduled, `switch_context()` pops the fake
+<a href=#375 id=375 data-nosnippet>375</a>/// callee-saved registers and `ret`s here. We enable interrupts (the new
+<a href=#376 id=376 data-nosnippet>376</a>/// task starts with IF=0 because the scheduler disables interrupts) and
+<a href=#377 id=377 data-nosnippet>377</a>/// jump to the real entry point stored in r12.
+<a href=#378 id=378 data-nosnippet>378</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#379 id=379 data-nosnippet>379</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>task_entry_trampoline() {
+<a href=#380 id=380 data-nosnippet>380</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#381 id=381 data-nosnippet>381</a>        <span class="string">"call {finish_switch}"</span>,
+<a href=#382 id=382 data-nosnippet>382</a>        <span class="string">"sti"</span>,          <span class="comment">// Enable interrupts for the new task
+<a href=#383 id=383 data-nosnippet>383</a>        </span><span class="string">"call {mark_tlb_ready}"</span>,
+<a href=#384 id=384 data-nosnippet>384</a>        <span class="string">"mov rdi, r13"</span>, <span class="comment">// Bootstrap arg (seeded cap handle)
+<a href=#385 id=385 data-nosnippet>385</a>        </span><span class="string">"jmp r12"</span>,      <span class="comment">// Jump to real entry point (loaded from initial stack frame)
+<a href=#386 id=386 data-nosnippet>386</a>        </span>finish_switch = sym <span class="kw">crate</span>::process::scheduler::finish_switch,
+<a href=#387 id=387 data-nosnippet>387</a>        mark_tlb_ready = sym <span class="kw">crate</span>::arch::x86_64::percpu::mark_tlb_ready_current,
+<a href=#388 id=388 data-nosnippet>388</a>    );
+<a href=#389 id=389 data-nosnippet>389</a>}
 <a href=#390 id=390 data-nosnippet>390</a>
-<a href=#391 id=391 data-nosnippet>391</a>    <span class="doccomment">/// Create a new kernel task with a real allocated stack
-<a href=#392 id=392 data-nosnippet>392</a>    </span><span class="kw">pub fn </span>new_kernel_task(
-<a href=#393 id=393 data-nosnippet>393</a>        entry_point: <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>() -&gt; !,
-<a href=#394 id=394 data-nosnippet>394</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#395 id=395 data-nosnippet>395</a>        priority: TaskPriority,
-<a href=#396 id=396 data-nosnippet>396</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#397 id=397 data-nosnippet>397</a>        <span class="self">Self</span>::new_kernel_task_with_stack(entry_point, name, priority, <span class="self">Self</span>::DEFAULT_STACK_SIZE)
-<a href=#398 id=398 data-nosnippet>398</a>    }
-<a href=#399 id=399 data-nosnippet>399</a>
-<a href=#400 id=400 data-nosnippet>400</a>    <span class="doccomment">/// Create a new kernel task with a custom kernel stack size.
-<a href=#401 id=401 data-nosnippet>401</a>    </span><span class="kw">pub fn </span>new_kernel_task_with_stack(
-<a href=#402 id=402 data-nosnippet>402</a>        entry_point: <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>() -&gt; !,
-<a href=#403 id=403 data-nosnippet>403</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#404 id=404 data-nosnippet>404</a>        priority: TaskPriority,
-<a href=#405 id=405 data-nosnippet>405</a>        stack_size: usize,
-<a href=#406 id=406 data-nosnippet>406</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#407 id=407 data-nosnippet>407</a>        <span class="comment">// Allocate a real kernel stack
-<a href=#408 id=408 data-nosnippet>408</a>        </span><span class="kw">let </span>kernel_stack = KernelStack::allocate(stack_size)<span class="question-mark">?</span>;
+<a href=#391 id=391 data-nosnippet>391</a><span class="doccomment">/// Kernel stack for a task
+<a href=#392 id=392 data-nosnippet>392</a></span><span class="kw">pub struct </span>KernelStack {
+<a href=#393 id=393 data-nosnippet>393</a>    <span class="doccomment">/// Physical address of the stack
+<a href=#394 id=394 data-nosnippet>394</a>    </span><span class="kw">pub </span>base: PhysAddr,
+<a href=#395 id=395 data-nosnippet>395</a>    <span class="doccomment">/// Virtual address of the stack
+<a href=#396 id=396 data-nosnippet>396</a>    </span><span class="kw">pub </span>virt_base: VirtAddr,
+<a href=#397 id=397 data-nosnippet>397</a>    <span class="doccomment">/// Size of the stack
+<a href=#398 id=398 data-nosnippet>398</a>    </span><span class="kw">pub </span>size: usize,
+<a href=#399 id=399 data-nosnippet>399</a>}
+<a href=#400 id=400 data-nosnippet>400</a>
+<a href=#401 id=401 data-nosnippet>401</a><span class="kw">impl </span>KernelStack {
+<a href=#402 id=402 data-nosnippet>402</a>    <span class="doccomment">/// Allocate a new kernel stack using the buddy allocator
+<a href=#403 id=403 data-nosnippet>403</a>    </span><span class="kw">pub fn </span>allocate(size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#404 id=404 data-nosnippet>404</a>        <span class="kw">use </span><span class="kw">crate</span>::memory::{get_allocator, FrameAllocator};
+<a href=#405 id=405 data-nosnippet>405</a>
+<a href=#406 id=406 data-nosnippet>406</a>        <span class="comment">// Calculate number of pages needed (round up)
+<a href=#407 id=407 data-nosnippet>407</a>        </span><span class="kw">let </span>pages = (size + <span class="number">4095</span>) / <span class="number">4096</span>;
+<a href=#408 id=408 data-nosnippet>408</a>        <span class="kw">let </span>order = pages.next_power_of_two().trailing_zeros() <span class="kw">as </span>u8;
 <a href=#409 id=409 data-nosnippet>409</a>
-<a href=#410 id=410 data-nosnippet>410</a>        <span class="comment">// Create CPU context with the allocated stack
-<a href=#411 id=411 data-nosnippet>411</a>        </span><span class="kw">let </span>context = CpuContext::new(entry_point <span class="kw">as </span><span class="kw-2">*const </span>() <span class="kw">as </span>u64, <span class="kw-2">&amp;</span>kernel_stack);
-<a href=#412 id=412 data-nosnippet>412</a>        <span class="kw">let </span>id = TaskId::new();
-<a href=#413 id=413 data-nosnippet>413</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
-<a href=#414 id=414 data-nosnippet>414</a>
-<a href=#415 id=415 data-nosnippet>415</a>        <span class="macro">log::debug!</span>(
-<a href=#416 id=416 data-nosnippet>416</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} kstack={:?} kstack_kib={}"</span>,
-<a href=#417 id=417 data-nosnippet>417</a>            name,
-<a href=#418 id=418 data-nosnippet>418</a>            id.as_u64(),
-<a href=#419 id=419 data-nosnippet>419</a>            pid,
-<a href=#420 id=420 data-nosnippet>420</a>            tid,
-<a href=#421 id=421 data-nosnippet>421</a>            kernel_stack.virt_base,
-<a href=#422 id=422 data-nosnippet>422</a>            kernel_stack.size / <span class="number">1024
-<a href=#423 id=423 data-nosnippet>423</a>        </span>);
-<a href=#424 id=424 data-nosnippet>424</a>
-<a href=#425 id=425 data-nosnippet>425</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
-<a href=#426 id=426 data-nosnippet>426</a>            id,
-<a href=#427 id=427 data-nosnippet>427</a>            pid,
-<a href=#428 id=428 data-nosnippet>428</a>            tid,
-<a href=#429 id=429 data-nosnippet>429</a>            tgid,
-<a href=#430 id=430 data-nosnippet>430</a>            pgid: AtomicU32::new(pid),
-<a href=#431 id=431 data-nosnippet>431</a>            sid: AtomicU32::new(pid),
-<a href=#432 id=432 data-nosnippet>432</a>            uid: AtomicU32::new(<span class="number">0</span>),
-<a href=#433 id=433 data-nosnippet>433</a>            euid: AtomicU32::new(<span class="number">0</span>),
-<a href=#434 id=434 data-nosnippet>434</a>            gid: AtomicU32::new(<span class="number">0</span>),
-<a href=#435 id=435 data-nosnippet>435</a>            egid: AtomicU32::new(<span class="number">0</span>),
-<a href=#436 id=436 data-nosnippet>436</a>            state: SyncUnsafeCell::new(TaskState::Ready),
-<a href=#437 id=437 data-nosnippet>437</a>            priority,
-<a href=#438 id=438 data-nosnippet>438</a>            context: SyncUnsafeCell::new(context),
-<a href=#439 id=439 data-nosnippet>439</a>            kernel_stack,
-<a href=#440 id=440 data-nosnippet>440</a>            user_stack: <span class="prelude-val">None</span>,
-<a href=#441 id=441 data-nosnippet>441</a>            name,
-<a href=#442 id=442 data-nosnippet>442</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, <span class="kw">crate</span>::memory::kernel_address_space().clone())),
-<a href=#443 id=443 data-nosnippet>443</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#444 id=444 data-nosnippet>444</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#445 id=445 data-nosnippet>445</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
-<a href=#446 id=446 data-nosnippet>446</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
-<a href=#447 id=447 data-nosnippet>447</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
-<a href=#448 id=448 data-nosnippet>448</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
-<a href=#449 id=449 data-nosnippet>449</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
-<a href=#450 id=450 data-nosnippet>450</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
-<a href=#451 id=451 data-nosnippet>451</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
-<a href=#452 id=452 data-nosnippet>452</a>            ticks: AtomicU64::new(<span class="number">0</span>),
-<a href=#453 id=453 data-nosnippet>453</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
-<a href=#454 id=454 data-nosnippet>454</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
-<a href=#455 id=455 data-nosnippet>455</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
-<a href=#456 id=456 data-nosnippet>456</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
-<a href=#457 id=457 data-nosnippet>457</a>            fpu_state: SyncUnsafeCell::new(FpuState::new()),
-<a href=#458 id=458 data-nosnippet>458</a>        }))
-<a href=#459 id=459 data-nosnippet>459</a>    }
-<a href=#460 id=460 data-nosnippet>460</a>
-<a href=#461 id=461 data-nosnippet>461</a>    <span class="doccomment">/// Create a new user task with its own address space (stub for future use).
-<a href=#462 id=462 data-nosnippet>462</a>    ///
-<a href=#463 id=463 data-nosnippet>463</a>    /// The entry point and user stack must already be mapped in the given address space.
-<a href=#464 id=464 data-nosnippet>464</a>    </span><span class="kw">pub fn </span>new_user_task(
-<a href=#465 id=465 data-nosnippet>465</a>        entry_point: u64,
-<a href=#466 id=466 data-nosnippet>466</a>        address_space: Arc&lt;AddressSpace&gt;,
-<a href=#467 id=467 data-nosnippet>467</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#468 id=468 data-nosnippet>468</a>        priority: TaskPriority,
-<a href=#469 id=469 data-nosnippet>469</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#470 id=470 data-nosnippet>470</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="self">Self</span>::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
-<a href=#471 id=471 data-nosnippet>471</a>        <span class="kw">let </span>context = CpuContext::new(entry_point, <span class="kw-2">&amp;</span>kernel_stack);
-<a href=#472 id=472 data-nosnippet>472</a>        <span class="kw">let </span>id = TaskId::new();
-<a href=#473 id=473 data-nosnippet>473</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
-<a href=#474 id=474 data-nosnippet>474</a>
-<a href=#475 id=475 data-nosnippet>475</a>        <span class="macro">log::debug!</span>(
-<a href=#476 id=476 data-nosnippet>476</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} user_as_cr3={:#x}"</span>,
-<a href=#477 id=477 data-nosnippet>477</a>            name,
-<a href=#478 id=478 data-nosnippet>478</a>            id.as_u64(),
-<a href=#479 id=479 data-nosnippet>479</a>            pid,
-<a href=#480 id=480 data-nosnippet>480</a>            tid,
-<a href=#481 id=481 data-nosnippet>481</a>            address_space.cr3().as_u64()
-<a href=#482 id=482 data-nosnippet>482</a>        );
-<a href=#483 id=483 data-nosnippet>483</a>
-<a href=#484 id=484 data-nosnippet>484</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
-<a href=#485 id=485 data-nosnippet>485</a>            id,
-<a href=#486 id=486 data-nosnippet>486</a>            pid,
-<a href=#487 id=487 data-nosnippet>487</a>            tid,
-<a href=#488 id=488 data-nosnippet>488</a>            tgid,
-<a href=#489 id=489 data-nosnippet>489</a>            pgid: AtomicU32::new(pid),
-<a href=#490 id=490 data-nosnippet>490</a>            sid: AtomicU32::new(pid),
-<a href=#491 id=491 data-nosnippet>491</a>            uid: AtomicU32::new(<span class="number">0</span>),
-<a href=#492 id=492 data-nosnippet>492</a>            euid: AtomicU32::new(<span class="number">0</span>),
-<a href=#493 id=493 data-nosnippet>493</a>            gid: AtomicU32::new(<span class="number">0</span>),
-<a href=#494 id=494 data-nosnippet>494</a>            egid: AtomicU32::new(<span class="number">0</span>),
-<a href=#495 id=495 data-nosnippet>495</a>            state: SyncUnsafeCell::new(TaskState::Ready),
-<a href=#496 id=496 data-nosnippet>496</a>            priority,
-<a href=#497 id=497 data-nosnippet>497</a>            context: SyncUnsafeCell::new(context),
-<a href=#498 id=498 data-nosnippet>498</a>            kernel_stack,
-<a href=#499 id=499 data-nosnippet>499</a>            user_stack: <span class="prelude-val">None</span>,
-<a href=#500 id=500 data-nosnippet>500</a>            name,
-<a href=#501 id=501 data-nosnippet>501</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, address_space)),
-<a href=#502 id=502 data-nosnippet>502</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#503 id=503 data-nosnippet>503</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
-<a href=#504 id=504 data-nosnippet>504</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
-<a href=#505 id=505 data-nosnippet>505</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
-<a href=#506 id=506 data-nosnippet>506</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
-<a href=#507 id=507 data-nosnippet>507</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
-<a href=#508 id=508 data-nosnippet>508</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
-<a href=#509 id=509 data-nosnippet>509</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
-<a href=#510 id=510 data-nosnippet>510</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
-<a href=#511 id=511 data-nosnippet>511</a>            ticks: AtomicU64::new(<span class="number">0</span>),
-<a href=#512 id=512 data-nosnippet>512</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
-<a href=#513 id=513 data-nosnippet>513</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
-<a href=#514 id=514 data-nosnippet>514</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
-<a href=#515 id=515 data-nosnippet>515</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
-<a href=#516 id=516 data-nosnippet>516</a>            fpu_state: SyncUnsafeCell::new(FpuState::new()),
-<a href=#517 id=517 data-nosnippet>517</a>        }))
-<a href=#518 id=518 data-nosnippet>518</a>    }
-<a href=#519 id=519 data-nosnippet>519</a>
-<a href=#520 id=520 data-nosnippet>520</a>    <span class="doccomment">/// Reset all signal handlers to SIG_DFL (default).
-<a href=#521 id=521 data-nosnippet>521</a>    ///
-<a href=#522 id=522 data-nosnippet>522</a>    /// Called during execve to reset signal handlers as per POSIX:
-<a href=#523 id=523 data-nosnippet>523</a>    /// handlers set to catch signals are reset to SIG_DFL, but SIG_IGN
-<a href=#524 id=524 data-nosnippet>524</a>    /// remains ignored (implementation simplification: we reset all).
-<a href=#525 id=525 data-nosnippet>525</a>    </span><span class="kw">pub fn </span>reset_signals(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-<a href=#526 id=526 data-nosnippet>526</a>        <span class="comment">// SAFETY: We have a valid reference to the task.
-<a href=#527 id=527 data-nosnippet>527</a>        </span><span class="kw">unsafe </span>{
-<a href=#528 id=528 data-nosnippet>528</a>            <span class="kw">let </span>actions = <span class="kw-2">&amp;mut *</span><span class="self">self</span>.process.signal_actions.get();
-<a href=#529 id=529 data-nosnippet>529</a>            <span class="kw">for </span>action <span class="kw">in </span>actions.iter_mut() {
-<a href=#530 id=530 data-nosnippet>530</a>                <span class="kw-2">*</span>action = <span class="kw">super</span>::signal::SigActionData::default();
-<a href=#531 id=531 data-nosnippet>531</a>            }
-<a href=#532 id=532 data-nosnippet>532</a>        }
-<a href=#533 id=533 data-nosnippet>533</a>    }
-<a href=#534 id=534 data-nosnippet>534</a>
-<a href=#535 id=535 data-nosnippet>535</a>    <span class="doccomment">/// Returns true if this is a kernel task (shares the kernel address space).
-<a href=#536 id=536 data-nosnippet>536</a>    </span><span class="kw">pub fn </span>is_kernel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-<a href=#537 id=537 data-nosnippet>537</a>        <span class="comment">// SAFETY: address_space is immutable for the lifetime of the Arc?
-<a href=#538 id=538 data-nosnippet>538</a>        // Actually we just updated it to SyncUnsafeCell.
-<a href=#539 id=539 data-nosnippet>539</a>        </span><span class="kw">unsafe </span>{ (<span class="kw-2">*</span><span class="self">self</span>.process.address_space.get()).is_kernel() }
-<a href=#540 id=540 data-nosnippet>540</a>    }
-<a href=#541 id=541 data-nosnippet>541</a>
-<a href=#542 id=542 data-nosnippet>542</a>    <span class="doccomment">/// Allocate POSIX identifiers for a new process leader.
-<a href=#543 id=543 data-nosnippet>543</a>    </span><span class="kw">pub fn </span>allocate_process_ids() -&gt; (Pid, Tid, Pid) {
-<a href=#544 id=544 data-nosnippet>544</a>        <span class="kw">let </span>pid = next_pid();
-<a href=#545 id=545 data-nosnippet>545</a>        <span class="kw">let </span>tid = next_tid();
-<a href=#546 id=546 data-nosnippet>546</a>        (pid, tid, pid)
-<a href=#547 id=547 data-nosnippet>547</a>    }
-<a href=#548 id=548 data-nosnippet>548</a>}
-<a href=#549 id=549 data-nosnippet>549</a>
-<a href=#550 id=550 data-nosnippet>550</a><span class="doccomment">/// Low-level context switch: save callee-saved registers on current stack,
-<a href=#551 id=551 data-nosnippet>551</a>/// swap RSP, restore callee-saved registers from new stack, and `ret`.
-<a href=#552 id=552 data-nosnippet>552</a>///
-<a href=#553 id=553 data-nosnippet>553</a>/// Arguments (x86-64 SysV ABI):
-<a href=#554 id=554 data-nosnippet>554</a>/// - rdi = pointer to old task's `saved_rsp` field
-<a href=#555 id=555 data-nosnippet>555</a>/// - rsi = pointer to new task's `saved_rsp` field
-<a href=#556 id=556 data-nosnippet>556</a>/// - rdx = pointer to old task's FPU state
-<a href=#557 id=557 data-nosnippet>557</a>/// - rcx = pointer to new task's FPU state
-<a href=#558 id=558 data-nosnippet>558</a>///
-<a href=#559 id=559 data-nosnippet>559</a>/// The caller (scheduler) has already handled TSS.rsp0 and CR3 switching.
-<a href=#560 id=560 data-nosnippet>560</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#561 id=561 data-nosnippet>561</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context(
-<a href=#562 id=562 data-nosnippet>562</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
-<a href=#563 id=563 data-nosnippet>563</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#564 id=564 data-nosnippet>564</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>FpuState,
-<a href=#565 id=565 data-nosnippet>565</a>    _new_fpu_ptr: <span class="kw-2">*const </span>FpuState,
-<a href=#566 id=566 data-nosnippet>566</a>) {
-<a href=#567 id=567 data-nosnippet>567</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#568 id=568 data-nosnippet>568</a>        <span class="comment">// Save FPU state
-<a href=#569 id=569 data-nosnippet>569</a>        </span><span class="string">"fxsave [rdx]"</span>,
-<a href=#570 id=570 data-nosnippet>570</a>        <span class="comment">// Save callee-saved registers on current stack
-<a href=#571 id=571 data-nosnippet>571</a>        </span><span class="string">"push rbx"</span>,
-<a href=#572 id=572 data-nosnippet>572</a>        <span class="string">"push rbp"</span>,
-<a href=#573 id=573 data-nosnippet>573</a>        <span class="string">"push r12"</span>,
-<a href=#574 id=574 data-nosnippet>574</a>        <span class="string">"push r13"</span>,
-<a href=#575 id=575 data-nosnippet>575</a>        <span class="string">"push r14"</span>,
-<a href=#576 id=576 data-nosnippet>576</a>        <span class="string">"push r15"</span>,
-<a href=#577 id=577 data-nosnippet>577</a>        <span class="comment">// Save current RSP into old context
-<a href=#578 id=578 data-nosnippet>578</a>        </span><span class="string">"mov [rdi], rsp"</span>,
-<a href=#579 id=579 data-nosnippet>579</a>        <span class="comment">// Load new RSP from new context
-<a href=#580 id=580 data-nosnippet>580</a>        </span><span class="string">"mov rsp, [rsi]"</span>,
-<a href=#581 id=581 data-nosnippet>581</a>        <span class="comment">// Restore callee-saved registers from new stack
-<a href=#582 id=582 data-nosnippet>582</a>        </span><span class="string">"pop r15"</span>,
-<a href=#583 id=583 data-nosnippet>583</a>        <span class="string">"pop r14"</span>,
-<a href=#584 id=584 data-nosnippet>584</a>        <span class="string">"pop r13"</span>,
-<a href=#585 id=585 data-nosnippet>585</a>        <span class="string">"pop r12"</span>,
-<a href=#586 id=586 data-nosnippet>586</a>        <span class="string">"pop rbp"</span>,
-<a href=#587 id=587 data-nosnippet>587</a>        <span class="string">"pop rbx"</span>,
-<a href=#588 id=588 data-nosnippet>588</a>        <span class="comment">// Restore FPU state
-<a href=#589 id=589 data-nosnippet>589</a>        </span><span class="string">"fxrstor [rcx]"</span>,
-<a href=#590 id=590 data-nosnippet>590</a>        <span class="comment">// Return to wherever the new task left off
-<a href=#591 id=591 data-nosnippet>591</a>        // (or to task_entry_trampoline for new tasks)
-<a href=#592 id=592 data-nosnippet>592</a>        </span><span class="string">"ret"</span>,
-<a href=#593 id=593 data-nosnippet>593</a>    );
-<a href=#594 id=594 data-nosnippet>594</a>}
-<a href=#595 id=595 data-nosnippet>595</a>
-<a href=#596 id=596 data-nosnippet>596</a><span class="doccomment">/// Restore context for the very first task (no old context to save).
-<a href=#597 id=597 data-nosnippet>597</a>///
-<a href=#598 id=598 data-nosnippet>598</a>/// Argument (x86-64 SysV ABI):
-<a href=#599 id=599 data-nosnippet>599</a>/// - rdi = pointer to the first task's `saved_rsp` field
-<a href=#600 id=600 data-nosnippet>600</a>/// - rsi = pointer to the first task's FPU state
-<a href=#601 id=601 data-nosnippet>601</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#602 id=602 data-nosnippet>602</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task(
-<a href=#603 id=603 data-nosnippet>603</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#604 id=604 data-nosnippet>604</a>    _fpu_ptr: <span class="kw-2">*const </span>FpuState,
-<a href=#605 id=605 data-nosnippet>605</a>) {
-<a href=#606 id=606 data-nosnippet>606</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#607 id=607 data-nosnippet>607</a>        <span class="comment">// Load RSP from context
-<a href=#608 id=608 data-nosnippet>608</a>        </span><span class="string">"mov rsp, [rdi]"</span>,
-<a href=#609 id=609 data-nosnippet>609</a>        <span class="comment">// Restore callee-saved registers
-<a href=#610 id=610 data-nosnippet>610</a>        </span><span class="string">"pop r15"</span>,
-<a href=#611 id=611 data-nosnippet>611</a>        <span class="string">"pop r14"</span>,
-<a href=#612 id=612 data-nosnippet>612</a>        <span class="string">"pop r13"</span>,
-<a href=#613 id=613 data-nosnippet>613</a>        <span class="string">"pop r12"</span>,
-<a href=#614 id=614 data-nosnippet>614</a>        <span class="string">"pop rbp"</span>,
-<a href=#615 id=615 data-nosnippet>615</a>        <span class="string">"pop rbx"</span>,
-<a href=#616 id=616 data-nosnippet>616</a>        <span class="comment">// Restore FPU state
-<a href=#617 id=617 data-nosnippet>617</a>        </span><span class="string">"fxrstor [rsi]"</span>,
-<a href=#618 id=618 data-nosnippet>618</a>        <span class="comment">// Jump to task_entry_trampoline -&gt; real entry point
-<a href=#619 id=619 data-nosnippet>619</a>        </span><span class="string">"ret"</span>,
-<a href=#620 id=620 data-nosnippet>620</a>    );
-<a href=#621 id=621 data-nosnippet>621</a>}
+<a href=#410 id=410 data-nosnippet>410</a>        <span class="comment">// Allocate physical frames from buddy allocator
+<a href=#411 id=411 data-nosnippet>411</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>lock = get_allocator().lock();
+<a href=#412 id=412 data-nosnippet>412</a>        <span class="kw">let </span>allocator = lock.as_mut().ok_or(<span class="string">"Allocator not initialized"</span>)<span class="question-mark">?</span>;
+<a href=#413 id=413 data-nosnippet>413</a>        <span class="kw">let </span>frame = allocator
+<a href=#414 id=414 data-nosnippet>414</a>            .alloc(order)
+<a href=#415 id=415 data-nosnippet>415</a>            .map_err(|<span class="kw">_</span>| <span class="string">"Failed to allocate kernel stack"</span>)<span class="question-mark">?</span>;
+<a href=#416 id=416 data-nosnippet>416</a>        drop(lock);
+<a href=#417 id=417 data-nosnippet>417</a>
+<a href=#418 id=418 data-nosnippet>418</a>        <span class="kw">let </span>phys_base = frame.start_address;
+<a href=#419 id=419 data-nosnippet>419</a>        <span class="kw">let </span>virt_base = VirtAddr::new(<span class="kw">crate</span>::memory::phys_to_virt(phys_base.as_u64()));
+<a href=#420 id=420 data-nosnippet>420</a>
+<a href=#421 id=421 data-nosnippet>421</a>        <span class="comment">// Zero out the stack for safety
+<a href=#422 id=422 data-nosnippet>422</a>        </span><span class="kw">unsafe </span>{
+<a href=#423 id=423 data-nosnippet>423</a>            core::ptr::write_bytes(virt_base.as_mut_ptr::&lt;u8&gt;(), <span class="number">0</span>, size);
+<a href=#424 id=424 data-nosnippet>424</a>        }
+<a href=#425 id=425 data-nosnippet>425</a>
+<a href=#426 id=426 data-nosnippet>426</a>        <span class="prelude-val">Ok</span>(KernelStack {
+<a href=#427 id=427 data-nosnippet>427</a>            base: phys_base,
+<a href=#428 id=428 data-nosnippet>428</a>            virt_base,
+<a href=#429 id=429 data-nosnippet>429</a>            size,
+<a href=#430 id=430 data-nosnippet>430</a>        })
+<a href=#431 id=431 data-nosnippet>431</a>    }
+<a href=#432 id=432 data-nosnippet>432</a>}
+<a href=#433 id=433 data-nosnippet>433</a>
+<a href=#434 id=434 data-nosnippet>434</a><span class="kw">impl </span>Drop <span class="kw">for </span>KernelStack {
+<a href=#435 id=435 data-nosnippet>435</a>    <span class="doccomment">/// Performs the drop operation.
+<a href=#436 id=436 data-nosnippet>436</a>    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#437 id=437 data-nosnippet>437</a>        <span class="kw">use </span><span class="kw">crate</span>::memory::{frame::PhysFrame, get_allocator, FrameAllocator};
+<a href=#438 id=438 data-nosnippet>438</a>
+<a href=#439 id=439 data-nosnippet>439</a>        <span class="kw">let </span>pages = (<span class="self">self</span>.size + <span class="number">4095</span>) / <span class="number">4096</span>;
+<a href=#440 id=440 data-nosnippet>440</a>        <span class="kw">let </span>order = pages.next_power_of_two().trailing_zeros() <span class="kw">as </span>u8;
+<a href=#441 id=441 data-nosnippet>441</a>        <span class="kw">let </span>frame = PhysFrame {
+<a href=#442 id=442 data-nosnippet>442</a>            start_address: <span class="self">self</span>.base,
+<a href=#443 id=443 data-nosnippet>443</a>        };
+<a href=#444 id=444 data-nosnippet>444</a>
+<a href=#445 id=445 data-nosnippet>445</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>allocator) = <span class="kw-2">*</span>get_allocator().lock() {
+<a href=#446 id=446 data-nosnippet>446</a>            allocator.free(frame, order);
+<a href=#447 id=447 data-nosnippet>447</a>        }
+<a href=#448 id=448 data-nosnippet>448</a>    }
+<a href=#449 id=449 data-nosnippet>449</a>}
+<a href=#450 id=450 data-nosnippet>450</a>
+<a href=#451 id=451 data-nosnippet>451</a><span class="doccomment">/// User stack for a task (when running in userspace)
+<a href=#452 id=452 data-nosnippet>452</a></span><span class="kw">pub struct </span>UserStack {
+<a href=#453 id=453 data-nosnippet>453</a>    <span class="doccomment">/// Virtual address of the user stack
+<a href=#454 id=454 data-nosnippet>454</a>    </span><span class="kw">pub </span>virt_base: VirtAddr,
+<a href=#455 id=455 data-nosnippet>455</a>    <span class="doccomment">/// Size of the stack
+<a href=#456 id=456 data-nosnippet>456</a>    </span><span class="kw">pub </span>size: usize,
+<a href=#457 id=457 data-nosnippet>457</a>}
+<a href=#458 id=458 data-nosnippet>458</a>
+<a href=#459 id=459 data-nosnippet>459</a><span class="kw">impl </span>Task {
+<a href=#460 id=460 data-nosnippet>460</a>    <span class="doccomment">/// Default kernel stack size (16 KB)
+<a href=#461 id=461 data-nosnippet>461</a>    </span><span class="kw">pub const </span>DEFAULT_STACK_SIZE: usize = <span class="number">16384</span>;
+<a href=#462 id=462 data-nosnippet>462</a>
+<a href=#463 id=463 data-nosnippet>463</a>    <span class="doccomment">/// Create a new kernel task with a real allocated stack
+<a href=#464 id=464 data-nosnippet>464</a>    </span><span class="kw">pub fn </span>new_kernel_task(
+<a href=#465 id=465 data-nosnippet>465</a>        entry_point: <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>() -&gt; !,
+<a href=#466 id=466 data-nosnippet>466</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#467 id=467 data-nosnippet>467</a>        priority: TaskPriority,
+<a href=#468 id=468 data-nosnippet>468</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#469 id=469 data-nosnippet>469</a>        <span class="self">Self</span>::new_kernel_task_with_stack(entry_point, name, priority, <span class="self">Self</span>::DEFAULT_STACK_SIZE)
+<a href=#470 id=470 data-nosnippet>470</a>    }
+<a href=#471 id=471 data-nosnippet>471</a>
+<a href=#472 id=472 data-nosnippet>472</a>    <span class="doccomment">/// Create a new kernel task with a custom kernel stack size.
+<a href=#473 id=473 data-nosnippet>473</a>    </span><span class="kw">pub fn </span>new_kernel_task_with_stack(
+<a href=#474 id=474 data-nosnippet>474</a>        entry_point: <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>() -&gt; !,
+<a href=#475 id=475 data-nosnippet>475</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#476 id=476 data-nosnippet>476</a>        priority: TaskPriority,
+<a href=#477 id=477 data-nosnippet>477</a>        stack_size: usize,
+<a href=#478 id=478 data-nosnippet>478</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#479 id=479 data-nosnippet>479</a>        <span class="comment">// Allocate a real kernel stack
+<a href=#480 id=480 data-nosnippet>480</a>        </span><span class="kw">let </span>kernel_stack = KernelStack::allocate(stack_size)<span class="question-mark">?</span>;
+<a href=#481 id=481 data-nosnippet>481</a>
+<a href=#482 id=482 data-nosnippet>482</a>        <span class="comment">// Create CPU context with the allocated stack
+<a href=#483 id=483 data-nosnippet>483</a>        </span><span class="kw">let </span>context = CpuContext::new(entry_point <span class="kw">as </span><span class="kw-2">*const </span>() <span class="kw">as </span>u64, <span class="kw-2">&amp;</span>kernel_stack);
+<a href=#484 id=484 data-nosnippet>484</a>        <span class="kw">let </span>id = TaskId::new();
+<a href=#485 id=485 data-nosnippet>485</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
+<a href=#486 id=486 data-nosnippet>486</a>
+<a href=#487 id=487 data-nosnippet>487</a>        <span class="macro">log::debug!</span>(
+<a href=#488 id=488 data-nosnippet>488</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} kstack={:?} kstack_kib={}"</span>,
+<a href=#489 id=489 data-nosnippet>489</a>            name,
+<a href=#490 id=490 data-nosnippet>490</a>            id.as_u64(),
+<a href=#491 id=491 data-nosnippet>491</a>            pid,
+<a href=#492 id=492 data-nosnippet>492</a>            tid,
+<a href=#493 id=493 data-nosnippet>493</a>            kernel_stack.virt_base,
+<a href=#494 id=494 data-nosnippet>494</a>            kernel_stack.size / <span class="number">1024
+<a href=#495 id=495 data-nosnippet>495</a>        </span>);
+<a href=#496 id=496 data-nosnippet>496</a>
+<a href=#497 id=497 data-nosnippet>497</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
+<a href=#498 id=498 data-nosnippet>498</a>            id,
+<a href=#499 id=499 data-nosnippet>499</a>            pid,
+<a href=#500 id=500 data-nosnippet>500</a>            tid,
+<a href=#501 id=501 data-nosnippet>501</a>            tgid,
+<a href=#502 id=502 data-nosnippet>502</a>            pgid: AtomicU32::new(pid),
+<a href=#503 id=503 data-nosnippet>503</a>            sid: AtomicU32::new(pid),
+<a href=#504 id=504 data-nosnippet>504</a>            uid: AtomicU32::new(<span class="number">0</span>),
+<a href=#505 id=505 data-nosnippet>505</a>            euid: AtomicU32::new(<span class="number">0</span>),
+<a href=#506 id=506 data-nosnippet>506</a>            gid: AtomicU32::new(<span class="number">0</span>),
+<a href=#507 id=507 data-nosnippet>507</a>            egid: AtomicU32::new(<span class="number">0</span>),
+<a href=#508 id=508 data-nosnippet>508</a>            state: SyncUnsafeCell::new(TaskState::Ready),
+<a href=#509 id=509 data-nosnippet>509</a>            priority,
+<a href=#510 id=510 data-nosnippet>510</a>            context: SyncUnsafeCell::new(context),
+<a href=#511 id=511 data-nosnippet>511</a>            kernel_stack,
+<a href=#512 id=512 data-nosnippet>512</a>            user_stack: <span class="prelude-val">None</span>,
+<a href=#513 id=513 data-nosnippet>513</a>            name,
+<a href=#514 id=514 data-nosnippet>514</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, <span class="kw">crate</span>::memory::kernel_address_space().clone())),
+<a href=#515 id=515 data-nosnippet>515</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#516 id=516 data-nosnippet>516</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#517 id=517 data-nosnippet>517</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
+<a href=#518 id=518 data-nosnippet>518</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
+<a href=#519 id=519 data-nosnippet>519</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
+<a href=#520 id=520 data-nosnippet>520</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
+<a href=#521 id=521 data-nosnippet>521</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
+<a href=#522 id=522 data-nosnippet>522</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
+<a href=#523 id=523 data-nosnippet>523</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
+<a href=#524 id=524 data-nosnippet>524</a>            ticks: AtomicU64::new(<span class="number">0</span>),
+<a href=#525 id=525 data-nosnippet>525</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
+<a href=#526 id=526 data-nosnippet>526</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
+<a href=#527 id=527 data-nosnippet>527</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
+<a href=#528 id=528 data-nosnippet>528</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
+<a href=#529 id=529 data-nosnippet>529</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
+<a href=#530 id=530 data-nosnippet>530</a>            xcr0_mask: AtomicU64::new(<span class="number">0</span>),
+<a href=#531 id=531 data-nosnippet>531</a>        }))
+<a href=#532 id=532 data-nosnippet>532</a>    }
+<a href=#533 id=533 data-nosnippet>533</a>
+<a href=#534 id=534 data-nosnippet>534</a>    <span class="doccomment">/// Create a new user task with its own address space (stub for future use).
+<a href=#535 id=535 data-nosnippet>535</a>    ///
+<a href=#536 id=536 data-nosnippet>536</a>    /// The entry point and user stack must already be mapped in the given address space.
+<a href=#537 id=537 data-nosnippet>537</a>    </span><span class="kw">pub fn </span>new_user_task(
+<a href=#538 id=538 data-nosnippet>538</a>        entry_point: u64,
+<a href=#539 id=539 data-nosnippet>539</a>        address_space: Arc&lt;AddressSpace&gt;,
+<a href=#540 id=540 data-nosnippet>540</a>        name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#541 id=541 data-nosnippet>541</a>        priority: TaskPriority,
+<a href=#542 id=542 data-nosnippet>542</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="self">Self</span>&gt;, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#543 id=543 data-nosnippet>543</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="self">Self</span>::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
+<a href=#544 id=544 data-nosnippet>544</a>        <span class="kw">let </span>context = CpuContext::new(entry_point, <span class="kw-2">&amp;</span>kernel_stack);
+<a href=#545 id=545 data-nosnippet>545</a>        <span class="kw">let </span>id = TaskId::new();
+<a href=#546 id=546 data-nosnippet>546</a>        <span class="kw">let </span>(pid, tid, tgid) = <span class="self">Self</span>::allocate_process_ids();
+<a href=#547 id=547 data-nosnippet>547</a>
+<a href=#548 id=548 data-nosnippet>548</a>        <span class="macro">log::debug!</span>(
+<a href=#549 id=549 data-nosnippet>549</a>            <span class="string">"[task][create] name={} id={} pid={} tid={} user_as_cr3={:#x}"</span>,
+<a href=#550 id=550 data-nosnippet>550</a>            name,
+<a href=#551 id=551 data-nosnippet>551</a>            id.as_u64(),
+<a href=#552 id=552 data-nosnippet>552</a>            pid,
+<a href=#553 id=553 data-nosnippet>553</a>            tid,
+<a href=#554 id=554 data-nosnippet>554</a>            address_space.cr3().as_u64()
+<a href=#555 id=555 data-nosnippet>555</a>        );
+<a href=#556 id=556 data-nosnippet>556</a>
+<a href=#557 id=557 data-nosnippet>557</a>        <span class="prelude-val">Ok</span>(Arc::new(Task {
+<a href=#558 id=558 data-nosnippet>558</a>            id,
+<a href=#559 id=559 data-nosnippet>559</a>            pid,
+<a href=#560 id=560 data-nosnippet>560</a>            tid,
+<a href=#561 id=561 data-nosnippet>561</a>            tgid,
+<a href=#562 id=562 data-nosnippet>562</a>            pgid: AtomicU32::new(pid),
+<a href=#563 id=563 data-nosnippet>563</a>            sid: AtomicU32::new(pid),
+<a href=#564 id=564 data-nosnippet>564</a>            uid: AtomicU32::new(<span class="number">0</span>),
+<a href=#565 id=565 data-nosnippet>565</a>            euid: AtomicU32::new(<span class="number">0</span>),
+<a href=#566 id=566 data-nosnippet>566</a>            gid: AtomicU32::new(<span class="number">0</span>),
+<a href=#567 id=567 data-nosnippet>567</a>            egid: AtomicU32::new(<span class="number">0</span>),
+<a href=#568 id=568 data-nosnippet>568</a>            state: SyncUnsafeCell::new(TaskState::Ready),
+<a href=#569 id=569 data-nosnippet>569</a>            priority,
+<a href=#570 id=570 data-nosnippet>570</a>            context: SyncUnsafeCell::new(context),
+<a href=#571 id=571 data-nosnippet>571</a>            kernel_stack,
+<a href=#572 id=572 data-nosnippet>572</a>            user_stack: <span class="prelude-val">None</span>,
+<a href=#573 id=573 data-nosnippet>573</a>            name,
+<a href=#574 id=574 data-nosnippet>574</a>            process: Arc::new(<span class="kw">crate</span>::process::process::Process::new(pid, address_space)),
+<a href=#575 id=575 data-nosnippet>575</a>            pending_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#576 id=576 data-nosnippet>576</a>            blocked_signals: <span class="kw">super</span>::signal::SignalSet::new(),
+<a href=#577 id=577 data-nosnippet>577</a>            signal_stack: SyncUnsafeCell::new(<span class="prelude-val">None</span>),
+<a href=#578 id=578 data-nosnippet>578</a>            itimers: <span class="kw">super</span>::timer::ITimers::new(),
+<a href=#579 id=579 data-nosnippet>579</a>            wake_pending: AtomicBool::new(<span class="bool-val">false</span>),
+<a href=#580 id=580 data-nosnippet>580</a>            wake_deadline_ns: AtomicU64::new(<span class="number">0</span>),
+<a href=#581 id=581 data-nosnippet>581</a>            trampoline_entry: AtomicU64::new(<span class="number">0</span>),
+<a href=#582 id=582 data-nosnippet>582</a>            trampoline_stack_top: AtomicU64::new(<span class="number">0</span>),
+<a href=#583 id=583 data-nosnippet>583</a>            trampoline_arg0: AtomicU64::new(<span class="number">0</span>),
+<a href=#584 id=584 data-nosnippet>584</a>            ticks: AtomicU64::new(<span class="number">0</span>),
+<a href=#585 id=585 data-nosnippet>585</a>            sched_policy: SyncUnsafeCell::new(<span class="self">Self</span>::default_sched_policy(priority)),
+<a href=#586 id=586 data-nosnippet>586</a>            vruntime: AtomicU64::new(<span class="number">0</span>),
+<a href=#587 id=587 data-nosnippet>587</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
+<a href=#588 id=588 data-nosnippet>588</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
+<a href=#589 id=589 data-nosnippet>589</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
+<a href=#590 id=590 data-nosnippet>590</a>            xcr0_mask: AtomicU64::new(<span class="number">0</span>),
+<a href=#591 id=591 data-nosnippet>591</a>        }))
+<a href=#592 id=592 data-nosnippet>592</a>    }
+<a href=#593 id=593 data-nosnippet>593</a>
+<a href=#594 id=594 data-nosnippet>594</a>    <span class="doccomment">/// Reset all signal handlers to SIG_DFL (default).
+<a href=#595 id=595 data-nosnippet>595</a>    ///
+<a href=#596 id=596 data-nosnippet>596</a>    /// Called during execve to reset signal handlers as per POSIX:
+<a href=#597 id=597 data-nosnippet>597</a>    /// handlers set to catch signals are reset to SIG_DFL, but SIG_IGN
+<a href=#598 id=598 data-nosnippet>598</a>    /// remains ignored (implementation simplification: we reset all).
+<a href=#599 id=599 data-nosnippet>599</a>    </span><span class="kw">pub fn </span>reset_signals(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+<a href=#600 id=600 data-nosnippet>600</a>        <span class="comment">// SAFETY: We have a valid reference to the task.
+<a href=#601 id=601 data-nosnippet>601</a>        </span><span class="kw">unsafe </span>{
+<a href=#602 id=602 data-nosnippet>602</a>            <span class="kw">let </span>actions = <span class="kw-2">&amp;mut *</span><span class="self">self</span>.process.signal_actions.get();
+<a href=#603 id=603 data-nosnippet>603</a>            <span class="kw">for </span>action <span class="kw">in </span>actions.iter_mut() {
+<a href=#604 id=604 data-nosnippet>604</a>                <span class="kw-2">*</span>action = <span class="kw">super</span>::signal::SigActionData::default();
+<a href=#605 id=605 data-nosnippet>605</a>            }
+<a href=#606 id=606 data-nosnippet>606</a>        }
+<a href=#607 id=607 data-nosnippet>607</a>    }
+<a href=#608 id=608 data-nosnippet>608</a>
+<a href=#609 id=609 data-nosnippet>609</a>    <span class="doccomment">/// Returns true if this is a kernel task (shares the kernel address space).
+<a href=#610 id=610 data-nosnippet>610</a>    </span><span class="kw">pub fn </span>is_kernel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#611 id=611 data-nosnippet>611</a>        <span class="comment">// SAFETY: address_space is immutable for the lifetime of the Arc?
+<a href=#612 id=612 data-nosnippet>612</a>        // Actually we just updated it to SyncUnsafeCell.
+<a href=#613 id=613 data-nosnippet>613</a>        </span><span class="kw">unsafe </span>{ (<span class="kw-2">*</span><span class="self">self</span>.process.address_space.get()).is_kernel() }
+<a href=#614 id=614 data-nosnippet>614</a>    }
+<a href=#615 id=615 data-nosnippet>615</a>
+<a href=#616 id=616 data-nosnippet>616</a>    <span class="doccomment">/// Allocate POSIX identifiers for a new process leader.
+<a href=#617 id=617 data-nosnippet>617</a>    </span><span class="kw">pub fn </span>allocate_process_ids() -&gt; (Pid, Tid, Pid) {
+<a href=#618 id=618 data-nosnippet>618</a>        <span class="kw">let </span>pid = next_pid();
+<a href=#619 id=619 data-nosnippet>619</a>        <span class="kw">let </span>tid = next_tid();
+<a href=#620 id=620 data-nosnippet>620</a>        (pid, tid, pid)
+<a href=#621 id=621 data-nosnippet>621</a>    }
+<a href=#622 id=622 data-nosnippet>622</a>}
+<a href=#623 id=623 data-nosnippet>623</a>
+<a href=#624 id=624 data-nosnippet>624</a><span class="doccomment">/// Context switch dispatcher. Picks the xsave or fxsave path based on host
+<a href=#625 id=625 data-nosnippet>625</a>/// capabilities, then performs the full save/swap/restore sequence.
+<a href=#626 id=626 data-nosnippet>626</a>///
+<a href=#627 id=627 data-nosnippet>627</a>/// # Safety
+<a href=#628 id=628 data-nosnippet>628</a>/// Caller must ensure all pointers in `target` are valid and interrupts are disabled.
+<a href=#629 id=629 data-nosnippet>629</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_switch_context(target: <span class="kw-2">&amp;</span><span class="kw">super</span>::scheduler::SwitchTarget) {
+<a href=#630 id=630 data-nosnippet>630</a>    <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
+<a href=#631 id=631 data-nosnippet>631</a>        switch_context_xsave(
+<a href=#632 id=632 data-nosnippet>632</a>            target.old_rsp_ptr,
+<a href=#633 id=633 data-nosnippet>633</a>            target.new_rsp_ptr,
+<a href=#634 id=634 data-nosnippet>634</a>            target.old_fpu_ptr,
+<a href=#635 id=635 data-nosnippet>635</a>            target.new_fpu_ptr,
+<a href=#636 id=636 data-nosnippet>636</a>            target.new_xcr0,
+<a href=#637 id=637 data-nosnippet>637</a>        );
+<a href=#638 id=638 data-nosnippet>638</a>    } <span class="kw">else </span>{
+<a href=#639 id=639 data-nosnippet>639</a>        switch_context_fxsave(
+<a href=#640 id=640 data-nosnippet>640</a>            target.old_rsp_ptr,
+<a href=#641 id=641 data-nosnippet>641</a>            target.new_rsp_ptr,
+<a href=#642 id=642 data-nosnippet>642</a>            target.old_fpu_ptr,
+<a href=#643 id=643 data-nosnippet>643</a>            target.new_fpu_ptr,
+<a href=#644 id=644 data-nosnippet>644</a>        );
+<a href=#645 id=645 data-nosnippet>645</a>    }
+<a href=#646 id=646 data-nosnippet>646</a>}
+<a href=#647 id=647 data-nosnippet>647</a>
+<a href=#648 id=648 data-nosnippet>648</a><span class="doccomment">/// First-task restore dispatcher. Like `do_switch_context` but without
+<a href=#649 id=649 data-nosnippet>649</a>/// saving old state (there is no previous task).
+<a href=#650 id=650 data-nosnippet>650</a>///
+<a href=#651 id=651 data-nosnippet>651</a>/// # Safety
+<a href=#652 id=652 data-nosnippet>652</a>/// Caller must ensure pointers are valid and interrupts are disabled. Never returns.
+<a href=#653 id=653 data-nosnippet>653</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">unsafe fn </span>do_restore_first_task(
+<a href=#654 id=654 data-nosnippet>654</a>    rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#655 id=655 data-nosnippet>655</a>    fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#656 id=656 data-nosnippet>656</a>    xcr0: u64,
+<a href=#657 id=657 data-nosnippet>657</a>) -&gt; ! {
+<a href=#658 id=658 data-nosnippet>658</a>    <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
+<a href=#659 id=659 data-nosnippet>659</a>        restore_first_task_xsave(rsp_ptr, fpu_ptr, xcr0);
+<a href=#660 id=660 data-nosnippet>660</a>    } <span class="kw">else </span>{
+<a href=#661 id=661 data-nosnippet>661</a>        restore_first_task_fxsave(rsp_ptr, fpu_ptr);
+<a href=#662 id=662 data-nosnippet>662</a>    }
+<a href=#663 id=663 data-nosnippet>663</a>    core::hint::unreachable_unchecked()
+<a href=#664 id=664 data-nosnippet>664</a>}
+<a href=#665 id=665 data-nosnippet>665</a>
+<a href=#666 id=666 data-nosnippet>666</a><span class="comment">// ── FXSAVE path (legacy, no XSAVE support) ──
+<a href=#667 id=667 data-nosnippet>667</a>
+<a href=#668 id=668 data-nosnippet>668</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu
+<a href=#669 id=669 data-nosnippet>669</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#670 id=670 data-nosnippet>670</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_fxsave(
+<a href=#671 id=671 data-nosnippet>671</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#672 id=672 data-nosnippet>672</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#673 id=673 data-nosnippet>673</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#674 id=674 data-nosnippet>674</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#675 id=675 data-nosnippet>675</a>) {
+<a href=#676 id=676 data-nosnippet>676</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#677 id=677 data-nosnippet>677</a>        <span class="string">"fxsave [rdx]"</span>,
+<a href=#678 id=678 data-nosnippet>678</a>        <span class="string">"push rbx"</span>,
+<a href=#679 id=679 data-nosnippet>679</a>        <span class="string">"push rbp"</span>,
+<a href=#680 id=680 data-nosnippet>680</a>        <span class="string">"push r12"</span>,
+<a href=#681 id=681 data-nosnippet>681</a>        <span class="string">"push r13"</span>,
+<a href=#682 id=682 data-nosnippet>682</a>        <span class="string">"push r14"</span>,
+<a href=#683 id=683 data-nosnippet>683</a>        <span class="string">"push r15"</span>,
+<a href=#684 id=684 data-nosnippet>684</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#685 id=685 data-nosnippet>685</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#686 id=686 data-nosnippet>686</a>        <span class="string">"pop r15"</span>,
+<a href=#687 id=687 data-nosnippet>687</a>        <span class="string">"pop r14"</span>,
+<a href=#688 id=688 data-nosnippet>688</a>        <span class="string">"pop r13"</span>,
+<a href=#689 id=689 data-nosnippet>689</a>        <span class="string">"pop r12"</span>,
+<a href=#690 id=690 data-nosnippet>690</a>        <span class="string">"pop rbp"</span>,
+<a href=#691 id=691 data-nosnippet>691</a>        <span class="string">"pop rbx"</span>,
+<a href=#692 id=692 data-nosnippet>692</a>        <span class="string">"fxrstor [rcx]"</span>,
+<a href=#693 id=693 data-nosnippet>693</a>        <span class="string">"ret"</span>,
+<a href=#694 id=694 data-nosnippet>694</a>    );
+<a href=#695 id=695 data-nosnippet>695</a>}
+<a href=#696 id=696 data-nosnippet>696</a>
+<a href=#697 id=697 data-nosnippet>697</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr
+<a href=#698 id=698 data-nosnippet>698</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#699 id=699 data-nosnippet>699</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_fxsave(
+<a href=#700 id=700 data-nosnippet>700</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#701 id=701 data-nosnippet>701</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#702 id=702 data-nosnippet>702</a>) {
+<a href=#703 id=703 data-nosnippet>703</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#704 id=704 data-nosnippet>704</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#705 id=705 data-nosnippet>705</a>        <span class="string">"pop r15"</span>,
+<a href=#706 id=706 data-nosnippet>706</a>        <span class="string">"pop r14"</span>,
+<a href=#707 id=707 data-nosnippet>707</a>        <span class="string">"pop r13"</span>,
+<a href=#708 id=708 data-nosnippet>708</a>        <span class="string">"pop r12"</span>,
+<a href=#709 id=709 data-nosnippet>709</a>        <span class="string">"pop rbp"</span>,
+<a href=#710 id=710 data-nosnippet>710</a>        <span class="string">"pop rbx"</span>,
+<a href=#711 id=711 data-nosnippet>711</a>        <span class="string">"fxrstor [rsi]"</span>,
+<a href=#712 id=712 data-nosnippet>712</a>        <span class="string">"ret"</span>,
+<a href=#713 id=713 data-nosnippet>713</a>    );
+<a href=#714 id=714 data-nosnippet>714</a>}
+<a href=#715 id=715 data-nosnippet>715</a>
+<a href=#716 id=716 data-nosnippet>716</a><span class="comment">// ── XSAVE path (with XCR0 switching per-silo) ──
+<a href=#717 id=717 data-nosnippet>717</a>
+<a href=#718 id=718 data-nosnippet>718</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu, r8=new_xcr0
+<a href=#719 id=719 data-nosnippet>719</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#720 id=720 data-nosnippet>720</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_xsave(
+<a href=#721 id=721 data-nosnippet>721</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#722 id=722 data-nosnippet>722</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#723 id=723 data-nosnippet>723</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#724 id=724 data-nosnippet>724</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#725 id=725 data-nosnippet>725</a>    _new_xcr0: u64,
+<a href=#726 id=726 data-nosnippet>726</a>) {
+<a href=#727 id=727 data-nosnippet>727</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#728 id=728 data-nosnippet>728</a>        <span class="comment">// xsave clobbers edx — save old_fpu_ptr in r10 first
+<a href=#729 id=729 data-nosnippet>729</a>        </span><span class="string">"mov r10, rdx"</span>,
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#731 id=731 data-nosnippet>731</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
+<a href=#732 id=732 data-nosnippet>732</a>        <span class="string">"xsave [r10]"</span>,
+<a href=#733 id=733 data-nosnippet>733</a>        <span class="string">"push rbx"</span>,
+<a href=#734 id=734 data-nosnippet>734</a>        <span class="string">"push rbp"</span>,
+<a href=#735 id=735 data-nosnippet>735</a>        <span class="string">"push r12"</span>,
+<a href=#736 id=736 data-nosnippet>736</a>        <span class="string">"push r13"</span>,
+<a href=#737 id=737 data-nosnippet>737</a>        <span class="string">"push r14"</span>,
+<a href=#738 id=738 data-nosnippet>738</a>        <span class="string">"push r15"</span>,
+<a href=#739 id=739 data-nosnippet>739</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#740 id=740 data-nosnippet>740</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#741 id=741 data-nosnippet>741</a>        <span class="string">"pop r15"</span>,
+<a href=#742 id=742 data-nosnippet>742</a>        <span class="string">"pop r14"</span>,
+<a href=#743 id=743 data-nosnippet>743</a>        <span class="string">"pop r13"</span>,
+<a href=#744 id=744 data-nosnippet>744</a>        <span class="string">"pop r12"</span>,
+<a href=#745 id=745 data-nosnippet>745</a>        <span class="string">"pop rbp"</span>,
+<a href=#746 id=746 data-nosnippet>746</a>        <span class="string">"pop rbx"</span>,
+<a href=#747 id=747 data-nosnippet>747</a>        <span class="comment">// Switch XCR0 to new task's silo mask (r8 = new_xcr0)
+<a href=#748 id=748 data-nosnippet>748</a>        </span><span class="string">"push rcx"</span>,
+<a href=#749 id=749 data-nosnippet>749</a>        <span class="string">"mov ecx, 0"</span>,
+<a href=#750 id=750 data-nosnippet>750</a>        <span class="string">"mov eax, r8d"</span>,
+<a href=#751 id=751 data-nosnippet>751</a>        <span class="string">"shr r8, 32"</span>,
+<a href=#752 id=752 data-nosnippet>752</a>        <span class="string">"mov edx, r8d"</span>,
+<a href=#753 id=753 data-nosnippet>753</a>        <span class="string">"xsetbv"</span>,
+<a href=#754 id=754 data-nosnippet>754</a>        <span class="string">"pop rcx"</span>,
+<a href=#755 id=755 data-nosnippet>755</a>        <span class="comment">// Restore new FPU state
+<a href=#756 id=756 data-nosnippet>756</a>        </span><span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#757 id=757 data-nosnippet>757</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
+<a href=#758 id=758 data-nosnippet>758</a>        <span class="string">"xrstor [rcx]"</span>,
+<a href=#759 id=759 data-nosnippet>759</a>        <span class="string">"ret"</span>,
+<a href=#760 id=760 data-nosnippet>760</a>    );
+<a href=#761 id=761 data-nosnippet>761</a>}
+<a href=#762 id=762 data-nosnippet>762</a>
+<a href=#763 id=763 data-nosnippet>763</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr, rdx=xcr0
+<a href=#764 id=764 data-nosnippet>764</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#765 id=765 data-nosnippet>765</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_xsave(
+<a href=#766 id=766 data-nosnippet>766</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#767 id=767 data-nosnippet>767</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#768 id=768 data-nosnippet>768</a>    _xcr0: u64,
+<a href=#769 id=769 data-nosnippet>769</a>) {
+<a href=#770 id=770 data-nosnippet>770</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#771 id=771 data-nosnippet>771</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#772 id=772 data-nosnippet>772</a>        <span class="string">"pop r15"</span>,
+<a href=#773 id=773 data-nosnippet>773</a>        <span class="string">"pop r14"</span>,
+<a href=#774 id=774 data-nosnippet>774</a>        <span class="string">"pop r13"</span>,
+<a href=#775 id=775 data-nosnippet>775</a>        <span class="string">"pop r12"</span>,
+<a href=#776 id=776 data-nosnippet>776</a>        <span class="string">"pop rbp"</span>,
+<a href=#777 id=777 data-nosnippet>777</a>        <span class="string">"pop rbx"</span>,
+<a href=#778 id=778 data-nosnippet>778</a>        <span class="comment">// Set XCR0 for the first task
+<a href=#779 id=779 data-nosnippet>779</a>        </span><span class="string">"push rsi"</span>,
+<a href=#780 id=780 data-nosnippet>780</a>        <span class="string">"mov ecx, 0"</span>,
+<a href=#781 id=781 data-nosnippet>781</a>        <span class="string">"mov eax, edx"</span>,
+<a href=#782 id=782 data-nosnippet>782</a>        <span class="string">"shr rdx, 32"</span>,
+<a href=#783 id=783 data-nosnippet>783</a>        <span class="string">"xsetbv"</span>,
+<a href=#784 id=784 data-nosnippet>784</a>        <span class="string">"pop rsi"</span>,
+<a href=#785 id=785 data-nosnippet>785</a>        <span class="comment">// Restore FPU
+<a href=#786 id=786 data-nosnippet>786</a>        </span><span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#787 id=787 data-nosnippet>787</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
+<a href=#788 id=788 data-nosnippet>788</a>        <span class="string">"xrstor [rsi]"</span>,
+<a href=#789 id=789 data-nosnippet>789</a>        <span class="string">"ret"</span>,
+<a href=#790 id=790 data-nosnippet>790</a>    );
+<a href=#791 id=791 data-nosnippet>791</a>}
 </code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["bind","resolve","unbind"]};
+window.SIDEBAR_ITEMS = {"fn":["bind","list_all_bindings","resolve","unbind"]};

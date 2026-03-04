@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["clear_screen","format_bytes","print_char","print_prompt"]};
+window.SIDEBAR_ITEMS = {"fn":["capture_write_bytes","clear_pipe_input","clear_screen","format_bytes","has_pipe_input","is_capturing","print_char","print_prompt","set_pipe_input","start_capture","take_capture","take_pipe_input"]};

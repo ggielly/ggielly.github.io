@@ -10,18 +10,20 @@
 <a href=#10 id=10 data-nosnippet>10</a>    <span class="kw">pub </span>compartment: u16,
 <a href=#11 id=11 data-nosnippet>11</a>}
 <a href=#12 id=12 data-nosnippet>12</a>
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub fn </span>ipc_message_from_raw(buf: <span class="kw-2">&amp;</span>[u8; <span class="number">64</span>]) -&gt; IpcMessage {
-<a href=#14 id=14 data-nosnippet>14</a>    <span class="comment">// SAFETY: `buf` has exactly 64 bytes, matching `IpcMessage` size.
-<a href=#15 id=15 data-nosnippet>15</a>    </span><span class="kw">unsafe </span>{ core::ptr::read_unaligned(buf.as_ptr() <span class="kw">as </span><span class="kw-2">*const </span>IpcMessage) }
-<a href=#16 id=16 data-nosnippet>16</a>}
-<a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub fn </span>ipc_message_to_raw(msg: <span class="kw-2">&amp;</span>IpcMessage, out: <span class="kw-2">&amp;mut </span>[u8; <span class="number">64</span>]) {
-<a href=#19 id=19 data-nosnippet>19</a>    <span class="comment">// SAFETY: `out` has exactly 64 bytes, matching `IpcMessage` size.
-<a href=#20 id=20 data-nosnippet>20</a>    </span><span class="kw">unsafe </span>{
-<a href=#21 id=21 data-nosnippet>21</a>        core::ptr::copy_nonoverlapping(msg <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>u8, out.as_mut_ptr(), <span class="number">64</span>);
-<a href=#22 id=22 data-nosnippet>22</a>    }
-<a href=#23 id=23 data-nosnippet>23</a>}
-<a href=#24 id=24 data-nosnippet>24</a>
-<a href=#25 id=25 data-nosnippet>25</a><span class="macro">static_assertions::assert_eq_size!</span>(IpcMessage, [u8; <span class="number">64</span>]);
-<a href=#26 id=26 data-nosnippet>26</a><span class="macro">static_assertions::const_assert_eq!</span>(core::mem::align_of::&lt;IpcMessage&gt;(), <span class="number">64</span>);
+<a href=#13 id=13 data-nosnippet>13</a><span class="doccomment">/// Performs the ipc message from raw operation.
+<a href=#14 id=14 data-nosnippet>14</a></span><span class="kw">pub fn </span>ipc_message_from_raw(buf: <span class="kw-2">&amp;</span>[u8; <span class="number">64</span>]) -&gt; IpcMessage {
+<a href=#15 id=15 data-nosnippet>15</a>    <span class="comment">// SAFETY: `buf` has exactly 64 bytes, matching `IpcMessage` size.
+<a href=#16 id=16 data-nosnippet>16</a>    </span><span class="kw">unsafe </span>{ core::ptr::read_unaligned(buf.as_ptr() <span class="kw">as </span><span class="kw-2">*const </span>IpcMessage) }
+<a href=#17 id=17 data-nosnippet>17</a>}
+<a href=#18 id=18 data-nosnippet>18</a>
+<a href=#19 id=19 data-nosnippet>19</a><span class="doccomment">/// Performs the ipc message to raw operation.
+<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">pub fn </span>ipc_message_to_raw(msg: <span class="kw-2">&amp;</span>IpcMessage, out: <span class="kw-2">&amp;mut </span>[u8; <span class="number">64</span>]) {
+<a href=#21 id=21 data-nosnippet>21</a>    <span class="comment">// SAFETY: `out` has exactly 64 bytes, matching `IpcMessage` size.
+<a href=#22 id=22 data-nosnippet>22</a>    </span><span class="kw">unsafe </span>{
+<a href=#23 id=23 data-nosnippet>23</a>        core::ptr::copy_nonoverlapping(msg <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>u8, out.as_mut_ptr(), <span class="number">64</span>);
+<a href=#24 id=24 data-nosnippet>24</a>    }
+<a href=#25 id=25 data-nosnippet>25</a>}
+<a href=#26 id=26 data-nosnippet>26</a>
+<a href=#27 id=27 data-nosnippet>27</a><span class="macro">static_assertions::assert_eq_size!</span>(IpcMessage, [u8; <span class="number">64</span>]);
+<a href=#28 id=28 data-nosnippet>28</a><span class="macro">static_assertions::const_assert_eq!</span>(core::mem::align_of::&lt;IpcMessage&gt;(), <span class="number">64</span>);
 </code></pre></div></section></main></body></html>

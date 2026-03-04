@@ -204,67 +204,68 @@
 <a href=#204 id=204 data-nosnippet>204</a>}
 <a href=#205 id=205 data-nosnippet>205</a>
 <a href=#206 id=206 data-nosnippet>206</a><span class="kw">impl </span>core::fmt::Debug <span class="kw">for </span>IpcMessage {
-<a href=#207 id=207 data-nosnippet>207</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
-<a href=#208 id=208 data-nosnippet>208</a>        f.debug_struct(<span class="string">"IpcMessage"</span>)
-<a href=#209 id=209 data-nosnippet>209</a>            .field(<span class="string">"sender"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.sender)
-<a href=#210 id=210 data-nosnippet>210</a>            .field(<span class="string">"msg_type"</span>, <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">"0x{:02x}"</span>, <span class="self">self</span>.msg_type))
-<a href=#211 id=211 data-nosnippet>211</a>            .field(<span class="string">"flags"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.flags)
-<a href=#212 id=212 data-nosnippet>212</a>            .finish()
-<a href=#213 id=213 data-nosnippet>213</a>    }
-<a href=#214 id=214 data-nosnippet>214</a>}
-<a href=#215 id=215 data-nosnippet>215</a>
-<a href=#216 id=216 data-nosnippet>216</a><span class="kw">pub const </span>SEEK_SET: usize = <span class="number">0</span>;
-<a href=#217 id=217 data-nosnippet>217</a><span class="kw">pub const </span>SEEK_CUR: usize = <span class="number">1</span>;
-<a href=#218 id=218 data-nosnippet>218</a><span class="kw">pub const </span>SEEK_END: usize = <span class="number">2</span>;
-<a href=#219 id=219 data-nosnippet>219</a>
-<a href=#220 id=220 data-nosnippet>220</a><span class="comment">// File type constants (matching Linux DT_* values)
-<a href=#221 id=221 data-nosnippet>221</a></span><span class="kw">pub const </span>DT_UNKNOWN: u8 = <span class="number">0</span>;
-<a href=#222 id=222 data-nosnippet>222</a><span class="kw">pub const </span>DT_FIFO: u8 = <span class="number">1</span>;
-<a href=#223 id=223 data-nosnippet>223</a><span class="kw">pub const </span>DT_CHR: u8 = <span class="number">2</span>;
-<a href=#224 id=224 data-nosnippet>224</a><span class="kw">pub const </span>DT_DIR: u8 = <span class="number">4</span>;
-<a href=#225 id=225 data-nosnippet>225</a><span class="kw">pub const </span>DT_BLK: u8 = <span class="number">6</span>;
-<a href=#226 id=226 data-nosnippet>226</a><span class="kw">pub const </span>DT_REG: u8 = <span class="number">8</span>;
-<a href=#227 id=227 data-nosnippet>227</a><span class="kw">pub const </span>DT_LNK: u8 = <span class="number">10</span>;
-<a href=#228 id=228 data-nosnippet>228</a><span class="kw">pub const </span>DT_SOCK: u8 = <span class="number">12</span>;
-<a href=#229 id=229 data-nosnippet>229</a>
-<a href=#230 id=230 data-nosnippet>230</a><span class="doccomment">/// Fixed-size header for each directory entry in the SYS_GETDENTS wire format.
-<a href=#231 id=231 data-nosnippet>231</a>///
-<a href=#232 id=232 data-nosnippet>232</a>/// Wire layout per entry: `DirentHeader` (12 bytes) followed by `name_len`
-<a href=#233 id=233 data-nosnippet>233</a>/// bytes of filename data and a trailing NUL byte.
-<a href=#234 id=234 data-nosnippet>234</a></span><span class="attr">#[derive(Debug, Clone, Copy, FromBytes, IntoBytes)]
-<a href=#235 id=235 data-nosnippet>235</a>#[repr(C, packed)]
-<a href=#236 id=236 data-nosnippet>236</a></span><span class="kw">pub struct </span>DirentHeader {
-<a href=#237 id=237 data-nosnippet>237</a>    <span class="kw">pub </span>ino: u64,
-<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">pub </span>file_type: u8,
-<a href=#239 id=239 data-nosnippet>239</a>    <span class="kw">pub </span>name_len: u16,
-<a href=#240 id=240 data-nosnippet>240</a>    <span class="kw">pub </span>_padding: u8,
-<a href=#241 id=241 data-nosnippet>241</a>}
-<a href=#242 id=242 data-nosnippet>242</a>
-<a href=#243 id=243 data-nosnippet>243</a><span class="kw">impl </span>DirentHeader {
-<a href=#244 id=244 data-nosnippet>244</a>    <span class="kw">pub const </span>SIZE: usize = <span class="number">12</span>; <span class="comment">// 8 + 1 + 2 + 1
-<a href=#245 id=245 data-nosnippet>245</a>
-<a href=#246 id=246 data-nosnippet>246</a>    </span><span class="doccomment">/// Return the total packed entry size (header + name + trailing NUL).
-<a href=#247 id=247 data-nosnippet>247</a>    </span><span class="kw">pub const fn </span>entry_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-<a href=#248 id=248 data-nosnippet>248</a>        <span class="self">Self</span>::SIZE + <span class="self">self</span>.name_len <span class="kw">as </span>usize + <span class="number">1
-<a href=#249 id=249 data-nosnippet>249</a>    </span>}
-<a href=#250 id=250 data-nosnippet>250</a>}
-<a href=#251 id=251 data-nosnippet>251</a>
-<a href=#252 id=252 data-nosnippet>252</a><span class="macro">macro_rules!</span> assert_abi_struct {
-<a href=#253 id=253 data-nosnippet>253</a>    (<span class="macro-nonterminal">$t</span>:ty, <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$align</span>:expr) =&gt; {
-<a href=#254 id=254 data-nosnippet>254</a>        <span class="macro">static_assertions::assert_eq_size!</span>(<span class="macro-nonterminal">$t</span>, [u8; <span class="macro-nonterminal">$size</span>]);
-<a href=#255 id=255 data-nosnippet>255</a>        <span class="macro">static_assertions::const_assert_eq!</span>(core::mem::align_of::&lt;<span class="macro-nonterminal">$t</span>&gt;(), <span class="macro-nonterminal">$align</span>);
-<a href=#256 id=256 data-nosnippet>256</a>    };
-<a href=#257 id=257 data-nosnippet>257</a>}
-<a href=#258 id=258 data-nosnippet>258</a>
-<a href=#259 id=259 data-nosnippet>259</a><span class="macro">assert_abi_struct!</span>(DirentHeader, <span class="number">12</span>, <span class="number">1</span>);
-<a href=#260 id=260 data-nosnippet>260</a><span class="macro">assert_abi_struct!</span>(Stat, <span class="number">120</span>, <span class="number">8</span>);
-<a href=#261 id=261 data-nosnippet>261</a><span class="macro">assert_abi_struct!</span>(StatVfs, <span class="number">88</span>, <span class="number">8</span>);
-<a href=#262 id=262 data-nosnippet>262</a><span class="macro">assert_abi_struct!</span>(Map, <span class="number">32</span>, <span class="number">8</span>);
-<a href=#263 id=263 data-nosnippet>263</a><span class="macro">assert_abi_struct!</span>(FileStat, <span class="number">112</span>, <span class="number">8</span>);
-<a href=#264 id=264 data-nosnippet>264</a><span class="macro">assert_abi_struct!</span>(IpcMessage, <span class="number">64</span>, <span class="number">64</span>);
-<a href=#265 id=265 data-nosnippet>265</a><span class="macro">assert_abi_struct!</span>(TimeSpec, <span class="number">16</span>, <span class="number">8</span>);
-<a href=#266 id=266 data-nosnippet>266</a><span class="macro">assert_abi_struct!</span>(HandleInfo, <span class="number">16</span>, <span class="number">8</span>);
-<a href=#267 id=267 data-nosnippet>267</a><span class="macro">assert_abi_struct!</span>(PciAddress, <span class="number">4</span>, <span class="number">4</span>);
-<a href=#268 id=268 data-nosnippet>268</a><span class="macro">assert_abi_struct!</span>(PciProbeCriteria, <span class="number">12</span>, <span class="number">4</span>);
-<a href=#269 id=269 data-nosnippet>269</a><span class="macro">assert_abi_struct!</span>(PciDeviceInfo, <span class="number">16</span>, <span class="number">4</span>);
+<a href=#207 id=207 data-nosnippet>207</a>    <span class="doccomment">/// Implements fmt.
+<a href=#208 id=208 data-nosnippet>208</a>    </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
+<a href=#209 id=209 data-nosnippet>209</a>        f.debug_struct(<span class="string">"IpcMessage"</span>)
+<a href=#210 id=210 data-nosnippet>210</a>            .field(<span class="string">"sender"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.sender)
+<a href=#211 id=211 data-nosnippet>211</a>            .field(<span class="string">"msg_type"</span>, <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">"0x{:02x}"</span>, <span class="self">self</span>.msg_type))
+<a href=#212 id=212 data-nosnippet>212</a>            .field(<span class="string">"flags"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.flags)
+<a href=#213 id=213 data-nosnippet>213</a>            .finish()
+<a href=#214 id=214 data-nosnippet>214</a>    }
+<a href=#215 id=215 data-nosnippet>215</a>}
+<a href=#216 id=216 data-nosnippet>216</a>
+<a href=#217 id=217 data-nosnippet>217</a><span class="kw">pub const </span>SEEK_SET: usize = <span class="number">0</span>;
+<a href=#218 id=218 data-nosnippet>218</a><span class="kw">pub const </span>SEEK_CUR: usize = <span class="number">1</span>;
+<a href=#219 id=219 data-nosnippet>219</a><span class="kw">pub const </span>SEEK_END: usize = <span class="number">2</span>;
+<a href=#220 id=220 data-nosnippet>220</a>
+<a href=#221 id=221 data-nosnippet>221</a><span class="comment">// File type constants (matching Linux DT_* values)
+<a href=#222 id=222 data-nosnippet>222</a></span><span class="kw">pub const </span>DT_UNKNOWN: u8 = <span class="number">0</span>;
+<a href=#223 id=223 data-nosnippet>223</a><span class="kw">pub const </span>DT_FIFO: u8 = <span class="number">1</span>;
+<a href=#224 id=224 data-nosnippet>224</a><span class="kw">pub const </span>DT_CHR: u8 = <span class="number">2</span>;
+<a href=#225 id=225 data-nosnippet>225</a><span class="kw">pub const </span>DT_DIR: u8 = <span class="number">4</span>;
+<a href=#226 id=226 data-nosnippet>226</a><span class="kw">pub const </span>DT_BLK: u8 = <span class="number">6</span>;
+<a href=#227 id=227 data-nosnippet>227</a><span class="kw">pub const </span>DT_REG: u8 = <span class="number">8</span>;
+<a href=#228 id=228 data-nosnippet>228</a><span class="kw">pub const </span>DT_LNK: u8 = <span class="number">10</span>;
+<a href=#229 id=229 data-nosnippet>229</a><span class="kw">pub const </span>DT_SOCK: u8 = <span class="number">12</span>;
+<a href=#230 id=230 data-nosnippet>230</a>
+<a href=#231 id=231 data-nosnippet>231</a><span class="doccomment">/// Fixed-size header for each directory entry in the SYS_GETDENTS wire format.
+<a href=#232 id=232 data-nosnippet>232</a>///
+<a href=#233 id=233 data-nosnippet>233</a>/// Wire layout per entry: `DirentHeader` (12 bytes) followed by `name_len`
+<a href=#234 id=234 data-nosnippet>234</a>/// bytes of filename data and a trailing NUL byte.
+<a href=#235 id=235 data-nosnippet>235</a></span><span class="attr">#[derive(Debug, Clone, Copy, FromBytes, IntoBytes)]
+<a href=#236 id=236 data-nosnippet>236</a>#[repr(C, packed)]
+<a href=#237 id=237 data-nosnippet>237</a></span><span class="kw">pub struct </span>DirentHeader {
+<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">pub </span>ino: u64,
+<a href=#239 id=239 data-nosnippet>239</a>    <span class="kw">pub </span>file_type: u8,
+<a href=#240 id=240 data-nosnippet>240</a>    <span class="kw">pub </span>name_len: u16,
+<a href=#241 id=241 data-nosnippet>241</a>    <span class="kw">pub </span>_padding: u8,
+<a href=#242 id=242 data-nosnippet>242</a>}
+<a href=#243 id=243 data-nosnippet>243</a>
+<a href=#244 id=244 data-nosnippet>244</a><span class="kw">impl </span>DirentHeader {
+<a href=#245 id=245 data-nosnippet>245</a>    <span class="kw">pub const </span>SIZE: usize = <span class="number">12</span>; <span class="comment">// 8 + 1 + 2 + 1
+<a href=#246 id=246 data-nosnippet>246</a>
+<a href=#247 id=247 data-nosnippet>247</a>    </span><span class="doccomment">/// Return the total packed entry size (header + name + trailing NUL).
+<a href=#248 id=248 data-nosnippet>248</a>    </span><span class="kw">pub const fn </span>entry_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+<a href=#249 id=249 data-nosnippet>249</a>        <span class="self">Self</span>::SIZE + <span class="self">self</span>.name_len <span class="kw">as </span>usize + <span class="number">1
+<a href=#250 id=250 data-nosnippet>250</a>    </span>}
+<a href=#251 id=251 data-nosnippet>251</a>}
+<a href=#252 id=252 data-nosnippet>252</a>
+<a href=#253 id=253 data-nosnippet>253</a><span class="macro">macro_rules!</span> assert_abi_struct {
+<a href=#254 id=254 data-nosnippet>254</a>    (<span class="macro-nonterminal">$t</span>:ty, <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$align</span>:expr) =&gt; {
+<a href=#255 id=255 data-nosnippet>255</a>        <span class="macro">static_assertions::assert_eq_size!</span>(<span class="macro-nonterminal">$t</span>, [u8; <span class="macro-nonterminal">$size</span>]);
+<a href=#256 id=256 data-nosnippet>256</a>        <span class="macro">static_assertions::const_assert_eq!</span>(core::mem::align_of::&lt;<span class="macro-nonterminal">$t</span>&gt;(), <span class="macro-nonterminal">$align</span>);
+<a href=#257 id=257 data-nosnippet>257</a>    };
+<a href=#258 id=258 data-nosnippet>258</a>}
+<a href=#259 id=259 data-nosnippet>259</a>
+<a href=#260 id=260 data-nosnippet>260</a><span class="macro">assert_abi_struct!</span>(DirentHeader, <span class="number">12</span>, <span class="number">1</span>);
+<a href=#261 id=261 data-nosnippet>261</a><span class="macro">assert_abi_struct!</span>(Stat, <span class="number">120</span>, <span class="number">8</span>);
+<a href=#262 id=262 data-nosnippet>262</a><span class="macro">assert_abi_struct!</span>(StatVfs, <span class="number">88</span>, <span class="number">8</span>);
+<a href=#263 id=263 data-nosnippet>263</a><span class="macro">assert_abi_struct!</span>(Map, <span class="number">32</span>, <span class="number">8</span>);
+<a href=#264 id=264 data-nosnippet>264</a><span class="macro">assert_abi_struct!</span>(FileStat, <span class="number">112</span>, <span class="number">8</span>);
+<a href=#265 id=265 data-nosnippet>265</a><span class="macro">assert_abi_struct!</span>(IpcMessage, <span class="number">64</span>, <span class="number">64</span>);
+<a href=#266 id=266 data-nosnippet>266</a><span class="macro">assert_abi_struct!</span>(TimeSpec, <span class="number">16</span>, <span class="number">8</span>);
+<a href=#267 id=267 data-nosnippet>267</a><span class="macro">assert_abi_struct!</span>(HandleInfo, <span class="number">16</span>, <span class="number">8</span>);
+<a href=#268 id=268 data-nosnippet>268</a><span class="macro">assert_abi_struct!</span>(PciAddress, <span class="number">4</span>, <span class="number">4</span>);
+<a href=#269 id=269 data-nosnippet>269</a><span class="macro">assert_abi_struct!</span>(PciProbeCriteria, <span class="number">12</span>, <span class="number">4</span>);
+<a href=#270 id=270 data-nosnippet>270</a><span class="macro">assert_abi_struct!</span>(PciDeviceInfo, <span class="number">16</span>, <span class="number">4</span>);
 </code></pre></div></section></main></body></html>

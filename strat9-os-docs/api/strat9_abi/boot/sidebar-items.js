@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["STRAT9_BOOT_ABI_VERSION","STRAT9_BOOT_MAGIC"],"enum":["MemoryKind"],"struct":["KernelArgs","MemoryRegion"]};
+window.SIDEBAR_ITEMS = {"constant":["STRAT9_BOOT_ABI_VERSION","STRAT9_BOOT_MAGIC"],"struct":["KernelArgs","MemoryKind","MemoryRegion"]};

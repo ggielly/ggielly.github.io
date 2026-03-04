@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["parse"],"struct":["Command"]};
+window.SIDEBAR_ITEMS = {"enum":["Redirect"],"fn":["parse","parse_pipeline"],"struct":["Command","Pipeline","PipelineStage"]};

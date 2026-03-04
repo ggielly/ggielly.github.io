@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["deliver_reply","wait_for_reply"]};
+window.SIDEBAR_ITEMS = {"fn":["cancel_replies_waiting_on","deliver_reply","wait_for_reply"]};

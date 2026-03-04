@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cmd_audit","cmd_date","cmd_dmesg","cmd_echo","cmd_env","cmd_grep","cmd_ntpdate","cmd_setenv","cmd_unsetenv","cmd_uptime","cmd_watch","cmd_whoami","init_shell_env","klog_write","shell_getenv","shell_setenv","shell_unsetenv"]};

@@ -53,12 +53,13 @@
 <a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">pub struct </span>EarlyWriter;
 <a href=#54 id=54 data-nosnippet>54</a>
 <a href=#55 id=55 data-nosnippet>55</a>    <span class="kw">impl </span>Write <span class="kw">for </span>EarlyWriter {
-<a href=#56 id=56 data-nosnippet>56</a>        <span class="kw">fn </span>write_str(<span class="kw-2">&amp;mut </span><span class="self">self</span>, s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result </span>{
-<a href=#57 id=57 data-nosnippet>57</a>            <span class="comment">// SAFETY: serial port is initialized early in boot and is a shared resource.
-<a href=#58 id=58 data-nosnippet>58</a>            // We accept potential race conditions during early boot for debug output.
-<a href=#59 id=59 data-nosnippet>59</a>            </span><span class="kw">crate</span>::arch::x86_64::serial::_print(<span class="macro">format_args!</span>(<span class="string">"{}"</span>, s));
-<a href=#60 id=60 data-nosnippet>60</a>            <span class="prelude-val">Ok</span>(())
-<a href=#61 id=61 data-nosnippet>61</a>        }
-<a href=#62 id=62 data-nosnippet>62</a>    }
-<a href=#63 id=63 data-nosnippet>63</a>}
+<a href=#56 id=56 data-nosnippet>56</a>        <span class="doccomment">/// Writes str.
+<a href=#57 id=57 data-nosnippet>57</a>        </span><span class="kw">fn </span>write_str(<span class="kw-2">&amp;mut </span><span class="self">self</span>, s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result </span>{
+<a href=#58 id=58 data-nosnippet>58</a>            <span class="comment">// SAFETY: serial port is initialized early in boot and is a shared resource.
+<a href=#59 id=59 data-nosnippet>59</a>            // We accept potential race conditions during early boot for debug output.
+<a href=#60 id=60 data-nosnippet>60</a>            </span><span class="kw">crate</span>::arch::x86_64::serial::_print(<span class="macro">format_args!</span>(<span class="string">"{}"</span>, s));
+<a href=#61 id=61 data-nosnippet>61</a>            <span class="prelude-val">Ok</span>(())
+<a href=#62 id=62 data-nosnippet>62</a>        }
+<a href=#63 id=63 data-nosnippet>63</a>    }
+<a href=#64 id=64 data-nosnippet>64</a>}
 </code></pre></div></section></main></body></html>

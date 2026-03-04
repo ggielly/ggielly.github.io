@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MemoryKind"],"struct":["KernelArgs","MemoryRegion"]};
+window.SIDEBAR_ITEMS = {"struct":["KernelArgs","MemoryKind","MemoryRegion"]};

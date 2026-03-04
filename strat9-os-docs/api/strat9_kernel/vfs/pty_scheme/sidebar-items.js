@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_pty_scheme","init_pty_scheme"],"struct":["PtyScheme"]};

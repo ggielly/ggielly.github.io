@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["cmd_clear","cmd_cpuinfo","cmd_reboot","cmd_scheduler","cmd_silo","cmd_silos","cmd_strate","cmd_test_mem","cmd_test_mem_stressed","cmd_test_pid","cmd_test_syscalls","cmd_trace","cmd_version","cmd_wasm_run"]};
+window.SIDEBAR_ITEMS = {"fn":["cmd_clear","cmd_cpuinfo","cmd_health","cmd_reboot","cmd_scheduler","cmd_shutdown","cmd_silo","cmd_silos","cmd_strate","cmd_test_mem","cmd_test_mem_stressed","cmd_test_pid","cmd_test_syscalls","cmd_trace","cmd_version","cmd_wasm_run"]};

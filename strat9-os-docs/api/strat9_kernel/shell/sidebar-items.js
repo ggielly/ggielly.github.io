@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ShellError"],"fn":["shell_main"],"mod":["commands","output","parser"]};
+window.SIDEBAR_ITEMS = {"enum":["ShellError"],"fn":["is_interrupted","run_line","shell_main"],"mod":["commands","output","parser","scripting"],"static":["SHELL_INTERRUPTED"]};

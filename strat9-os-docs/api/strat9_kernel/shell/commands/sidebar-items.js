@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["gfx","help","mem","net","ps","sys","timer","top","vfs"],"struct":["CommandRegistry"]};
+window.SIDEBAR_ITEMS = {"mod":["gfx","help","hw","mem","net","proc","ps","sys","timer","top","util","vfs"],"struct":["CommandRegistry"]};

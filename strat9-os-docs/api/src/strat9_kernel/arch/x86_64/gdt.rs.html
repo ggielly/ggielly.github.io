@@ -161,16 +161,18 @@
 <a href=#161 id=161 data-nosnippet>161</a>    </span>(kernel_cs &lt;&lt; <span class="number">32</span>) | (user_base &lt;&lt; <span class="number">48</span>)
 <a href=#162 id=162 data-nosnippet>162</a>}
 <a href=#163 id=163 data-nosnippet>163</a>
-<a href=#164 id=164 data-nosnippet>164</a><span class="kw">fn </span>selectors_for(cpu_index: usize) -&gt; Selectors {
-<a href=#165 id=165 data-nosnippet>165</a>    <span class="kw">if </span>!SELECTORS_INIT[cpu_index].load(Ordering::Acquire) {
-<a href=#166 id=166 data-nosnippet>166</a>        <span class="macro">panic!</span>(<span class="string">"GDT selectors for CPU{} not initialized"</span>, cpu_index);
-<a href=#167 id=167 data-nosnippet>167</a>    }
-<a href=#168 id=168 data-nosnippet>168</a>    <span class="comment">// SAFETY: Initialized in init_cpu and stored for 'static lifetime.
-<a href=#169 id=169 data-nosnippet>169</a>    </span><span class="kw">unsafe </span>{ <span class="kw-2">*</span>SELECTORS[cpu_index].as_ptr() }
-<a href=#170 id=170 data-nosnippet>170</a>}
-<a href=#171 id=171 data-nosnippet>171</a>
-<a href=#172 id=172 data-nosnippet>172</a><span class="kw">fn </span>current_cpu_index() -&gt; usize {
-<a href=#173 id=173 data-nosnippet>173</a>    <span class="kw">let </span>apic_id = <span class="kw">super</span>::apic::lapic_id();
-<a href=#174 id=174 data-nosnippet>174</a>    <span class="kw">crate</span>::arch::x86_64::percpu::cpu_index_by_apic(apic_id).unwrap_or(<span class="number">0</span>)
-<a href=#175 id=175 data-nosnippet>175</a>}
+<a href=#164 id=164 data-nosnippet>164</a><span class="doccomment">/// Performs the selectors for operation.
+<a href=#165 id=165 data-nosnippet>165</a></span><span class="kw">fn </span>selectors_for(cpu_index: usize) -&gt; Selectors {
+<a href=#166 id=166 data-nosnippet>166</a>    <span class="kw">if </span>!SELECTORS_INIT[cpu_index].load(Ordering::Acquire) {
+<a href=#167 id=167 data-nosnippet>167</a>        <span class="macro">panic!</span>(<span class="string">"GDT selectors for CPU{} not initialized"</span>, cpu_index);
+<a href=#168 id=168 data-nosnippet>168</a>    }
+<a href=#169 id=169 data-nosnippet>169</a>    <span class="comment">// SAFETY: Initialized in init_cpu and stored for 'static lifetime.
+<a href=#170 id=170 data-nosnippet>170</a>    </span><span class="kw">unsafe </span>{ <span class="kw-2">*</span>SELECTORS[cpu_index].as_ptr() }
+<a href=#171 id=171 data-nosnippet>171</a>}
+<a href=#172 id=172 data-nosnippet>172</a>
+<a href=#173 id=173 data-nosnippet>173</a><span class="doccomment">/// Performs the current cpu index operation.
+<a href=#174 id=174 data-nosnippet>174</a></span><span class="kw">fn </span>current_cpu_index() -&gt; usize {
+<a href=#175 id=175 data-nosnippet>175</a>    <span class="kw">let </span>apic_id = <span class="kw">super</span>::apic::lapic_id();
+<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">crate</span>::arch::x86_64::percpu::cpu_index_by_apic(apic_id).unwrap_or(<span class="number">0</span>)
+<a href=#177 id=177 data-nosnippet>177</a>}
 </code></pre></div></section></main></body></html>

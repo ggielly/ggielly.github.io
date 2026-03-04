@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["TaskPriority","TaskState"],"struct":["CpuContext","FpuState","KernelStack","SyncUnsafeCell","Task","TaskId","UserStack"],"type":["Pid","Tid"]};
+window.SIDEBAR_ITEMS = {"enum":["TaskPriority","TaskState"],"struct":["CpuContext","ExtendedState","KernelStack","SyncUnsafeCell","Task","TaskId","UserStack"],"type":["Pid","Tid"]};

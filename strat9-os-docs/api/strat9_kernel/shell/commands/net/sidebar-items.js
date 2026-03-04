@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["cmd_ifconfig","cmd_net","cmd_ping"]};
+window.SIDEBAR_ITEMS = {"fn":["cmd_ifconfig","cmd_net","cmd_nslookup","cmd_ping","cmd_telnet"]};

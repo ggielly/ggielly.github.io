@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["syscall0","syscall1","syscall2","syscall3","syscall4","syscall5","syscall6"],"mod":["arch","call","data","dirent","error","flag","io","number","schemev2","sigabi"]};
+window.SIDEBAR_ITEMS = {"constant":["CLOCK_MONOTONIC","CLOCK_REALTIME"],"fn":["syscall0","syscall1","syscall2","syscall3","syscall4","syscall5","syscall6"],"mod":["arch","call","data","dirent","error","flag","io","number","schemev2","sigabi"]};

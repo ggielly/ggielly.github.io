@@ -42,414 +42,426 @@
 <a href=#42 id=42 data-nosnippet>42</a>        }
 <a href=#43 id=43 data-nosnippet>43</a>    }
 <a href=#44 id=44 data-nosnippet>44</a>
-<a href=#45 id=45 data-nosnippet>45</a>    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>member_add(
-<a href=#46 id=46 data-nosnippet>46</a>        map: <span class="kw-2">&amp;mut </span>BTreeMap&lt;Pid, alloc::vec::Vec&lt;TaskId&gt;&gt;,
-<a href=#47 id=47 data-nosnippet>47</a>        key: Pid,
-<a href=#48 id=48 data-nosnippet>48</a>        task_id: TaskId,
-<a href=#49 id=49 data-nosnippet>49</a>    ) {
-<a href=#50 id=50 data-nosnippet>50</a>        <span class="kw">let </span>members = map.entry(key).or_default();
-<a href=#51 id=51 data-nosnippet>51</a>        <span class="kw">if </span>!members.iter().any(|id| <span class="kw-2">*</span>id == task_id) {
-<a href=#52 id=52 data-nosnippet>52</a>            members.push(task_id);
-<a href=#53 id=53 data-nosnippet>53</a>        }
-<a href=#54 id=54 data-nosnippet>54</a>    }
-<a href=#55 id=55 data-nosnippet>55</a>
-<a href=#56 id=56 data-nosnippet>56</a>    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>member_remove(
-<a href=#57 id=57 data-nosnippet>57</a>        map: <span class="kw-2">&amp;mut </span>BTreeMap&lt;Pid, alloc::vec::Vec&lt;TaskId&gt;&gt;,
-<a href=#58 id=58 data-nosnippet>58</a>        key: Pid,
-<a href=#59 id=59 data-nosnippet>59</a>        task_id: TaskId,
-<a href=#60 id=60 data-nosnippet>60</a>    ) {
-<a href=#61 id=61 data-nosnippet>61</a>        <span class="kw">let </span><span class="kw-2">mut </span>clear = <span class="bool-val">false</span>;
-<a href=#62 id=62 data-nosnippet>62</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(members) = map.get_mut(<span class="kw-2">&amp;</span>key) {
-<a href=#63 id=63 data-nosnippet>63</a>            members.retain(|id| <span class="kw-2">*</span>id != task_id);
-<a href=#64 id=64 data-nosnippet>64</a>            clear = members.is_empty();
-<a href=#65 id=65 data-nosnippet>65</a>        }
-<a href=#66 id=66 data-nosnippet>66</a>        <span class="kw">if </span>clear {
-<a href=#67 id=67 data-nosnippet>67</a>            map.remove(<span class="kw-2">&amp;</span>key);
-<a href=#68 id=68 data-nosnippet>68</a>        }
-<a href=#69 id=69 data-nosnippet>69</a>    }
-<a href=#70 id=70 data-nosnippet>70</a>
-<a href=#71 id=71 data-nosnippet>71</a>    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>register_identity_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: <span class="kw-2">&amp;</span>Arc&lt;Task&gt;) {
-<a href=#72 id=72 data-nosnippet>72</a>        <span class="kw">let </span>task_id = task.id;
-<a href=#73 id=73 data-nosnippet>73</a>        <span class="kw">let </span>pid = task.pid;
-<a href=#74 id=74 data-nosnippet>74</a>        <span class="kw">let </span>pgid = task.pgid.load(Ordering::Relaxed);
-<a href=#75 id=75 data-nosnippet>75</a>        <span class="kw">let </span>sid = task.sid.load(Ordering::Relaxed);
-<a href=#76 id=76 data-nosnippet>76</a>        <span class="self">self</span>.pid_to_pgid.insert(pid, pgid);
-<a href=#77 id=77 data-nosnippet>77</a>        <span class="self">self</span>.pid_to_sid.insert(pid, sid);
-<a href=#78 id=78 data-nosnippet>78</a>        <span class="self">Self</span>::member_add(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pgid_members, pgid, task_id);
-<a href=#79 id=79 data-nosnippet>79</a>        <span class="self">Self</span>::member_add(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sid_members, sid, task_id);
-<a href=#80 id=80 data-nosnippet>80</a>    }
-<a href=#81 id=81 data-nosnippet>81</a>
-<a href=#82 id=82 data-nosnippet>82</a>    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>unregister_identity_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task_id: TaskId, pid: Pid, tid: Tid) {
-<a href=#83 id=83 data-nosnippet>83</a>        <span class="self">self</span>.pid_to_task.remove(<span class="kw-2">&amp;</span>pid);
-<a href=#84 id=84 data-nosnippet>84</a>        <span class="self">self</span>.tid_to_task.remove(<span class="kw-2">&amp;</span>tid);
-<a href=#85 id=85 data-nosnippet>85</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(pgid) = <span class="self">self</span>.pid_to_pgid.remove(<span class="kw-2">&amp;</span>pid) {
-<a href=#86 id=86 data-nosnippet>86</a>            <span class="self">Self</span>::member_remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pgid_members, pgid, task_id);
-<a href=#87 id=87 data-nosnippet>87</a>        }
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(sid) = <span class="self">self</span>.pid_to_sid.remove(<span class="kw-2">&amp;</span>pid) {
-<a href=#89 id=89 data-nosnippet>89</a>            <span class="self">Self</span>::member_remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sid_members, sid, task_id);
-<a href=#90 id=90 data-nosnippet>90</a>        }
-<a href=#91 id=91 data-nosnippet>91</a>    }
-<a href=#92 id=92 data-nosnippet>92</a>
-<a href=#93 id=93 data-nosnippet>93</a>    <span class="doccomment">/// Add a task to the scheduler
-<a href=#94 id=94 data-nosnippet>94</a>    </span><span class="kw">pub fn </span>add_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;) {
-<a href=#95 id=95 data-nosnippet>95</a>        <span class="kw">let </span>cpu_index = <span class="self">self</span>.select_cpu_for_task();
-<a href=#96 id=96 data-nosnippet>96</a>        <span class="self">self</span>.add_task_on_cpu(task, cpu_index);
-<a href=#97 id=97 data-nosnippet>97</a>    }
-<a href=#98 id=98 data-nosnippet>98</a>
-<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">pub fn </span>add_task_with_parent(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;, parent: TaskId) {
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="kw">let </span>child = task.id;
-<a href=#101 id=101 data-nosnippet>101</a>        <span class="kw">let </span>cpu_index = <span class="self">self</span>.select_cpu_for_task();
-<a href=#102 id=102 data-nosnippet>102</a>        <span class="self">self</span>.add_task_on_cpu(task, cpu_index);
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="self">self</span>.parent_of.insert(child, parent);
-<a href=#104 id=104 data-nosnippet>104</a>        <span class="self">self</span>.children_of.entry(parent).or_default().push(child);
-<a href=#105 id=105 data-nosnippet>105</a>    }
-<a href=#106 id=106 data-nosnippet>106</a>
-<a href=#107 id=107 data-nosnippet>107</a>    <span class="kw">fn </span>add_task_on_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;, cpu_index: usize) {
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="kw">let </span>task_id = task.id;
-<a href=#109 id=109 data-nosnippet>109</a>        <span class="comment">// SAFETY: We have exclusive access via the scheduler lock
-<a href=#110 id=110 data-nosnippet>110</a>        </span><span class="kw">unsafe </span>{
-<a href=#111 id=111 data-nosnippet>111</a>            <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
-<a href=#112 id=112 data-nosnippet>112</a>        }
-<a href=#113 id=113 data-nosnippet>113</a>
-<a href=#114 id=114 data-nosnippet>114</a>        <span class="self">self</span>.all_tasks.insert(task_id, task.clone());
-<a href=#115 id=115 data-nosnippet>115</a>        <span class="self">self</span>.task_cpu.insert(task_id, cpu_index);
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="self">self</span>.pid_to_task.insert(task.pid, task_id);
-<a href=#117 id=117 data-nosnippet>117</a>        <span class="self">self</span>.tid_to_task.insert(task.tid, task_id);
-<a href=#118 id=118 data-nosnippet>118</a>        <span class="self">self</span>.register_identity_locked(<span class="kw-2">&amp;</span>task);
-<a href=#119 id=119 data-nosnippet>119</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_index) {
-<a href=#120 id=120 data-nosnippet>120</a>            <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
-<a href=#121 id=121 data-nosnippet>121</a>            cpu.class_rqs.enqueue(class, task);
-<a href=#122 id=122 data-nosnippet>122</a>            cpu.need_resched = <span class="bool-val">true</span>;
-<a href=#123 id=123 data-nosnippet>123</a>        }
-<a href=#124 id=124 data-nosnippet>124</a>        sched_trace(<span class="macro">format_args!</span>(
-<a href=#125 id=125 data-nosnippet>125</a>            <span class="string">"enqueue task={} cpu={}"</span>,
-<a href=#126 id=126 data-nosnippet>126</a>            task_id.as_u64(),
-<a href=#127 id=127 data-nosnippet>127</a>            cpu_index
-<a href=#128 id=128 data-nosnippet>128</a>        ));
-<a href=#129 id=129 data-nosnippet>129</a>        <span class="kw">if </span>cpu_index != current_cpu_index() {
-<a href=#130 id=130 data-nosnippet>130</a>            send_resched_ipi_to_cpu(cpu_index);
-<a href=#131 id=131 data-nosnippet>131</a>        }
-<a href=#132 id=132 data-nosnippet>132</a>    }
-<a href=#133 id=133 data-nosnippet>133</a>
-<a href=#134 id=134 data-nosnippet>134</a>    <span class="kw">pub fn </span>clear_task_wake_deadline_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId) -&gt; bool {
-<a href=#135 id=135 data-nosnippet>135</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
-<a href=#136 id=136 data-nosnippet>136</a>            task.wake_deadline_ns.store(<span class="number">0</span>, Ordering::Relaxed);
-<a href=#137 id=137 data-nosnippet>137</a>            <span class="bool-val">true
-<a href=#138 id=138 data-nosnippet>138</a>        </span>} <span class="kw">else </span>{
-<a href=#139 id=139 data-nosnippet>139</a>            <span class="bool-val">false
-<a href=#140 id=140 data-nosnippet>140</a>        </span>}
-<a href=#141 id=141 data-nosnippet>141</a>    }
-<a href=#142 id=142 data-nosnippet>142</a>
-<a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">pub fn </span>set_task_wake_deadline_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId, deadline: u64) -&gt; bool {
-<a href=#144 id=144 data-nosnippet>144</a>        <span class="kw">if </span>deadline == <span class="number">0 </span>{
-<a href=#145 id=145 data-nosnippet>145</a>            <span class="kw">return </span><span class="self">self</span>.clear_task_wake_deadline_locked(id);
-<a href=#146 id=146 data-nosnippet>146</a>        }
-<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
-<a href=#148 id=148 data-nosnippet>148</a>            task.wake_deadline_ns.store(deadline, Ordering::Relaxed);
-<a href=#149 id=149 data-nosnippet>149</a>            <span class="bool-val">true
-<a href=#150 id=150 data-nosnippet>150</a>        </span>} <span class="kw">else </span>{
-<a href=#151 id=151 data-nosnippet>151</a>            <span class="bool-val">false
-<a href=#152 id=152 data-nosnippet>152</a>        </span>}
-<a href=#153 id=153 data-nosnippet>153</a>    }
-<a href=#154 id=154 data-nosnippet>154</a>
-<a href=#155 id=155 data-nosnippet>155</a>    <span class="kw">pub fn </span>wake_task_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId) -&gt; bool {
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="self">self</span>.clear_task_wake_deadline_locked(id);
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.blocked_tasks.remove(<span class="kw-2">&amp;</span>id) {
-<a href=#158 id=158 data-nosnippet>158</a>            <span class="comment">// SAFETY: scheduler lock held.
-<a href=#159 id=159 data-nosnippet>159</a>            </span><span class="kw">unsafe </span>{
-<a href=#160 id=160 data-nosnippet>160</a>                <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
-<a href=#161 id=161 data-nosnippet>161</a>            }
-<a href=#162 id=162 data-nosnippet>162</a>            <span class="kw">let </span>cpu_index = <span class="self">self</span>.task_cpu.get(<span class="kw-2">&amp;</span>id).copied().unwrap_or(<span class="number">0</span>);
-<a href=#163 id=163 data-nosnippet>163</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_index) {
-<a href=#164 id=164 data-nosnippet>164</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
-<a href=#165 id=165 data-nosnippet>165</a>                cpu.class_rqs.enqueue(class, task);
-<a href=#166 id=166 data-nosnippet>166</a>                cpu.need_resched = <span class="bool-val">true</span>;
-<a href=#167 id=167 data-nosnippet>167</a>            }
-<a href=#168 id=168 data-nosnippet>168</a>            <span class="kw">if </span>cpu_index != current_cpu_index() {
-<a href=#169 id=169 data-nosnippet>169</a>                send_resched_ipi_to_cpu(cpu_index);
+<a href=#45 id=45 data-nosnippet>45</a>    <span class="doccomment">/// Performs the member add operation.
+<a href=#46 id=46 data-nosnippet>46</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>member_add(
+<a href=#47 id=47 data-nosnippet>47</a>        map: <span class="kw-2">&amp;mut </span>BTreeMap&lt;Pid, alloc::vec::Vec&lt;TaskId&gt;&gt;,
+<a href=#48 id=48 data-nosnippet>48</a>        key: Pid,
+<a href=#49 id=49 data-nosnippet>49</a>        task_id: TaskId,
+<a href=#50 id=50 data-nosnippet>50</a>    ) {
+<a href=#51 id=51 data-nosnippet>51</a>        <span class="kw">let </span>members = map.entry(key).or_default();
+<a href=#52 id=52 data-nosnippet>52</a>        <span class="kw">if </span>!members.iter().any(|id| <span class="kw-2">*</span>id == task_id) {
+<a href=#53 id=53 data-nosnippet>53</a>            members.push(task_id);
+<a href=#54 id=54 data-nosnippet>54</a>        }
+<a href=#55 id=55 data-nosnippet>55</a>    }
+<a href=#56 id=56 data-nosnippet>56</a>
+<a href=#57 id=57 data-nosnippet>57</a>    <span class="doccomment">/// Performs the member remove operation.
+<a href=#58 id=58 data-nosnippet>58</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>member_remove(
+<a href=#59 id=59 data-nosnippet>59</a>        map: <span class="kw-2">&amp;mut </span>BTreeMap&lt;Pid, alloc::vec::Vec&lt;TaskId&gt;&gt;,
+<a href=#60 id=60 data-nosnippet>60</a>        key: Pid,
+<a href=#61 id=61 data-nosnippet>61</a>        task_id: TaskId,
+<a href=#62 id=62 data-nosnippet>62</a>    ) {
+<a href=#63 id=63 data-nosnippet>63</a>        <span class="kw">let </span><span class="kw-2">mut </span>clear = <span class="bool-val">false</span>;
+<a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(members) = map.get_mut(<span class="kw-2">&amp;</span>key) {
+<a href=#65 id=65 data-nosnippet>65</a>            members.retain(|id| <span class="kw-2">*</span>id != task_id);
+<a href=#66 id=66 data-nosnippet>66</a>            clear = members.is_empty();
+<a href=#67 id=67 data-nosnippet>67</a>        }
+<a href=#68 id=68 data-nosnippet>68</a>        <span class="kw">if </span>clear {
+<a href=#69 id=69 data-nosnippet>69</a>            map.remove(<span class="kw-2">&amp;</span>key);
+<a href=#70 id=70 data-nosnippet>70</a>        }
+<a href=#71 id=71 data-nosnippet>71</a>    }
+<a href=#72 id=72 data-nosnippet>72</a>
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Performs the register identity locked operation.
+<a href=#74 id=74 data-nosnippet>74</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>register_identity_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: <span class="kw-2">&amp;</span>Arc&lt;Task&gt;) {
+<a href=#75 id=75 data-nosnippet>75</a>        <span class="kw">let </span>task_id = task.id;
+<a href=#76 id=76 data-nosnippet>76</a>        <span class="kw">let </span>pid = task.pid;
+<a href=#77 id=77 data-nosnippet>77</a>        <span class="kw">let </span>pgid = task.pgid.load(Ordering::Relaxed);
+<a href=#78 id=78 data-nosnippet>78</a>        <span class="kw">let </span>sid = task.sid.load(Ordering::Relaxed);
+<a href=#79 id=79 data-nosnippet>79</a>        <span class="self">self</span>.pid_to_pgid.insert(pid, pgid);
+<a href=#80 id=80 data-nosnippet>80</a>        <span class="self">self</span>.pid_to_sid.insert(pid, sid);
+<a href=#81 id=81 data-nosnippet>81</a>        <span class="self">Self</span>::member_add(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pgid_members, pgid, task_id);
+<a href=#82 id=82 data-nosnippet>82</a>        <span class="self">Self</span>::member_add(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sid_members, sid, task_id);
+<a href=#83 id=83 data-nosnippet>83</a>    }
+<a href=#84 id=84 data-nosnippet>84</a>
+<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Performs the unregister identity locked operation.
+<a href=#86 id=86 data-nosnippet>86</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>unregister_identity_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task_id: TaskId, pid: Pid, tid: Tid) {
+<a href=#87 id=87 data-nosnippet>87</a>        <span class="self">self</span>.pid_to_task.remove(<span class="kw-2">&amp;</span>pid);
+<a href=#88 id=88 data-nosnippet>88</a>        <span class="self">self</span>.tid_to_task.remove(<span class="kw-2">&amp;</span>tid);
+<a href=#89 id=89 data-nosnippet>89</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(pgid) = <span class="self">self</span>.pid_to_pgid.remove(<span class="kw-2">&amp;</span>pid) {
+<a href=#90 id=90 data-nosnippet>90</a>            <span class="self">Self</span>::member_remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>.pgid_members, pgid, task_id);
+<a href=#91 id=91 data-nosnippet>91</a>        }
+<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(sid) = <span class="self">self</span>.pid_to_sid.remove(<span class="kw-2">&amp;</span>pid) {
+<a href=#93 id=93 data-nosnippet>93</a>            <span class="self">Self</span>::member_remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sid_members, sid, task_id);
+<a href=#94 id=94 data-nosnippet>94</a>        }
+<a href=#95 id=95 data-nosnippet>95</a>    }
+<a href=#96 id=96 data-nosnippet>96</a>
+<a href=#97 id=97 data-nosnippet>97</a>    <span class="doccomment">/// Add a task to the scheduler
+<a href=#98 id=98 data-nosnippet>98</a>    </span><span class="kw">pub fn </span>add_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;) {
+<a href=#99 id=99 data-nosnippet>99</a>        <span class="kw">let </span>cpu_index = <span class="self">self</span>.select_cpu_for_task();
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="self">self</span>.add_task_on_cpu(task, cpu_index);
+<a href=#101 id=101 data-nosnippet>101</a>    }
+<a href=#102 id=102 data-nosnippet>102</a>
+<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Performs the add task with parent operation.
+<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub fn </span>add_task_with_parent(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;, parent: TaskId) {
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="kw">let </span>child = task.id;
+<a href=#106 id=106 data-nosnippet>106</a>        <span class="kw">let </span>cpu_index = <span class="self">self</span>.select_cpu_for_task();
+<a href=#107 id=107 data-nosnippet>107</a>        <span class="self">self</span>.add_task_on_cpu(task, cpu_index);
+<a href=#108 id=108 data-nosnippet>108</a>        <span class="self">self</span>.parent_of.insert(child, parent);
+<a href=#109 id=109 data-nosnippet>109</a>        <span class="self">self</span>.children_of.entry(parent).or_default().push(child);
+<a href=#110 id=110 data-nosnippet>110</a>    }
+<a href=#111 id=111 data-nosnippet>111</a>
+<a href=#112 id=112 data-nosnippet>112</a>    <span class="doccomment">/// Performs the add task on cpu operation.
+<a href=#113 id=113 data-nosnippet>113</a>    </span><span class="kw">fn </span>add_task_on_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, task: Arc&lt;Task&gt;, cpu_index: usize) {
+<a href=#114 id=114 data-nosnippet>114</a>        <span class="kw">let </span>task_id = task.id;
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="comment">// SAFETY: We have exclusive access via the scheduler lock
+<a href=#116 id=116 data-nosnippet>116</a>        </span><span class="kw">unsafe </span>{
+<a href=#117 id=117 data-nosnippet>117</a>            <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
+<a href=#118 id=118 data-nosnippet>118</a>        }
+<a href=#119 id=119 data-nosnippet>119</a>
+<a href=#120 id=120 data-nosnippet>120</a>        <span class="self">self</span>.all_tasks.insert(task_id, task.clone());
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="self">self</span>.task_cpu.insert(task_id, cpu_index);
+<a href=#122 id=122 data-nosnippet>122</a>        <span class="self">self</span>.pid_to_task.insert(task.pid, task_id);
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="self">self</span>.tid_to_task.insert(task.tid, task_id);
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="self">self</span>.register_identity_locked(<span class="kw-2">&amp;</span>task);
+<a href=#125 id=125 data-nosnippet>125</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_index) {
+<a href=#126 id=126 data-nosnippet>126</a>            <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
+<a href=#127 id=127 data-nosnippet>127</a>            cpu.class_rqs.enqueue(class, task);
+<a href=#128 id=128 data-nosnippet>128</a>            cpu.need_resched = <span class="bool-val">true</span>;
+<a href=#129 id=129 data-nosnippet>129</a>        }
+<a href=#130 id=130 data-nosnippet>130</a>        sched_trace(<span class="macro">format_args!</span>(
+<a href=#131 id=131 data-nosnippet>131</a>            <span class="string">"enqueue task={} cpu={}"</span>,
+<a href=#132 id=132 data-nosnippet>132</a>            task_id.as_u64(),
+<a href=#133 id=133 data-nosnippet>133</a>            cpu_index
+<a href=#134 id=134 data-nosnippet>134</a>        ));
+<a href=#135 id=135 data-nosnippet>135</a>        <span class="kw">if </span>cpu_index != current_cpu_index() {
+<a href=#136 id=136 data-nosnippet>136</a>            send_resched_ipi_to_cpu(cpu_index);
+<a href=#137 id=137 data-nosnippet>137</a>        }
+<a href=#138 id=138 data-nosnippet>138</a>    }
+<a href=#139 id=139 data-nosnippet>139</a>
+<a href=#140 id=140 data-nosnippet>140</a>    <span class="doccomment">/// Performs the clear task wake deadline locked operation.
+<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="kw">pub fn </span>clear_task_wake_deadline_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId) -&gt; bool {
+<a href=#142 id=142 data-nosnippet>142</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
+<a href=#143 id=143 data-nosnippet>143</a>            task.wake_deadline_ns.store(<span class="number">0</span>, Ordering::Relaxed);
+<a href=#144 id=144 data-nosnippet>144</a>            <span class="bool-val">true
+<a href=#145 id=145 data-nosnippet>145</a>        </span>} <span class="kw">else </span>{
+<a href=#146 id=146 data-nosnippet>146</a>            <span class="bool-val">false
+<a href=#147 id=147 data-nosnippet>147</a>        </span>}
+<a href=#148 id=148 data-nosnippet>148</a>    }
+<a href=#149 id=149 data-nosnippet>149</a>
+<a href=#150 id=150 data-nosnippet>150</a>    <span class="doccomment">/// Sets task wake deadline locked.
+<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="kw">pub fn </span>set_task_wake_deadline_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId, deadline: u64) -&gt; bool {
+<a href=#152 id=152 data-nosnippet>152</a>        <span class="kw">if </span>deadline == <span class="number">0 </span>{
+<a href=#153 id=153 data-nosnippet>153</a>            <span class="kw">return </span><span class="self">self</span>.clear_task_wake_deadline_locked(id);
+<a href=#154 id=154 data-nosnippet>154</a>        }
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
+<a href=#156 id=156 data-nosnippet>156</a>            task.wake_deadline_ns.store(deadline, Ordering::Relaxed);
+<a href=#157 id=157 data-nosnippet>157</a>            <span class="bool-val">true
+<a href=#158 id=158 data-nosnippet>158</a>        </span>} <span class="kw">else </span>{
+<a href=#159 id=159 data-nosnippet>159</a>            <span class="bool-val">false
+<a href=#160 id=160 data-nosnippet>160</a>        </span>}
+<a href=#161 id=161 data-nosnippet>161</a>    }
+<a href=#162 id=162 data-nosnippet>162</a>
+<a href=#163 id=163 data-nosnippet>163</a>    <span class="doccomment">/// Performs the wake task locked operation.
+<a href=#164 id=164 data-nosnippet>164</a>    </span><span class="kw">pub fn </span>wake_task_locked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: TaskId) -&gt; bool {
+<a href=#165 id=165 data-nosnippet>165</a>        <span class="self">self</span>.clear_task_wake_deadline_locked(id);
+<a href=#166 id=166 data-nosnippet>166</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.blocked_tasks.remove(<span class="kw-2">&amp;</span>id) {
+<a href=#167 id=167 data-nosnippet>167</a>            <span class="comment">// SAFETY: scheduler lock held.
+<a href=#168 id=168 data-nosnippet>168</a>            </span><span class="kw">unsafe </span>{
+<a href=#169 id=169 data-nosnippet>169</a>                <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
 <a href=#170 id=170 data-nosnippet>170</a>            }
-<a href=#171 id=171 data-nosnippet>171</a>            <span class="bool-val">true
-<a href=#172 id=172 data-nosnippet>172</a>        </span>} <span class="kw">else if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
-<a href=#173 id=173 data-nosnippet>173</a>            task.wake_pending
-<a href=#174 id=174 data-nosnippet>174</a>                .store(<span class="bool-val">true</span>, core::sync::atomic::Ordering::Release);
-<a href=#175 id=175 data-nosnippet>175</a>            <span class="bool-val">true
-<a href=#176 id=176 data-nosnippet>176</a>        </span>} <span class="kw">else </span>{
-<a href=#177 id=177 data-nosnippet>177</a>            <span class="bool-val">false
-<a href=#178 id=178 data-nosnippet>178</a>        </span>}
-<a href=#179 id=179 data-nosnippet>179</a>    }
-<a href=#180 id=180 data-nosnippet>180</a>
-<a href=#181 id=181 data-nosnippet>181</a>    <span class="kw">pub fn </span>try_reap_child_locked(
-<a href=#182 id=182 data-nosnippet>182</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#183 id=183 data-nosnippet>183</a>        parent: TaskId,
-<a href=#184 id=184 data-nosnippet>184</a>        target: <span class="prelude-ty">Option</span>&lt;TaskId&gt;,
-<a href=#185 id=185 data-nosnippet>185</a>    ) -&gt; WaitChildResult {
-<a href=#186 id=186 data-nosnippet>186</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(children_view) = <span class="self">self</span>.children_of.get(<span class="kw-2">&amp;</span>parent) <span class="kw">else </span>{
-<a href=#187 id=187 data-nosnippet>187</a>            <span class="kw">return </span>WaitChildResult::NoChildren;
-<a href=#188 id=188 data-nosnippet>188</a>        };
+<a href=#171 id=171 data-nosnippet>171</a>            <span class="kw">let </span>cpu_index = <span class="self">self</span>.task_cpu.get(<span class="kw-2">&amp;</span>id).copied().unwrap_or(<span class="number">0</span>);
+<a href=#172 id=172 data-nosnippet>172</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_index) {
+<a href=#173 id=173 data-nosnippet>173</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
+<a href=#174 id=174 data-nosnippet>174</a>                cpu.class_rqs.enqueue(class, task);
+<a href=#175 id=175 data-nosnippet>175</a>                cpu.need_resched = <span class="bool-val">true</span>;
+<a href=#176 id=176 data-nosnippet>176</a>            }
+<a href=#177 id=177 data-nosnippet>177</a>            <span class="kw">if </span>cpu_index != current_cpu_index() {
+<a href=#178 id=178 data-nosnippet>178</a>                send_resched_ipi_to_cpu(cpu_index);
+<a href=#179 id=179 data-nosnippet>179</a>            }
+<a href=#180 id=180 data-nosnippet>180</a>            <span class="bool-val">true
+<a href=#181 id=181 data-nosnippet>181</a>        </span>} <span class="kw">else if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>id) {
+<a href=#182 id=182 data-nosnippet>182</a>            task.wake_pending
+<a href=#183 id=183 data-nosnippet>183</a>                .store(<span class="bool-val">true</span>, core::sync::atomic::Ordering::Release);
+<a href=#184 id=184 data-nosnippet>184</a>            <span class="bool-val">true
+<a href=#185 id=185 data-nosnippet>185</a>        </span>} <span class="kw">else </span>{
+<a href=#186 id=186 data-nosnippet>186</a>            <span class="bool-val">false
+<a href=#187 id=187 data-nosnippet>187</a>        </span>}
+<a href=#188 id=188 data-nosnippet>188</a>    }
 <a href=#189 id=189 data-nosnippet>189</a>
-<a href=#190 id=190 data-nosnippet>190</a>        <span class="kw">if </span>children_view.is_empty() {
-<a href=#191 id=191 data-nosnippet>191</a>            <span class="kw">return </span>WaitChildResult::NoChildren;
-<a href=#192 id=192 data-nosnippet>192</a>        }
-<a href=#193 id=193 data-nosnippet>193</a>
-<a href=#194 id=194 data-nosnippet>194</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(target_id) = target {
-<a href=#195 id=195 data-nosnippet>195</a>            <span class="kw">if </span>!children_view.iter().any(|<span class="kw-2">&amp;</span>id| id == target_id) {
-<a href=#196 id=196 data-nosnippet>196</a>                <span class="kw">return </span>WaitChildResult::NoChildren;
-<a href=#197 id=197 data-nosnippet>197</a>            }
-<a href=#198 id=198 data-nosnippet>198</a>        }
+<a href=#190 id=190 data-nosnippet>190</a>    <span class="doccomment">/// Attempts to reap child locked.
+<a href=#191 id=191 data-nosnippet>191</a>    </span><span class="kw">pub fn </span>try_reap_child_locked(
+<a href=#192 id=192 data-nosnippet>192</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#193 id=193 data-nosnippet>193</a>        parent: TaskId,
+<a href=#194 id=194 data-nosnippet>194</a>        target: <span class="prelude-ty">Option</span>&lt;TaskId&gt;,
+<a href=#195 id=195 data-nosnippet>195</a>    ) -&gt; WaitChildResult {
+<a href=#196 id=196 data-nosnippet>196</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(children_view) = <span class="self">self</span>.children_of.get(<span class="kw-2">&amp;</span>parent) <span class="kw">else </span>{
+<a href=#197 id=197 data-nosnippet>197</a>            <span class="kw">return </span>WaitChildResult::NoChildren;
+<a href=#198 id=198 data-nosnippet>198</a>        };
 <a href=#199 id=199 data-nosnippet>199</a>
-<a href=#200 id=200 data-nosnippet>200</a>        <span class="kw">let </span>zombie = children_view
-<a href=#201 id=201 data-nosnippet>201</a>            .iter()
-<a href=#202 id=202 data-nosnippet>202</a>            .copied()
-<a href=#203 id=203 data-nosnippet>203</a>            .find(|id| target.map_or(<span class="bool-val">true</span>, |t| t == <span class="kw-2">*</span>id) &amp;&amp; <span class="self">self</span>.zombies.contains_key(id));
-<a href=#204 id=204 data-nosnippet>204</a>
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(child) = zombie {
-<a href=#206 id=206 data-nosnippet>206</a>            <span class="kw">let </span>(status, child_pid) = <span class="self">self</span>.zombies.remove(<span class="kw-2">&amp;</span>child).unwrap_or((<span class="number">0</span>, <span class="number">0</span>));
-<a href=#207 id=207 data-nosnippet>207</a>            <span class="kw">let </span>child_tid = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>child).map(|task| task.tid);
-<a href=#208 id=208 data-nosnippet>208</a>            <span class="kw">if </span>child_pid != <span class="number">0 </span>{
-<a href=#209 id=209 data-nosnippet>209</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(tid) = child_tid {
-<a href=#210 id=210 data-nosnippet>210</a>                    <span class="self">self</span>.unregister_identity_locked(child, child_pid, tid);
-<a href=#211 id=211 data-nosnippet>211</a>                }
-<a href=#212 id=212 data-nosnippet>212</a>            }
-<a href=#213 id=213 data-nosnippet>213</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(children) = <span class="self">self</span>.children_of.get_mut(<span class="kw-2">&amp;</span>parent) {
-<a href=#214 id=214 data-nosnippet>214</a>                children.retain(|<span class="kw-2">&amp;</span>id| id != child);
-<a href=#215 id=215 data-nosnippet>215</a>                <span class="kw">if </span>children.is_empty() {
-<a href=#216 id=216 data-nosnippet>216</a>                    <span class="self">self</span>.children_of.remove(<span class="kw-2">&amp;</span>parent);
-<a href=#217 id=217 data-nosnippet>217</a>                }
-<a href=#218 id=218 data-nosnippet>218</a>            }
-<a href=#219 id=219 data-nosnippet>219</a>            <span class="self">self</span>.parent_of.remove(<span class="kw-2">&amp;</span>child);
-<a href=#220 id=220 data-nosnippet>220</a>            <span class="kw">return </span>WaitChildResult::Reaped {
-<a href=#221 id=221 data-nosnippet>221</a>                child,
-<a href=#222 id=222 data-nosnippet>222</a>                pid: child_pid,
-<a href=#223 id=223 data-nosnippet>223</a>                status,
-<a href=#224 id=224 data-nosnippet>224</a>            };
-<a href=#225 id=225 data-nosnippet>225</a>        }
-<a href=#226 id=226 data-nosnippet>226</a>
-<a href=#227 id=227 data-nosnippet>227</a>        WaitChildResult::StillRunning
-<a href=#228 id=228 data-nosnippet>228</a>    }
-<a href=#229 id=229 data-nosnippet>229</a>
-<a href=#230 id=230 data-nosnippet>230</a>    <span class="doccomment">/// Pick the next task to run on `cpu_index`.
-<a href=#231 id=231 data-nosnippet>231</a>    ///
-<a href=#232 id=232 data-nosnippet>232</a>    /// 1. Re-queues the current Running task (round-robin).
-<a href=#233 id=233 data-nosnippet>233</a>    ///    The **idle task is never re-queued** — it is always available
-<a href=#234 id=234 data-nosnippet>234</a>    ///    as the last-resort fallback.  Keeping it out of the ready queue
-<a href=#235 id=235 data-nosnippet>235</a>    ///    ensures the queue becomes truly empty when there is no real work,
-<a href=#236 id=236 data-nosnippet>236</a>    ///    which lets work-stealing kick in on other CPUs.
-<a href=#237 id=237 data-nosnippet>237</a>    /// 2. Pops from the local ready queue.
-<a href=#238 id=238 data-nosnippet>238</a>    /// 3. Falls back to **work-stealing** from the busiest other CPU.
-<a href=#239 id=239 data-nosnippet>239</a>    /// 4. Falls back to the per-CPU idle task.
-<a href=#240 id=240 data-nosnippet>240</a>    </span><span class="kw">pub fn </span>pick_next_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; Arc&lt;Task&gt; {
-<a href=#241 id=241 data-nosnippet>241</a>        <span class="comment">// Step 1: take current task and re-queue it if still alive.
-<a href=#242 id=242 data-nosnippet>242</a>        </span><span class="kw">let </span>current_task = <span class="self">self</span>.cpus[cpu_index].current_task.take();
-<a href=#243 id=243 data-nosnippet>243</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = current_task {
-<a href=#244 id=244 data-nosnippet>244</a>            <span class="comment">// SAFETY: scheduler lock held; we have exclusive access to state.
-<a href=#245 id=245 data-nosnippet>245</a>            </span><span class="kw">let </span>task_state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
-<a href=#246 id=246 data-nosnippet>246</a>            <span class="kw">if </span>task_state == TaskState::Running {
-<a href=#247 id=247 data-nosnippet>247</a>                <span class="kw">unsafe </span>{
-<a href=#248 id=248 data-nosnippet>248</a>                    <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
-<a href=#249 id=249 data-nosnippet>249</a>                }
-<a href=#250 id=250 data-nosnippet>250</a>                <span class="comment">// Never re-queue the per-CPU idle task.  It lives in
-<a href=#251 id=251 data-nosnippet>251</a>                // `cpus[cpu_index].idle_task` and is cloned as a fallback
-<a href=#252 id=252 data-nosnippet>252</a>                // below.  Putting it in the ready queue prevents it from
-<a href=#253 id=253 data-nosnippet>253</a>                // ever being empty, which breaks work-stealing.
-<a href=#254 id=254 data-nosnippet>254</a>                </span><span class="kw">if </span>!Arc::ptr_eq(<span class="kw-2">&amp;</span>task, <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[cpu_index].idle_task) {
-<a href=#255 id=255 data-nosnippet>255</a>                    <span class="comment">// DO NOT push to ready_queue yet!
-<a href=#256 id=256 data-nosnippet>256</a>                    // Another CPU could steal it before its context is saved.
-<a href=#257 id=257 data-nosnippet>257</a>                    </span><span class="self">self</span>.cpus[cpu_index].task_to_requeue = <span class="prelude-val">Some</span>(task);
-<a href=#258 id=258 data-nosnippet>258</a>                }
-<a href=#259 id=259 data-nosnippet>259</a>            } <span class="kw">else </span>{
-<a href=#260 id=260 data-nosnippet>260</a>                <span class="comment">// Task is Dead or Blocked. Prevent it from dropping right here
-<a href=#261 id=261 data-nosnippet>261</a>                // by deferring the drop to finish_switch().
-<a href=#262 id=262 data-nosnippet>262</a>                </span><span class="self">self</span>.cpus[cpu_index].task_to_drop = <span class="prelude-val">Some</span>(task);
-<a href=#263 id=263 data-nosnippet>263</a>            }
-<a href=#264 id=264 data-nosnippet>264</a>        }
-<a href=#265 id=265 data-nosnippet>265</a>
-<a href=#266 id=266 data-nosnippet>266</a>        <span class="comment">// Step 2: local queue, then work-steal, then idle.
-<a href=#267 id=267 data-nosnippet>267</a>        </span><span class="kw">let </span>next_task = <span class="kw">if let </span><span class="prelude-val">Some</span>(task) =
-<a href=#268 id=268 data-nosnippet>268</a>            <span class="self">self</span>.cpus[cpu_index].class_rqs.pick_next(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)
-<a href=#269 id=269 data-nosnippet>269</a>        {
-<a href=#270 id=270 data-nosnippet>270</a>            task
-<a href=#271 id=271 data-nosnippet>271</a>        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.steal_task(cpu_index, TICK_COUNT.load(Ordering::Relaxed)) {
-<a href=#272 id=272 data-nosnippet>272</a>            task
-<a href=#273 id=273 data-nosnippet>273</a>        } <span class="kw">else </span>{
-<a href=#274 id=274 data-nosnippet>274</a>            <span class="self">self</span>.cpus[cpu_index].idle_task.clone()
-<a href=#275 id=275 data-nosnippet>275</a>        };
-<a href=#276 id=276 data-nosnippet>276</a>
-<a href=#277 id=277 data-nosnippet>277</a>        <span class="comment">// SAFETY: scheduler lock held.
-<a href=#278 id=278 data-nosnippet>278</a>        </span><span class="kw">unsafe </span>{
-<a href=#279 id=279 data-nosnippet>279</a>            <span class="kw-2">*</span>next_task.state.get() = TaskState::Running;
-<a href=#280 id=280 data-nosnippet>280</a>        }
-<a href=#281 id=281 data-nosnippet>281</a>        <span class="self">self</span>.cpus[cpu_index].current_task = <span class="prelude-val">Some</span>(next_task.clone());
-<a href=#282 id=282 data-nosnippet>282</a>        <span class="comment">// Reset the runtime accounting for the new task
-<a href=#283 id=283 data-nosnippet>283</a>        </span><span class="self">self</span>.cpus[cpu_index].current_runtime = <span class="kw">crate</span>::process::sched::CurrentRuntime::new();
-<a href=#284 id=284 data-nosnippet>284</a>        sched_trace(<span class="macro">format_args!</span>(
-<a href=#285 id=285 data-nosnippet>285</a>            <span class="string">"cpu={} pick_next task={} policy={:?}"</span>,
-<a href=#286 id=286 data-nosnippet>286</a>            cpu_index,
-<a href=#287 id=287 data-nosnippet>287</a>            next_task.id.as_u64(),
-<a href=#288 id=288 data-nosnippet>288</a>            next_task.sched_policy()
-<a href=#289 id=289 data-nosnippet>289</a>        ));
-<a href=#290 id=290 data-nosnippet>290</a>        next_task
-<a href=#291 id=291 data-nosnippet>291</a>    }
-<a href=#292 id=292 data-nosnippet>292</a>
-<a href=#293 id=293 data-nosnippet>293</a>    <span class="doccomment">/// Try to steal one task from the most-loaded other CPU.
-<a href=#294 id=294 data-nosnippet>294</a>    ///
-<a href=#295 id=295 data-nosnippet>295</a>    /// We steal from the **back** of the source queue (the task added most
-<a href=#296 id=296 data-nosnippet>296</a>    /// recently — least likely to have warm cache data on that CPU).
-<a href=#297 id=297 data-nosnippet>297</a>    /// We only steal when the source has ≥ 2 tasks, so it keeps at least one.
-<a href=#298 id=298 data-nosnippet>298</a>    </span><span class="kw">pub fn </span>steal_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dst_cpu: usize, now_tick: u64) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;Task&gt;&gt; {
-<a href=#299 id=299 data-nosnippet>299</a>        <span class="kw">if </span>!cpu_is_valid(dst_cpu) || dst_cpu &gt;= <span class="self">self</span>.cpus.len() {
-<a href=#300 id=300 data-nosnippet>300</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#301 id=301 data-nosnippet>301</a>        }
-<a href=#302 id=302 data-nosnippet>302</a>        <span class="kw">let </span>last = LAST_STEAL_TICK[dst_cpu].load(Ordering::Relaxed);
-<a href=#303 id=303 data-nosnippet>303</a>        <span class="kw">if </span>now_tick.saturating_sub(last) &lt; STEAL_COOLDOWN_TICKS {
-<a href=#304 id=304 data-nosnippet>304</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#305 id=305 data-nosnippet>305</a>        }
-<a href=#306 id=306 data-nosnippet>306</a>
-<a href=#307 id=307 data-nosnippet>307</a>        <span class="kw">let </span>dst_load = {
-<a href=#308 id=308 data-nosnippet>308</a>            <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[dst_cpu];
-<a href=#309 id=309 data-nosnippet>309</a>            cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some())
-<a href=#310 id=310 data-nosnippet>310</a>        };
-<a href=#311 id=311 data-nosnippet>311</a>
-<a href=#312 id=312 data-nosnippet>312</a>        <span class="comment">// Find the busiest CPU that isn't ourselves.
-<a href=#313 id=313 data-nosnippet>313</a>        </span><span class="kw">let </span>(best_src, best_src_load) = (<span class="number">0</span>..<span class="self">self</span>.cpus.len())
-<a href=#314 id=314 data-nosnippet>314</a>            .filter(|<span class="kw-2">&amp;</span>i| i != dst_cpu)
-<a href=#315 id=315 data-nosnippet>315</a>            .map(|i| {
-<a href=#316 id=316 data-nosnippet>316</a>                <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[i];
-<a href=#317 id=317 data-nosnippet>317</a>                <span class="kw">let </span>load = cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some());
-<a href=#318 id=318 data-nosnippet>318</a>                (i, load)
-<a href=#319 id=319 data-nosnippet>319</a>            })
-<a href=#320 id=320 data-nosnippet>320</a>            .max_by_key(|(<span class="kw">_</span>, load)| <span class="kw-2">*</span>load)<span class="question-mark">?</span>;
+<a href=#200 id=200 data-nosnippet>200</a>        <span class="kw">if </span>children_view.is_empty() {
+<a href=#201 id=201 data-nosnippet>201</a>            <span class="kw">return </span>WaitChildResult::NoChildren;
+<a href=#202 id=202 data-nosnippet>202</a>        }
+<a href=#203 id=203 data-nosnippet>203</a>
+<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(target_id) = target {
+<a href=#205 id=205 data-nosnippet>205</a>            <span class="kw">if </span>!children_view.iter().any(|<span class="kw-2">&amp;</span>id| id == target_id) {
+<a href=#206 id=206 data-nosnippet>206</a>                <span class="kw">return </span>WaitChildResult::NoChildren;
+<a href=#207 id=207 data-nosnippet>207</a>            }
+<a href=#208 id=208 data-nosnippet>208</a>        }
+<a href=#209 id=209 data-nosnippet>209</a>
+<a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">let </span>zombie = children_view
+<a href=#211 id=211 data-nosnippet>211</a>            .iter()
+<a href=#212 id=212 data-nosnippet>212</a>            .copied()
+<a href=#213 id=213 data-nosnippet>213</a>            .find(|id| target.map_or(<span class="bool-val">true</span>, |t| t == <span class="kw-2">*</span>id) &amp;&amp; <span class="self">self</span>.zombies.contains_key(id));
+<a href=#214 id=214 data-nosnippet>214</a>
+<a href=#215 id=215 data-nosnippet>215</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(child) = zombie {
+<a href=#216 id=216 data-nosnippet>216</a>            <span class="kw">let </span>(status, child_pid) = <span class="self">self</span>.zombies.remove(<span class="kw-2">&amp;</span>child).unwrap_or((<span class="number">0</span>, <span class="number">0</span>));
+<a href=#217 id=217 data-nosnippet>217</a>            <span class="kw">let </span>child_tid = <span class="self">self</span>.all_tasks.get(<span class="kw-2">&amp;</span>child).map(|task| task.tid);
+<a href=#218 id=218 data-nosnippet>218</a>            <span class="kw">if </span>child_pid != <span class="number">0 </span>{
+<a href=#219 id=219 data-nosnippet>219</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(tid) = child_tid {
+<a href=#220 id=220 data-nosnippet>220</a>                    <span class="self">self</span>.unregister_identity_locked(child, child_pid, tid);
+<a href=#221 id=221 data-nosnippet>221</a>                }
+<a href=#222 id=222 data-nosnippet>222</a>            }
+<a href=#223 id=223 data-nosnippet>223</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(children) = <span class="self">self</span>.children_of.get_mut(<span class="kw-2">&amp;</span>parent) {
+<a href=#224 id=224 data-nosnippet>224</a>                children.retain(|<span class="kw-2">&amp;</span>id| id != child);
+<a href=#225 id=225 data-nosnippet>225</a>                <span class="kw">if </span>children.is_empty() {
+<a href=#226 id=226 data-nosnippet>226</a>                    <span class="self">self</span>.children_of.remove(<span class="kw-2">&amp;</span>parent);
+<a href=#227 id=227 data-nosnippet>227</a>                }
+<a href=#228 id=228 data-nosnippet>228</a>            }
+<a href=#229 id=229 data-nosnippet>229</a>            <span class="self">self</span>.parent_of.remove(<span class="kw-2">&amp;</span>child);
+<a href=#230 id=230 data-nosnippet>230</a>            <span class="kw">return </span>WaitChildResult::Reaped {
+<a href=#231 id=231 data-nosnippet>231</a>                child,
+<a href=#232 id=232 data-nosnippet>232</a>                pid: child_pid,
+<a href=#233 id=233 data-nosnippet>233</a>                status,
+<a href=#234 id=234 data-nosnippet>234</a>            };
+<a href=#235 id=235 data-nosnippet>235</a>        }
+<a href=#236 id=236 data-nosnippet>236</a>
+<a href=#237 id=237 data-nosnippet>237</a>        WaitChildResult::StillRunning
+<a href=#238 id=238 data-nosnippet>238</a>    }
+<a href=#239 id=239 data-nosnippet>239</a>
+<a href=#240 id=240 data-nosnippet>240</a>    <span class="doccomment">/// Pick the next task to run on `cpu_index`.
+<a href=#241 id=241 data-nosnippet>241</a>    ///
+<a href=#242 id=242 data-nosnippet>242</a>    /// 1. Re-queues the current Running task (round-robin).
+<a href=#243 id=243 data-nosnippet>243</a>    ///    The **idle task is never re-queued** — it is always available
+<a href=#244 id=244 data-nosnippet>244</a>    ///    as the last-resort fallback.  Keeping it out of the ready queue
+<a href=#245 id=245 data-nosnippet>245</a>    ///    ensures the queue becomes truly empty when there is no real work,
+<a href=#246 id=246 data-nosnippet>246</a>    ///    which lets work-stealing kick in on other CPUs.
+<a href=#247 id=247 data-nosnippet>247</a>    /// 2. Pops from the local ready queue.
+<a href=#248 id=248 data-nosnippet>248</a>    /// 3. Falls back to **work-stealing** from the busiest other CPU.
+<a href=#249 id=249 data-nosnippet>249</a>    /// 4. Falls back to the per-CPU idle task.
+<a href=#250 id=250 data-nosnippet>250</a>    </span><span class="kw">pub fn </span>pick_next_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; Arc&lt;Task&gt; {
+<a href=#251 id=251 data-nosnippet>251</a>        <span class="comment">// Step 1: take current task and re-queue it if still alive.
+<a href=#252 id=252 data-nosnippet>252</a>        </span><span class="kw">let </span>current_task = <span class="self">self</span>.cpus[cpu_index].current_task.take();
+<a href=#253 id=253 data-nosnippet>253</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = current_task {
+<a href=#254 id=254 data-nosnippet>254</a>            <span class="comment">// SAFETY: scheduler lock held; we have exclusive access to state.
+<a href=#255 id=255 data-nosnippet>255</a>            </span><span class="kw">let </span>task_state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
+<a href=#256 id=256 data-nosnippet>256</a>            <span class="kw">if </span>task_state == TaskState::Running {
+<a href=#257 id=257 data-nosnippet>257</a>                <span class="kw">unsafe </span>{
+<a href=#258 id=258 data-nosnippet>258</a>                    <span class="kw-2">*</span>task.state.get() = TaskState::Ready;
+<a href=#259 id=259 data-nosnippet>259</a>                }
+<a href=#260 id=260 data-nosnippet>260</a>                <span class="comment">// Never re-queue the per-CPU idle task.  It lives in
+<a href=#261 id=261 data-nosnippet>261</a>                // `cpus[cpu_index].idle_task` and is cloned as a fallback
+<a href=#262 id=262 data-nosnippet>262</a>                // below.  Putting it in the ready queue prevents it from
+<a href=#263 id=263 data-nosnippet>263</a>                // ever being empty, which breaks work-stealing.
+<a href=#264 id=264 data-nosnippet>264</a>                </span><span class="kw">if </span>!Arc::ptr_eq(<span class="kw-2">&amp;</span>task, <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[cpu_index].idle_task) {
+<a href=#265 id=265 data-nosnippet>265</a>                    <span class="comment">// DO NOT push to ready_queue yet!
+<a href=#266 id=266 data-nosnippet>266</a>                    // Another CPU could steal it before its context is saved.
+<a href=#267 id=267 data-nosnippet>267</a>                    </span><span class="self">self</span>.cpus[cpu_index].task_to_requeue = <span class="prelude-val">Some</span>(task);
+<a href=#268 id=268 data-nosnippet>268</a>                }
+<a href=#269 id=269 data-nosnippet>269</a>            } <span class="kw">else </span>{
+<a href=#270 id=270 data-nosnippet>270</a>                <span class="comment">// Task is Dead or Blocked. Prevent it from dropping right here
+<a href=#271 id=271 data-nosnippet>271</a>                // by deferring the drop to finish_switch().
+<a href=#272 id=272 data-nosnippet>272</a>                </span><span class="self">self</span>.cpus[cpu_index].task_to_drop = <span class="prelude-val">Some</span>(task);
+<a href=#273 id=273 data-nosnippet>273</a>            }
+<a href=#274 id=274 data-nosnippet>274</a>        }
+<a href=#275 id=275 data-nosnippet>275</a>
+<a href=#276 id=276 data-nosnippet>276</a>        <span class="comment">// Step 2: local queue, then work-steal, then idle.
+<a href=#277 id=277 data-nosnippet>277</a>        </span><span class="kw">let </span>next_task = <span class="kw">if let </span><span class="prelude-val">Some</span>(task) =
+<a href=#278 id=278 data-nosnippet>278</a>            <span class="self">self</span>.cpus[cpu_index].class_rqs.pick_next(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)
+<a href=#279 id=279 data-nosnippet>279</a>        {
+<a href=#280 id=280 data-nosnippet>280</a>            task
+<a href=#281 id=281 data-nosnippet>281</a>        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.steal_task(cpu_index, TICK_COUNT.load(Ordering::Relaxed)) {
+<a href=#282 id=282 data-nosnippet>282</a>            task
+<a href=#283 id=283 data-nosnippet>283</a>        } <span class="kw">else </span>{
+<a href=#284 id=284 data-nosnippet>284</a>            <span class="self">self</span>.cpus[cpu_index].idle_task.clone()
+<a href=#285 id=285 data-nosnippet>285</a>        };
+<a href=#286 id=286 data-nosnippet>286</a>
+<a href=#287 id=287 data-nosnippet>287</a>        <span class="comment">// SAFETY: scheduler lock held.
+<a href=#288 id=288 data-nosnippet>288</a>        </span><span class="kw">unsafe </span>{
+<a href=#289 id=289 data-nosnippet>289</a>            <span class="kw-2">*</span>next_task.state.get() = TaskState::Running;
+<a href=#290 id=290 data-nosnippet>290</a>        }
+<a href=#291 id=291 data-nosnippet>291</a>        <span class="self">self</span>.cpus[cpu_index].current_task = <span class="prelude-val">Some</span>(next_task.clone());
+<a href=#292 id=292 data-nosnippet>292</a>        <span class="comment">// Reset the runtime accounting for the new task
+<a href=#293 id=293 data-nosnippet>293</a>        </span><span class="self">self</span>.cpus[cpu_index].current_runtime = <span class="kw">crate</span>::process::sched::CurrentRuntime::new();
+<a href=#294 id=294 data-nosnippet>294</a>        sched_trace(<span class="macro">format_args!</span>(
+<a href=#295 id=295 data-nosnippet>295</a>            <span class="string">"cpu={} pick_next task={} policy={:?}"</span>,
+<a href=#296 id=296 data-nosnippet>296</a>            cpu_index,
+<a href=#297 id=297 data-nosnippet>297</a>            next_task.id.as_u64(),
+<a href=#298 id=298 data-nosnippet>298</a>            next_task.sched_policy()
+<a href=#299 id=299 data-nosnippet>299</a>        ));
+<a href=#300 id=300 data-nosnippet>300</a>        next_task
+<a href=#301 id=301 data-nosnippet>301</a>    }
+<a href=#302 id=302 data-nosnippet>302</a>
+<a href=#303 id=303 data-nosnippet>303</a>    <span class="doccomment">/// Try to steal one task from the most-loaded other CPU.
+<a href=#304 id=304 data-nosnippet>304</a>    ///
+<a href=#305 id=305 data-nosnippet>305</a>    /// We steal from the **back** of the source queue (the task added most
+<a href=#306 id=306 data-nosnippet>306</a>    /// recently — least likely to have warm cache data on that CPU).
+<a href=#307 id=307 data-nosnippet>307</a>    /// We only steal when the source has ≥ 2 tasks, so it keeps at least one.
+<a href=#308 id=308 data-nosnippet>308</a>    </span><span class="kw">pub fn </span>steal_task(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dst_cpu: usize, now_tick: u64) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;Task&gt;&gt; {
+<a href=#309 id=309 data-nosnippet>309</a>        <span class="kw">if </span>!cpu_is_valid(dst_cpu) || dst_cpu &gt;= <span class="self">self</span>.cpus.len() {
+<a href=#310 id=310 data-nosnippet>310</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#311 id=311 data-nosnippet>311</a>        }
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span>last = LAST_STEAL_TICK[dst_cpu].load(Ordering::Relaxed);
+<a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">if </span>now_tick.saturating_sub(last) &lt; STEAL_COOLDOWN_TICKS {
+<a href=#314 id=314 data-nosnippet>314</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#315 id=315 data-nosnippet>315</a>        }
+<a href=#316 id=316 data-nosnippet>316</a>
+<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span>dst_load = {
+<a href=#318 id=318 data-nosnippet>318</a>            <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[dst_cpu];
+<a href=#319 id=319 data-nosnippet>319</a>            cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some())
+<a href=#320 id=320 data-nosnippet>320</a>        };
 <a href=#321 id=321 data-nosnippet>321</a>
-<a href=#322 id=322 data-nosnippet>322</a>        <span class="kw">if </span>best_src_load &lt; dst_load.saturating_add(STEAL_IMBALANCE_MIN) {
-<a href=#323 id=323 data-nosnippet>323</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#324 id=324 data-nosnippet>324</a>        }
-<a href=#325 id=325 data-nosnippet>325</a>
-<a href=#326 id=326 data-nosnippet>326</a>        <span class="comment">// Only steal if source will still have work left.
-<a href=#327 id=327 data-nosnippet>327</a>        </span><span class="kw">if </span><span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() &lt; <span class="number">2 </span>{
-<a href=#328 id=328 data-nosnippet>328</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#329 id=329 data-nosnippet>329</a>        }
-<a href=#330 id=330 data-nosnippet>330</a>
-<a href=#331 id=331 data-nosnippet>331</a>        <span class="kw">let </span>task = <span class="self">self</span>.cpus[best_src]
-<a href=#332 id=332 data-nosnippet>332</a>            .class_rqs
-<a href=#333 id=333 data-nosnippet>333</a>            .steal_candidate(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)<span class="question-mark">?</span>;
-<a href=#334 id=334 data-nosnippet>334</a>        <span class="comment">// Update the task-&gt;CPU mapping so wake/resume route correctly.
-<a href=#335 id=335 data-nosnippet>335</a>        </span><span class="self">self</span>.task_cpu.insert(task.id, dst_cpu);
-<a href=#336 id=336 data-nosnippet>336</a>        <span class="macro">log::trace!</span>(
-<a href=#337 id=337 data-nosnippet>337</a>            <span class="string">"WS: CPU {} stole task {:?} from CPU {} (src had {} tasks)"</span>,
-<a href=#338 id=338 data-nosnippet>338</a>            dst_cpu,
-<a href=#339 id=339 data-nosnippet>339</a>            task.id,
-<a href=#340 id=340 data-nosnippet>340</a>            best_src,
-<a href=#341 id=341 data-nosnippet>341</a>            <span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() + <span class="number">1
-<a href=#342 id=342 data-nosnippet>342</a>        </span>);
-<a href=#343 id=343 data-nosnippet>343</a>        sched_trace(<span class="macro">format_args!</span>(
-<a href=#344 id=344 data-nosnippet>344</a>            <span class="string">"work-steal dst_cpu={} src_cpu={} task={}"</span>,
-<a href=#345 id=345 data-nosnippet>345</a>            dst_cpu,
-<a href=#346 id=346 data-nosnippet>346</a>            best_src,
-<a href=#347 id=347 data-nosnippet>347</a>            task.id.as_u64()
-<a href=#348 id=348 data-nosnippet>348</a>        ));
-<a href=#349 id=349 data-nosnippet>349</a>        <span class="kw">if </span>cpu_is_valid(dst_cpu) {
-<a href=#350 id=350 data-nosnippet>350</a>            CPU_STEAL_IN_COUNT[dst_cpu].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#351 id=351 data-nosnippet>351</a>        }
-<a href=#352 id=352 data-nosnippet>352</a>        <span class="kw">if </span>cpu_is_valid(best_src) {
-<a href=#353 id=353 data-nosnippet>353</a>            CPU_STEAL_OUT_COUNT[best_src].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#354 id=354 data-nosnippet>354</a>        }
-<a href=#355 id=355 data-nosnippet>355</a>        LAST_STEAL_TICK[dst_cpu].store(now_tick, Ordering::Relaxed);
-<a href=#356 id=356 data-nosnippet>356</a>        <span class="prelude-val">Some</span>(task)
-<a href=#357 id=357 data-nosnippet>357</a>    }
-<a href=#358 id=358 data-nosnippet>358</a>
-<a href=#359 id=359 data-nosnippet>359</a>    <span class="doccomment">/// Prepare a context switch: pick next task, update TSS and CR3,
-<a href=#360 id=360 data-nosnippet>360</a>    /// return raw pointers for `switch_context()`.
-<a href=#361 id=361 data-nosnippet>361</a>    ///
-<a href=#362 id=362 data-nosnippet>362</a>    /// Returns `None` if there's nothing to switch to (same task selected,
-<a href=#363 id=363 data-nosnippet>363</a>    /// or no current task).
-<a href=#364 id=364 data-nosnippet>364</a>    </span><span class="kw">pub fn </span>yield_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; <span class="prelude-ty">Option</span>&lt;SwitchTarget&gt; {
-<a href=#365 id=365 data-nosnippet>365</a>        <span class="kw">if </span>cpu_index &gt;= <span class="self">self</span>.cpus.len() {
-<a href=#366 id=366 data-nosnippet>366</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#367 id=367 data-nosnippet>367</a>        }
-<a href=#368 id=368 data-nosnippet>368</a>        <span class="comment">// Must have a current task to yield from
-<a href=#369 id=369 data-nosnippet>369</a>        </span><span class="kw">let </span>current = <span class="self">self</span>.cpus[cpu_index].current_task.as_ref()<span class="question-mark">?</span>.clone();
-<a href=#370 id=370 data-nosnippet>370</a>
-<a href=#371 id=371 data-nosnippet>371</a>        <span class="comment">// Pick the next task
-<a href=#372 id=372 data-nosnippet>372</a>        </span><span class="kw">let </span>next = <span class="self">self</span>.pick_next_task(cpu_index);
-<a href=#373 id=373 data-nosnippet>373</a>
-<a href=#374 id=374 data-nosnippet>374</a>        <span class="comment">// Don't switch to ourselves
-<a href=#375 id=375 data-nosnippet>375</a>        </span><span class="kw">if </span>Arc::ptr_eq(<span class="kw-2">&amp;</span>current, <span class="kw-2">&amp;</span>next) {
+<a href=#322 id=322 data-nosnippet>322</a>        <span class="comment">// Find the busiest CPU that isn't ourselves.
+<a href=#323 id=323 data-nosnippet>323</a>        </span><span class="kw">let </span>(best_src, best_src_load) = (<span class="number">0</span>..<span class="self">self</span>.cpus.len())
+<a href=#324 id=324 data-nosnippet>324</a>            .filter(|<span class="kw-2">&amp;</span>i| i != dst_cpu)
+<a href=#325 id=325 data-nosnippet>325</a>            .map(|i| {
+<a href=#326 id=326 data-nosnippet>326</a>                <span class="kw">let </span>cpu = <span class="kw-2">&amp;</span><span class="self">self</span>.cpus[i];
+<a href=#327 id=327 data-nosnippet>327</a>                <span class="kw">let </span>load = cpu.class_rqs.runnable_len() + usize::from(cpu.current_task.is_some());
+<a href=#328 id=328 data-nosnippet>328</a>                (i, load)
+<a href=#329 id=329 data-nosnippet>329</a>            })
+<a href=#330 id=330 data-nosnippet>330</a>            .max_by_key(|(<span class="kw">_</span>, load)| <span class="kw-2">*</span>load)<span class="question-mark">?</span>;
+<a href=#331 id=331 data-nosnippet>331</a>
+<a href=#332 id=332 data-nosnippet>332</a>        <span class="kw">if </span>best_src_load &lt; dst_load.saturating_add(STEAL_IMBALANCE_MIN) {
+<a href=#333 id=333 data-nosnippet>333</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#334 id=334 data-nosnippet>334</a>        }
+<a href=#335 id=335 data-nosnippet>335</a>
+<a href=#336 id=336 data-nosnippet>336</a>        <span class="comment">// Only steal if source will still have work left.
+<a href=#337 id=337 data-nosnippet>337</a>        </span><span class="kw">if </span><span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() &lt; <span class="number">2 </span>{
+<a href=#338 id=338 data-nosnippet>338</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#339 id=339 data-nosnippet>339</a>        }
+<a href=#340 id=340 data-nosnippet>340</a>
+<a href=#341 id=341 data-nosnippet>341</a>        <span class="kw">let </span>task = <span class="self">self</span>.cpus[best_src]
+<a href=#342 id=342 data-nosnippet>342</a>            .class_rqs
+<a href=#343 id=343 data-nosnippet>343</a>            .steal_candidate(<span class="kw-2">&amp;</span><span class="self">self</span>.class_table)<span class="question-mark">?</span>;
+<a href=#344 id=344 data-nosnippet>344</a>        <span class="comment">// Update the task-&gt;CPU mapping so wake/resume route correctly.
+<a href=#345 id=345 data-nosnippet>345</a>        </span><span class="self">self</span>.task_cpu.insert(task.id, dst_cpu);
+<a href=#346 id=346 data-nosnippet>346</a>        <span class="macro">log::trace!</span>(
+<a href=#347 id=347 data-nosnippet>347</a>            <span class="string">"WS: CPU {} stole task {:?} from CPU {} (src had {} tasks)"</span>,
+<a href=#348 id=348 data-nosnippet>348</a>            dst_cpu,
+<a href=#349 id=349 data-nosnippet>349</a>            task.id,
+<a href=#350 id=350 data-nosnippet>350</a>            best_src,
+<a href=#351 id=351 data-nosnippet>351</a>            <span class="self">self</span>.cpus[best_src].class_rqs.runnable_len() + <span class="number">1
+<a href=#352 id=352 data-nosnippet>352</a>        </span>);
+<a href=#353 id=353 data-nosnippet>353</a>        sched_trace(<span class="macro">format_args!</span>(
+<a href=#354 id=354 data-nosnippet>354</a>            <span class="string">"work-steal dst_cpu={} src_cpu={} task={}"</span>,
+<a href=#355 id=355 data-nosnippet>355</a>            dst_cpu,
+<a href=#356 id=356 data-nosnippet>356</a>            best_src,
+<a href=#357 id=357 data-nosnippet>357</a>            task.id.as_u64()
+<a href=#358 id=358 data-nosnippet>358</a>        ));
+<a href=#359 id=359 data-nosnippet>359</a>        <span class="kw">if </span>cpu_is_valid(dst_cpu) {
+<a href=#360 id=360 data-nosnippet>360</a>            CPU_STEAL_IN_COUNT[dst_cpu].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#361 id=361 data-nosnippet>361</a>        }
+<a href=#362 id=362 data-nosnippet>362</a>        <span class="kw">if </span>cpu_is_valid(best_src) {
+<a href=#363 id=363 data-nosnippet>363</a>            CPU_STEAL_OUT_COUNT[best_src].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#364 id=364 data-nosnippet>364</a>        }
+<a href=#365 id=365 data-nosnippet>365</a>        LAST_STEAL_TICK[dst_cpu].store(now_tick, Ordering::Relaxed);
+<a href=#366 id=366 data-nosnippet>366</a>        <span class="prelude-val">Some</span>(task)
+<a href=#367 id=367 data-nosnippet>367</a>    }
+<a href=#368 id=368 data-nosnippet>368</a>
+<a href=#369 id=369 data-nosnippet>369</a>    <span class="doccomment">/// Prepare a context switch: pick next task, update TSS and CR3,
+<a href=#370 id=370 data-nosnippet>370</a>    /// return raw pointers for `switch_context()`.
+<a href=#371 id=371 data-nosnippet>371</a>    ///
+<a href=#372 id=372 data-nosnippet>372</a>    /// Returns `None` if there's nothing to switch to (same task selected,
+<a href=#373 id=373 data-nosnippet>373</a>    /// or no current task).
+<a href=#374 id=374 data-nosnippet>374</a>    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>yield_cpu(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cpu_index: usize) -&gt; <span class="prelude-ty">Option</span>&lt;SwitchTarget&gt; {
+<a href=#375 id=375 data-nosnippet>375</a>        <span class="kw">if </span>cpu_index &gt;= <span class="self">self</span>.cpus.len() {
 <a href=#376 id=376 data-nosnippet>376</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
 <a href=#377 id=377 data-nosnippet>377</a>        }
-<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw">if </span>cpu_is_valid(cpu_index) {
-<a href=#379 id=379 data-nosnippet>379</a>            CPU_SWITCH_COUNT[cpu_index].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#380 id=380 data-nosnippet>380</a>        }
-<a href=#381 id=381 data-nosnippet>381</a>
-<a href=#382 id=382 data-nosnippet>382</a>        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = validate_task_context(<span class="kw-2">&amp;</span>next) {
-<a href=#383 id=383 data-nosnippet>383</a>            <span class="macro">panic!</span>(
-<a href=#384 id=384 data-nosnippet>384</a>                <span class="string">"scheduler: refusing to switch to invalid task '{}' (id={:?}): {}"</span>,
-<a href=#385 id=385 data-nosnippet>385</a>                next.name, next.id, e
-<a href=#386 id=386 data-nosnippet>386</a>            );
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="comment">// Must have a current task to yield from
+<a href=#379 id=379 data-nosnippet>379</a>        </span><span class="kw">let </span>current = <span class="self">self</span>.cpus[cpu_index].current_task.as_ref()<span class="question-mark">?</span>.clone();
+<a href=#380 id=380 data-nosnippet>380</a>
+<a href=#381 id=381 data-nosnippet>381</a>        <span class="comment">// Pick the next task
+<a href=#382 id=382 data-nosnippet>382</a>        </span><span class="kw">let </span>next = <span class="self">self</span>.pick_next_task(cpu_index);
+<a href=#383 id=383 data-nosnippet>383</a>
+<a href=#384 id=384 data-nosnippet>384</a>        <span class="comment">// Don't switch to ourselves
+<a href=#385 id=385 data-nosnippet>385</a>        </span><span class="kw">if </span>Arc::ptr_eq(<span class="kw-2">&amp;</span>current, <span class="kw-2">&amp;</span>next) {
+<a href=#386 id=386 data-nosnippet>386</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
 <a href=#387 id=387 data-nosnippet>387</a>        }
-<a href=#388 id=388 data-nosnippet>388</a>
-<a href=#389 id=389 data-nosnippet>389</a>        <span class="comment">// Update TSS.rsp0 for the new task (needed for Ring 3 -&gt; Ring 0 transitions)
-<a href=#390 id=390 data-nosnippet>390</a>        </span><span class="kw">let </span>stack_top = next.kernel_stack.virt_base.as_u64() + next.kernel_stack.size <span class="kw">as </span>u64;
-<a href=#391 id=391 data-nosnippet>391</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack(x86_64::VirtAddr::new(stack_top));
-<a href=#392 id=392 data-nosnippet>392</a>
-<a href=#393 id=393 data-nosnippet>393</a>        <span class="comment">// Update SYSCALL kernel RSP for the new task
-<a href=#394 id=394 data-nosnippet>394</a>        </span><span class="kw">crate</span>::arch::x86_64::syscall::set_kernel_rsp(stack_top);
-<a href=#395 id=395 data-nosnippet>395</a>
-<a href=#396 id=396 data-nosnippet>396</a>        <span class="comment">// Switch CR3 if the new task has a different address space
-<a href=#397 id=397 data-nosnippet>397</a>        // SAFETY: The new task's address space has a valid PML4 with the kernel half mapped.
-<a href=#398 id=398 data-nosnippet>398</a>        </span><span class="kw">unsafe </span>{
-<a href=#399 id=399 data-nosnippet>399</a>            (<span class="kw-2">*</span>next.process.address_space.get()).switch_to();
-<a href=#400 id=400 data-nosnippet>400</a>        }
-<a href=#401 id=401 data-nosnippet>401</a>
-<a href=#402 id=402 data-nosnippet>402</a>        <span class="comment">// Return raw pointers for switch_context
-<a href=#403 id=403 data-nosnippet>403</a>        </span><span class="prelude-val">Some</span>(SwitchTarget {
-<a href=#404 id=404 data-nosnippet>404</a>            old_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw </span><span class="kw-2">mut </span>(<span class="kw-2">*</span>current.context.get()).saved_rsp },
-<a href=#405 id=405 data-nosnippet>405</a>            new_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw const </span>(<span class="kw-2">*</span>next.context.get()).saved_rsp },
-<a href=#406 id=406 data-nosnippet>406</a>            old_fpu_ptr: current.fpu_state.get(),
-<a href=#407 id=407 data-nosnippet>407</a>            new_fpu_ptr: next.fpu_state.get(),
-<a href=#408 id=408 data-nosnippet>408</a>        })
-<a href=#409 id=409 data-nosnippet>409</a>    }
-<a href=#410 id=410 data-nosnippet>410</a>
-<a href=#411 id=411 data-nosnippet>411</a>    <span class="kw">fn </span>select_cpu_for_task(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-<a href=#412 id=412 data-nosnippet>412</a>        <span class="kw">let </span><span class="kw-2">mut </span>best = <span class="number">0usize</span>;
-<a href=#413 id=413 data-nosnippet>413</a>        <span class="kw">let </span><span class="kw-2">mut </span>best_load = usize::MAX;
-<a href=#414 id=414 data-nosnippet>414</a>        <span class="kw">for </span>(idx, cpu) <span class="kw">in </span><span class="self">self</span>.cpus.iter().enumerate() {
-<a href=#415 id=415 data-nosnippet>415</a>            <span class="kw">let </span><span class="kw-2">mut </span>load = cpu.class_rqs.runnable_len();
-<a href=#416 id=416 data-nosnippet>416</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = cpu.current_task.as_ref() {
-<a href=#417 id=417 data-nosnippet>417</a>                <span class="kw">if </span><span class="self">self</span>.class_table.class_for_task(current)
-<a href=#418 id=418 data-nosnippet>418</a>                    != <span class="kw">crate</span>::process::sched::SchedClassId::Idle
-<a href=#419 id=419 data-nosnippet>419</a>                {
-<a href=#420 id=420 data-nosnippet>420</a>                    load += <span class="number">1</span>;
-<a href=#421 id=421 data-nosnippet>421</a>                }
-<a href=#422 id=422 data-nosnippet>422</a>            }
-<a href=#423 id=423 data-nosnippet>423</a>            <span class="kw">if </span>load &lt; best_load {
-<a href=#424 id=424 data-nosnippet>424</a>                best = idx;
-<a href=#425 id=425 data-nosnippet>425</a>                best_load = load;
-<a href=#426 id=426 data-nosnippet>426</a>            }
-<a href=#427 id=427 data-nosnippet>427</a>        }
-<a href=#428 id=428 data-nosnippet>428</a>        best
-<a href=#429 id=429 data-nosnippet>429</a>    }
-<a href=#430 id=430 data-nosnippet>430</a>
-<a href=#431 id=431 data-nosnippet>431</a>    <span class="kw">pub fn </span>migrate_ready_tasks_for_new_class_table(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#432 id=432 data-nosnippet>432</a>        <span class="kw">let </span><span class="kw-2">mut </span>ready: Vec&lt;(TaskId, Arc&lt;Task&gt;, usize)&gt; = Vec::new();
-<a href=#433 id=433 data-nosnippet>433</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span><span class="self">self</span>.all_tasks.iter() {
-<a href=#434 id=434 data-nosnippet>434</a>            <span class="comment">// SAFETY: scheduler lock is held by caller; task state is synchronized by scheduler.
-<a href=#435 id=435 data-nosnippet>435</a>            </span><span class="kw">let </span>state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
-<a href=#436 id=436 data-nosnippet>436</a>            <span class="kw">if </span>state != TaskState::Ready {
-<a href=#437 id=437 data-nosnippet>437</a>                <span class="kw">continue</span>;
-<a href=#438 id=438 data-nosnippet>438</a>            }
-<a href=#439 id=439 data-nosnippet>439</a>            <span class="kw">let </span>cpu = <span class="self">self</span>.task_cpu.get(id).copied().unwrap_or(<span class="number">0</span>);
-<a href=#440 id=440 data-nosnippet>440</a>            ready.push((<span class="kw-2">*</span>id, task.clone(), cpu));
-<a href=#441 id=441 data-nosnippet>441</a>        }
-<a href=#442 id=442 data-nosnippet>442</a>
-<a href=#443 id=443 data-nosnippet>443</a>        <span class="kw">for </span>(id, task, cpu_idx) <span class="kw">in </span>ready {
-<a href=#444 id=444 data-nosnippet>444</a>            <span class="kw">let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_idx) <span class="kw">else </span>{
-<a href=#445 id=445 data-nosnippet>445</a>                <span class="kw">continue</span>;
-<a href=#446 id=446 data-nosnippet>446</a>            };
-<a href=#447 id=447 data-nosnippet>447</a>            <span class="kw">if </span>cpu.class_rqs.remove(id) {
-<a href=#448 id=448 data-nosnippet>448</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
-<a href=#449 id=449 data-nosnippet>449</a>                cpu.class_rqs.enqueue(class, task);
-<a href=#450 id=450 data-nosnippet>450</a>                cpu.need_resched = <span class="bool-val">true</span>;
-<a href=#451 id=451 data-nosnippet>451</a>            }
-<a href=#452 id=452 data-nosnippet>452</a>        }
-<a href=#453 id=453 data-nosnippet>453</a>    }
-<a href=#454 id=454 data-nosnippet>454</a>}
+<a href=#388 id=388 data-nosnippet>388</a>        <span class="kw">if </span>cpu_is_valid(cpu_index) {
+<a href=#389 id=389 data-nosnippet>389</a>            CPU_SWITCH_COUNT[cpu_index].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#390 id=390 data-nosnippet>390</a>        }
+<a href=#391 id=391 data-nosnippet>391</a>
+<a href=#392 id=392 data-nosnippet>392</a>        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = validate_task_context(<span class="kw-2">&amp;</span>next) {
+<a href=#393 id=393 data-nosnippet>393</a>            <span class="macro">panic!</span>(
+<a href=#394 id=394 data-nosnippet>394</a>                <span class="string">"scheduler: refusing to switch to invalid task '{}' (id={:?}): {}"</span>,
+<a href=#395 id=395 data-nosnippet>395</a>                next.name, next.id, e
+<a href=#396 id=396 data-nosnippet>396</a>            );
+<a href=#397 id=397 data-nosnippet>397</a>        }
+<a href=#398 id=398 data-nosnippet>398</a>
+<a href=#399 id=399 data-nosnippet>399</a>        <span class="comment">// Update TSS.rsp0 for the new task (needed for Ring 3 -&gt; Ring 0 transitions)
+<a href=#400 id=400 data-nosnippet>400</a>        </span><span class="kw">let </span>stack_top = next.kernel_stack.virt_base.as_u64() + next.kernel_stack.size <span class="kw">as </span>u64;
+<a href=#401 id=401 data-nosnippet>401</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack(x86_64::VirtAddr::new(stack_top));
+<a href=#402 id=402 data-nosnippet>402</a>
+<a href=#403 id=403 data-nosnippet>403</a>        <span class="comment">// Update SYSCALL kernel RSP for the new task
+<a href=#404 id=404 data-nosnippet>404</a>        </span><span class="kw">crate</span>::arch::x86_64::syscall::set_kernel_rsp(stack_top);
+<a href=#405 id=405 data-nosnippet>405</a>
+<a href=#406 id=406 data-nosnippet>406</a>        <span class="comment">// Switch CR3 if the new task has a different address space
+<a href=#407 id=407 data-nosnippet>407</a>        // SAFETY: The new task's address space has a valid PML4 with the kernel half mapped.
+<a href=#408 id=408 data-nosnippet>408</a>        </span><span class="kw">unsafe </span>{
+<a href=#409 id=409 data-nosnippet>409</a>            (<span class="kw-2">*</span>next.process.address_space.get()).switch_to();
+<a href=#410 id=410 data-nosnippet>410</a>        }
+<a href=#411 id=411 data-nosnippet>411</a>
+<a href=#412 id=412 data-nosnippet>412</a>        <span class="prelude-val">Some</span>(SwitchTarget {
+<a href=#413 id=413 data-nosnippet>413</a>            old_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw </span><span class="kw-2">mut </span>(<span class="kw-2">*</span>current.context.get()).saved_rsp },
+<a href=#414 id=414 data-nosnippet>414</a>            new_rsp_ptr: <span class="kw">unsafe </span>{ <span class="kw-2">&amp;</span><span class="kw">raw const </span>(<span class="kw-2">*</span>next.context.get()).saved_rsp },
+<a href=#415 id=415 data-nosnippet>415</a>            old_fpu_ptr: current.fpu_state.get() <span class="kw">as </span><span class="kw-2">*mut </span>u8,
+<a href=#416 id=416 data-nosnippet>416</a>            new_fpu_ptr: next.fpu_state.get() <span class="kw">as </span><span class="kw-2">*const </span>u8,
+<a href=#417 id=417 data-nosnippet>417</a>            new_xcr0: next.xcr0_mask.load(core::sync::atomic::Ordering::Relaxed),
+<a href=#418 id=418 data-nosnippet>418</a>        })
+<a href=#419 id=419 data-nosnippet>419</a>    }
+<a href=#420 id=420 data-nosnippet>420</a>
+<a href=#421 id=421 data-nosnippet>421</a>    <span class="doccomment">/// Performs the select cpu for task operation.
+<a href=#422 id=422 data-nosnippet>422</a>    </span><span class="kw">fn </span>select_cpu_for_task(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+<a href=#423 id=423 data-nosnippet>423</a>        <span class="kw">let </span><span class="kw-2">mut </span>best = <span class="number">0usize</span>;
+<a href=#424 id=424 data-nosnippet>424</a>        <span class="kw">let </span><span class="kw-2">mut </span>best_load = usize::MAX;
+<a href=#425 id=425 data-nosnippet>425</a>        <span class="kw">for </span>(idx, cpu) <span class="kw">in </span><span class="self">self</span>.cpus.iter().enumerate() {
+<a href=#426 id=426 data-nosnippet>426</a>            <span class="kw">let </span><span class="kw-2">mut </span>load = cpu.class_rqs.runnable_len();
+<a href=#427 id=427 data-nosnippet>427</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = cpu.current_task.as_ref() {
+<a href=#428 id=428 data-nosnippet>428</a>                <span class="kw">if </span><span class="self">self</span>.class_table.class_for_task(current)
+<a href=#429 id=429 data-nosnippet>429</a>                    != <span class="kw">crate</span>::process::sched::SchedClassId::Idle
+<a href=#430 id=430 data-nosnippet>430</a>                {
+<a href=#431 id=431 data-nosnippet>431</a>                    load += <span class="number">1</span>;
+<a href=#432 id=432 data-nosnippet>432</a>                }
+<a href=#433 id=433 data-nosnippet>433</a>            }
+<a href=#434 id=434 data-nosnippet>434</a>            <span class="kw">if </span>load &lt; best_load {
+<a href=#435 id=435 data-nosnippet>435</a>                best = idx;
+<a href=#436 id=436 data-nosnippet>436</a>                best_load = load;
+<a href=#437 id=437 data-nosnippet>437</a>            }
+<a href=#438 id=438 data-nosnippet>438</a>        }
+<a href=#439 id=439 data-nosnippet>439</a>        best
+<a href=#440 id=440 data-nosnippet>440</a>    }
+<a href=#441 id=441 data-nosnippet>441</a>
+<a href=#442 id=442 data-nosnippet>442</a>    <span class="doccomment">/// Performs the migrate ready tasks for new class table operation.
+<a href=#443 id=443 data-nosnippet>443</a>    </span><span class="kw">pub fn </span>migrate_ready_tasks_for_new_class_table(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#444 id=444 data-nosnippet>444</a>        <span class="kw">let </span><span class="kw-2">mut </span>ready: Vec&lt;(TaskId, Arc&lt;Task&gt;, usize)&gt; = Vec::new();
+<a href=#445 id=445 data-nosnippet>445</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span><span class="self">self</span>.all_tasks.iter() {
+<a href=#446 id=446 data-nosnippet>446</a>            <span class="comment">// SAFETY: scheduler lock is held by caller; task state is synchronized by scheduler.
+<a href=#447 id=447 data-nosnippet>447</a>            </span><span class="kw">let </span>state = <span class="kw">unsafe </span>{ <span class="kw-2">*</span>task.state.get() };
+<a href=#448 id=448 data-nosnippet>448</a>            <span class="kw">if </span>state != TaskState::Ready {
+<a href=#449 id=449 data-nosnippet>449</a>                <span class="kw">continue</span>;
+<a href=#450 id=450 data-nosnippet>450</a>            }
+<a href=#451 id=451 data-nosnippet>451</a>            <span class="kw">let </span>cpu = <span class="self">self</span>.task_cpu.get(id).copied().unwrap_or(<span class="number">0</span>);
+<a href=#452 id=452 data-nosnippet>452</a>            ready.push((<span class="kw-2">*</span>id, task.clone(), cpu));
+<a href=#453 id=453 data-nosnippet>453</a>        }
+<a href=#454 id=454 data-nosnippet>454</a>
+<a href=#455 id=455 data-nosnippet>455</a>        <span class="kw">for </span>(id, task, cpu_idx) <span class="kw">in </span>ready {
+<a href=#456 id=456 data-nosnippet>456</a>            <span class="kw">let </span><span class="prelude-val">Some</span>(cpu) = <span class="self">self</span>.cpus.get_mut(cpu_idx) <span class="kw">else </span>{
+<a href=#457 id=457 data-nosnippet>457</a>                <span class="kw">continue</span>;
+<a href=#458 id=458 data-nosnippet>458</a>            };
+<a href=#459 id=459 data-nosnippet>459</a>            <span class="kw">if </span>cpu.class_rqs.remove(id) {
+<a href=#460 id=460 data-nosnippet>460</a>                <span class="kw">let </span>class = <span class="self">self</span>.class_table.class_for_task(<span class="kw-2">&amp;</span>task);
+<a href=#461 id=461 data-nosnippet>461</a>                cpu.class_rqs.enqueue(class, task);
+<a href=#462 id=462 data-nosnippet>462</a>                cpu.need_resched = <span class="bool-val">true</span>;
+<a href=#463 id=463 data-nosnippet>463</a>            }
+<a href=#464 id=464 data-nosnippet>464</a>        }
+<a href=#465 id=465 data-nosnippet>465</a>    }
+<a href=#466 id=466 data-nosnippet>466</a>}
 </code></pre></div></section></main></body></html>

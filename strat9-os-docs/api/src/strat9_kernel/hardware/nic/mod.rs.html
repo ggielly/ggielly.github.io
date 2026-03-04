@@ -57,70 +57,76 @@
 <a href=#57 id=57 data-nosnippet>57</a><span class="doccomment">/// Counters per-prefix so that `em0`, `em1`, `vtnet0` are independent.
 <a href=#58 id=58 data-nosnippet>58</a></span><span class="kw">static </span>PREFIX_COUNTERS: RwLock&lt;Vec&lt;(String, usize)&gt;&gt; = RwLock::new(Vec::new());
 <a href=#59 id=59 data-nosnippet>59</a>
-<a href=#60 id=60 data-nosnippet>60</a><span class="kw">fn </span>next_index_for(prefix: <span class="kw-2">&amp;</span>str) -&gt; usize {
-<a href=#61 id=61 data-nosnippet>61</a>    <span class="kw">let </span><span class="kw-2">mut </span>counters = PREFIX_COUNTERS.write();
-<a href=#62 id=62 data-nosnippet>62</a>    <span class="kw">for </span>entry <span class="kw">in </span>counters.iter_mut() {
-<a href=#63 id=63 data-nosnippet>63</a>        <span class="kw">if </span>entry.<span class="number">0 </span>== prefix {
-<a href=#64 id=64 data-nosnippet>64</a>            <span class="kw">let </span>idx = entry.<span class="number">1</span>;
-<a href=#65 id=65 data-nosnippet>65</a>            entry.<span class="number">1 </span>+= <span class="number">1</span>;
-<a href=#66 id=66 data-nosnippet>66</a>            <span class="kw">return </span>idx;
-<a href=#67 id=67 data-nosnippet>67</a>        }
-<a href=#68 id=68 data-nosnippet>68</a>    }
-<a href=#69 id=69 data-nosnippet>69</a>    counters.push((String::from(prefix), <span class="number">1</span>));
-<a href=#70 id=70 data-nosnippet>70</a>    <span class="number">0
-<a href=#71 id=71 data-nosnippet>71</a></span>}
-<a href=#72 id=72 data-nosnippet>72</a>
-<a href=#73 id=73 data-nosnippet>73</a><span class="kw">pub fn </span>register_device(device: Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;) -&gt; String {
-<a href=#74 id=74 data-nosnippet>74</a>    <span class="kw">let </span>prefix = bsd_prefix(device.name());
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="kw">let </span>idx = next_index_for(prefix);
-<a href=#76 id=76 data-nosnippet>76</a>    <span class="kw">let </span>iface = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, prefix, idx);
-<a href=#77 id=77 data-nosnippet>77</a>    <span class="kw">let </span>mac = device.mac_address();
-<a href=#78 id=78 data-nosnippet>78</a>    <span class="macro">log::info!</span>(
-<a href=#79 id=79 data-nosnippet>79</a>        <span class="string">"[net] {} -&gt; {} (MAC {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x})"</span>,
-<a href=#80 id=80 data-nosnippet>80</a>        device.name(),
-<a href=#81 id=81 data-nosnippet>81</a>        iface,
-<a href=#82 id=82 data-nosnippet>82</a>        mac[<span class="number">0</span>],
-<a href=#83 id=83 data-nosnippet>83</a>        mac[<span class="number">1</span>],
-<a href=#84 id=84 data-nosnippet>84</a>        mac[<span class="number">2</span>],
-<a href=#85 id=85 data-nosnippet>85</a>        mac[<span class="number">3</span>],
-<a href=#86 id=86 data-nosnippet>86</a>        mac[<span class="number">4</span>],
-<a href=#87 id=87 data-nosnippet>87</a>        mac[<span class="number">5</span>],
-<a href=#88 id=88 data-nosnippet>88</a>    );
-<a href=#89 id=89 data-nosnippet>89</a>    <span class="kw">let </span><span class="kw-2">mut </span>devs = NET_DEVICES.write();
-<a href=#90 id=90 data-nosnippet>90</a>    devs.push(NetDeviceEntry {
-<a href=#91 id=91 data-nosnippet>91</a>        iface: iface.clone(),
-<a href=#92 id=92 data-nosnippet>92</a>        device,
-<a href=#93 id=93 data-nosnippet>93</a>    });
-<a href=#94 id=94 data-nosnippet>94</a>    iface
-<a href=#95 id=95 data-nosnippet>95</a>}
-<a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a><span class="kw">pub fn </span>get_device(name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;&gt; {
-<a href=#98 id=98 data-nosnippet>98</a>    NET_DEVICES
-<a href=#99 id=99 data-nosnippet>99</a>        .read()
-<a href=#100 id=100 data-nosnippet>100</a>        .iter()
-<a href=#101 id=101 data-nosnippet>101</a>        .find(|e| e.iface == name)
-<a href=#102 id=102 data-nosnippet>102</a>        .map(|e| e.device.clone())
-<a href=#103 id=103 data-nosnippet>103</a>}
-<a href=#104 id=104 data-nosnippet>104</a>
-<a href=#105 id=105 data-nosnippet>105</a><span class="kw">pub fn </span>get_default_device() -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;&gt; {
-<a href=#106 id=106 data-nosnippet>106</a>    NET_DEVICES.read().first().map(|e| e.device.clone())
-<a href=#107 id=107 data-nosnippet>107</a>}
-<a href=#108 id=108 data-nosnippet>108</a>
-<a href=#109 id=109 data-nosnippet>109</a><span class="kw">pub fn </span>list_interfaces() -&gt; Vec&lt;String&gt; {
-<a href=#110 id=110 data-nosnippet>110</a>    NET_DEVICES.read().iter().map(|e| e.iface.clone()).collect()
+<a href=#60 id=60 data-nosnippet>60</a><span class="doccomment">/// Performs the next index for operation.
+<a href=#61 id=61 data-nosnippet>61</a></span><span class="kw">fn </span>next_index_for(prefix: <span class="kw-2">&amp;</span>str) -&gt; usize {
+<a href=#62 id=62 data-nosnippet>62</a>    <span class="kw">let </span><span class="kw-2">mut </span>counters = PREFIX_COUNTERS.write();
+<a href=#63 id=63 data-nosnippet>63</a>    <span class="kw">for </span>entry <span class="kw">in </span>counters.iter_mut() {
+<a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">if </span>entry.<span class="number">0 </span>== prefix {
+<a href=#65 id=65 data-nosnippet>65</a>            <span class="kw">let </span>idx = entry.<span class="number">1</span>;
+<a href=#66 id=66 data-nosnippet>66</a>            entry.<span class="number">1 </span>+= <span class="number">1</span>;
+<a href=#67 id=67 data-nosnippet>67</a>            <span class="kw">return </span>idx;
+<a href=#68 id=68 data-nosnippet>68</a>        }
+<a href=#69 id=69 data-nosnippet>69</a>    }
+<a href=#70 id=70 data-nosnippet>70</a>    counters.push((String::from(prefix), <span class="number">1</span>));
+<a href=#71 id=71 data-nosnippet>71</a>    <span class="number">0
+<a href=#72 id=72 data-nosnippet>72</a></span>}
+<a href=#73 id=73 data-nosnippet>73</a>
+<a href=#74 id=74 data-nosnippet>74</a><span class="doccomment">/// Performs the register device operation.
+<a href=#75 id=75 data-nosnippet>75</a></span><span class="kw">pub fn </span>register_device(device: Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;) -&gt; String {
+<a href=#76 id=76 data-nosnippet>76</a>    <span class="kw">let </span>prefix = bsd_prefix(device.name());
+<a href=#77 id=77 data-nosnippet>77</a>    <span class="kw">let </span>idx = next_index_for(prefix);
+<a href=#78 id=78 data-nosnippet>78</a>    <span class="kw">let </span>iface = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, prefix, idx);
+<a href=#79 id=79 data-nosnippet>79</a>    <span class="kw">let </span>mac = device.mac_address();
+<a href=#80 id=80 data-nosnippet>80</a>    <span class="macro">log::info!</span>(
+<a href=#81 id=81 data-nosnippet>81</a>        <span class="string">"[net] {} -&gt; {} (MAC {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x})"</span>,
+<a href=#82 id=82 data-nosnippet>82</a>        device.name(),
+<a href=#83 id=83 data-nosnippet>83</a>        iface,
+<a href=#84 id=84 data-nosnippet>84</a>        mac[<span class="number">0</span>],
+<a href=#85 id=85 data-nosnippet>85</a>        mac[<span class="number">1</span>],
+<a href=#86 id=86 data-nosnippet>86</a>        mac[<span class="number">2</span>],
+<a href=#87 id=87 data-nosnippet>87</a>        mac[<span class="number">3</span>],
+<a href=#88 id=88 data-nosnippet>88</a>        mac[<span class="number">4</span>],
+<a href=#89 id=89 data-nosnippet>89</a>        mac[<span class="number">5</span>],
+<a href=#90 id=90 data-nosnippet>90</a>    );
+<a href=#91 id=91 data-nosnippet>91</a>    <span class="kw">let </span><span class="kw-2">mut </span>devs = NET_DEVICES.write();
+<a href=#92 id=92 data-nosnippet>92</a>    devs.push(NetDeviceEntry {
+<a href=#93 id=93 data-nosnippet>93</a>        iface: iface.clone(),
+<a href=#94 id=94 data-nosnippet>94</a>        device,
+<a href=#95 id=95 data-nosnippet>95</a>    });
+<a href=#96 id=96 data-nosnippet>96</a>    iface
+<a href=#97 id=97 data-nosnippet>97</a>}
+<a href=#98 id=98 data-nosnippet>98</a>
+<a href=#99 id=99 data-nosnippet>99</a><span class="doccomment">/// Returns device.
+<a href=#100 id=100 data-nosnippet>100</a></span><span class="kw">pub fn </span>get_device(name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;&gt; {
+<a href=#101 id=101 data-nosnippet>101</a>    NET_DEVICES
+<a href=#102 id=102 data-nosnippet>102</a>        .read()
+<a href=#103 id=103 data-nosnippet>103</a>        .iter()
+<a href=#104 id=104 data-nosnippet>104</a>        .find(|e| e.iface == name)
+<a href=#105 id=105 data-nosnippet>105</a>        .map(|e| e.device.clone())
+<a href=#106 id=106 data-nosnippet>106</a>}
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a><span class="doccomment">/// Returns default device.
+<a href=#109 id=109 data-nosnippet>109</a></span><span class="kw">pub fn </span>get_default_device() -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>NetworkDevice&gt;&gt; {
+<a href=#110 id=110 data-nosnippet>110</a>    NET_DEVICES.read().first().map(|e| e.device.clone())
 <a href=#111 id=111 data-nosnippet>111</a>}
 <a href=#112 id=112 data-nosnippet>112</a>
-<a href=#113 id=113 data-nosnippet>113</a><span class="kw">pub fn </span>init() {
-<a href=#114 id=114 data-nosnippet>114</a>    <span class="macro">log::info!</span>(<span class="string">"[net] Scanning for network devices..."</span>);
-<a href=#115 id=115 data-nosnippet>115</a>    <span class="comment">// Probe modern Intel first, then legacy fallback.
-<a href=#116 id=116 data-nosnippet>116</a>    </span>e1000e_drv::init();
-<a href=#117 id=117 data-nosnippet>117</a>    igc_drv::init();
-<a href=#118 id=118 data-nosnippet>118</a>    e1000_drv::init();
-<a href=#119 id=119 data-nosnippet>119</a>    pcnet_drv::init();
-<a href=#120 id=120 data-nosnippet>120</a>    rtl8139_drv::init();
-<a href=#121 id=121 data-nosnippet>121</a>    virtio_net::init();
-<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = scheme::register_net_scheme() {
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="macro">log::warn!</span>(<span class="string">"[net] Failed to register net scheme: {:?}"</span>, e);
-<a href=#124 id=124 data-nosnippet>124</a>    }
-<a href=#125 id=125 data-nosnippet>125</a>}
+<a href=#113 id=113 data-nosnippet>113</a><span class="doccomment">/// Performs the list interfaces operation.
+<a href=#114 id=114 data-nosnippet>114</a></span><span class="kw">pub fn </span>list_interfaces() -&gt; Vec&lt;String&gt; {
+<a href=#115 id=115 data-nosnippet>115</a>    NET_DEVICES.read().iter().map(|e| e.iface.clone()).collect()
+<a href=#116 id=116 data-nosnippet>116</a>}
+<a href=#117 id=117 data-nosnippet>117</a>
+<a href=#118 id=118 data-nosnippet>118</a><span class="doccomment">/// Performs the init operation.
+<a href=#119 id=119 data-nosnippet>119</a></span><span class="kw">pub fn </span>init() {
+<a href=#120 id=120 data-nosnippet>120</a>    <span class="macro">log::info!</span>(<span class="string">"[net] Scanning for network devices..."</span>);
+<a href=#121 id=121 data-nosnippet>121</a>    <span class="comment">// Probe modern Intel first, then legacy fallback.
+<a href=#122 id=122 data-nosnippet>122</a>    </span>e1000e_drv::init();
+<a href=#123 id=123 data-nosnippet>123</a>    igc_drv::init();
+<a href=#124 id=124 data-nosnippet>124</a>    e1000_drv::init();
+<a href=#125 id=125 data-nosnippet>125</a>    pcnet_drv::init();
+<a href=#126 id=126 data-nosnippet>126</a>    rtl8139_drv::init();
+<a href=#127 id=127 data-nosnippet>127</a>    virtio_net::init();
+<a href=#128 id=128 data-nosnippet>128</a>    <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = scheme::register_net_scheme() {
+<a href=#129 id=129 data-nosnippet>129</a>        <span class="macro">log::warn!</span>(<span class="string">"[net] Failed to register net scheme: {:?}"</span>, e);
+<a href=#130 id=130 data-nosnippet>130</a>    }
+<a href=#131 id=131 data-nosnippet>131</a>}
 </code></pre></div></section></main></body></html>
