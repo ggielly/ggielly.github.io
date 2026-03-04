@@ -129,19 +129,19 @@
 <a href=#129 id=129 data-nosnippet>129</a>
 <a href=#130 id=130 data-nosnippet>130</a>    <span class="doccomment">/// Create a new default state using the host's maximum capabilities.
 <a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">let </span>(uses_xsave, size, max_xcr0) =
-<a href=#133 id=133 data-nosnippet>133</a>            <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
-<a href=#134 id=134 data-nosnippet>134</a>                <span class="kw">let </span>h = <span class="kw">crate</span>::arch::x86_64::cpuid::host();
-<a href=#135 id=135 data-nosnippet>135</a>                (<span class="bool-val">true</span>, h.xsave_size.min(<span class="self">Self</span>::MAX_XSAVE_SIZE), h.max_xcr0)
-<a href=#136 id=136 data-nosnippet>136</a>            } <span class="kw">else </span>{
-<a href=#137 id=137 data-nosnippet>137</a>                (<span class="bool-val">false</span>, <span class="self">Self</span>::FXSAVE_SIZE, <span class="number">0x3</span>)
-<a href=#138 id=138 data-nosnippet>138</a>            };
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">let </span>(uses_xsave, size, default_xcr0) = <span class="kw">if </span><span class="kw">crate</span>::arch::x86_64::cpuid::host_uses_xsave() {
+<a href=#133 id=133 data-nosnippet>133</a>            <span class="kw">let </span>xcr0 = <span class="kw">crate</span>::arch::x86_64::cpuid::host_default_xcr0();
+<a href=#134 id=134 data-nosnippet>134</a>            <span class="kw">let </span>sz = <span class="kw">crate</span>::arch::x86_64::cpuid::xsave_size_for_xcr0(xcr0).min(<span class="self">Self</span>::MAX_XSAVE_SIZE);
+<a href=#135 id=135 data-nosnippet>135</a>            (<span class="bool-val">true</span>, sz, xcr0)
+<a href=#136 id=136 data-nosnippet>136</a>        } <span class="kw">else </span>{
+<a href=#137 id=137 data-nosnippet>137</a>            (<span class="bool-val">false</span>, <span class="self">Self</span>::FXSAVE_SIZE, <span class="number">0x3</span>)
+<a href=#138 id=138 data-nosnippet>138</a>        };
 <a href=#139 id=139 data-nosnippet>139</a>
 <a href=#140 id=140 data-nosnippet>140</a>        <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">Self </span>{
 <a href=#141 id=141 data-nosnippet>141</a>            data: [<span class="number">0u8</span>; <span class="self">Self</span>::MAX_XSAVE_SIZE],
 <a href=#142 id=142 data-nosnippet>142</a>            size,
 <a href=#143 id=143 data-nosnippet>143</a>            uses_xsave,
-<a href=#144 id=144 data-nosnippet>144</a>            xcr0_mask: max_xcr0,
+<a href=#144 id=144 data-nosnippet>144</a>            xcr0_mask: default_xcr0,
 <a href=#145 id=145 data-nosnippet>145</a>        };
 <a href=#146 id=146 data-nosnippet>146</a>        state.set_defaults();
 <a href=#147 id=147 data-nosnippet>147</a>        state
@@ -527,7 +527,7 @@
 <a href=#527 id=527 data-nosnippet>527</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
 <a href=#528 id=528 data-nosnippet>528</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
 <a href=#529 id=529 data-nosnippet>529</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
-<a href=#530 id=530 data-nosnippet>530</a>            xcr0_mask: AtomicU64::new(<span class="number">0</span>),
+<a href=#530 id=530 data-nosnippet>530</a>            xcr0_mask: AtomicU64::new(<span class="kw">crate</span>::arch::x86_64::cpuid::host_default_xcr0()),
 <a href=#531 id=531 data-nosnippet>531</a>        }))
 <a href=#532 id=532 data-nosnippet>532</a>    }
 <a href=#533 id=533 data-nosnippet>533</a>
@@ -587,7 +587,7 @@
 <a href=#587 id=587 data-nosnippet>587</a>            clear_child_tid: AtomicU64::new(<span class="number">0</span>),
 <a href=#588 id=588 data-nosnippet>588</a>            user_fs_base: AtomicU64::new(<span class="number">0</span>),
 <a href=#589 id=589 data-nosnippet>589</a>            fpu_state: SyncUnsafeCell::new(ExtendedState::new()),
-<a href=#590 id=590 data-nosnippet>590</a>            xcr0_mask: AtomicU64::new(<span class="number">0</span>),
+<a href=#590 id=590 data-nosnippet>590</a>            xcr0_mask: AtomicU64::new(<span class="kw">crate</span>::arch::x86_64::cpuid::host_default_xcr0()),
 <a href=#591 id=591 data-nosnippet>591</a>        }))
 <a href=#592 id=592 data-nosnippet>592</a>    }
 <a href=#593 id=593 data-nosnippet>593</a>
@@ -660,130 +660,130 @@
 <a href=#660 id=660 data-nosnippet>660</a>    } <span class="kw">else </span>{
 <a href=#661 id=661 data-nosnippet>661</a>        restore_first_task_fxsave(rsp_ptr, fpu_ptr);
 <a href=#662 id=662 data-nosnippet>662</a>    }
-<a href=#663 id=663 data-nosnippet>663</a>    core::hint::unreachable_unchecked()
-<a href=#664 id=664 data-nosnippet>664</a>}
-<a href=#665 id=665 data-nosnippet>665</a>
-<a href=#666 id=666 data-nosnippet>666</a><span class="comment">// ── FXSAVE path (legacy, no XSAVE support) ──
-<a href=#667 id=667 data-nosnippet>667</a>
-<a href=#668 id=668 data-nosnippet>668</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu
-<a href=#669 id=669 data-nosnippet>669</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#670 id=670 data-nosnippet>670</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_fxsave(
-<a href=#671 id=671 data-nosnippet>671</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
-<a href=#672 id=672 data-nosnippet>672</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#673 id=673 data-nosnippet>673</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
-<a href=#674 id=674 data-nosnippet>674</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#675 id=675 data-nosnippet>675</a>) {
-<a href=#676 id=676 data-nosnippet>676</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#677 id=677 data-nosnippet>677</a>        <span class="string">"fxsave [rdx]"</span>,
-<a href=#678 id=678 data-nosnippet>678</a>        <span class="string">"push rbx"</span>,
-<a href=#679 id=679 data-nosnippet>679</a>        <span class="string">"push rbp"</span>,
-<a href=#680 id=680 data-nosnippet>680</a>        <span class="string">"push r12"</span>,
-<a href=#681 id=681 data-nosnippet>681</a>        <span class="string">"push r13"</span>,
-<a href=#682 id=682 data-nosnippet>682</a>        <span class="string">"push r14"</span>,
-<a href=#683 id=683 data-nosnippet>683</a>        <span class="string">"push r15"</span>,
-<a href=#684 id=684 data-nosnippet>684</a>        <span class="string">"mov [rdi], rsp"</span>,
-<a href=#685 id=685 data-nosnippet>685</a>        <span class="string">"mov rsp, [rsi]"</span>,
-<a href=#686 id=686 data-nosnippet>686</a>        <span class="string">"pop r15"</span>,
-<a href=#687 id=687 data-nosnippet>687</a>        <span class="string">"pop r14"</span>,
-<a href=#688 id=688 data-nosnippet>688</a>        <span class="string">"pop r13"</span>,
-<a href=#689 id=689 data-nosnippet>689</a>        <span class="string">"pop r12"</span>,
-<a href=#690 id=690 data-nosnippet>690</a>        <span class="string">"pop rbp"</span>,
-<a href=#691 id=691 data-nosnippet>691</a>        <span class="string">"pop rbx"</span>,
-<a href=#692 id=692 data-nosnippet>692</a>        <span class="string">"fxrstor [rcx]"</span>,
-<a href=#693 id=693 data-nosnippet>693</a>        <span class="string">"ret"</span>,
-<a href=#694 id=694 data-nosnippet>694</a>    );
-<a href=#695 id=695 data-nosnippet>695</a>}
-<a href=#696 id=696 data-nosnippet>696</a>
-<a href=#697 id=697 data-nosnippet>697</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr
-<a href=#698 id=698 data-nosnippet>698</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#699 id=699 data-nosnippet>699</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_fxsave(
-<a href=#700 id=700 data-nosnippet>700</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#701 id=701 data-nosnippet>701</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#702 id=702 data-nosnippet>702</a>) {
-<a href=#703 id=703 data-nosnippet>703</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#704 id=704 data-nosnippet>704</a>        <span class="string">"mov rsp, [rdi]"</span>,
-<a href=#705 id=705 data-nosnippet>705</a>        <span class="string">"pop r15"</span>,
-<a href=#706 id=706 data-nosnippet>706</a>        <span class="string">"pop r14"</span>,
-<a href=#707 id=707 data-nosnippet>707</a>        <span class="string">"pop r13"</span>,
-<a href=#708 id=708 data-nosnippet>708</a>        <span class="string">"pop r12"</span>,
-<a href=#709 id=709 data-nosnippet>709</a>        <span class="string">"pop rbp"</span>,
-<a href=#710 id=710 data-nosnippet>710</a>        <span class="string">"pop rbx"</span>,
-<a href=#711 id=711 data-nosnippet>711</a>        <span class="string">"fxrstor [rsi]"</span>,
-<a href=#712 id=712 data-nosnippet>712</a>        <span class="string">"ret"</span>,
-<a href=#713 id=713 data-nosnippet>713</a>    );
-<a href=#714 id=714 data-nosnippet>714</a>}
-<a href=#715 id=715 data-nosnippet>715</a>
-<a href=#716 id=716 data-nosnippet>716</a><span class="comment">// ── XSAVE path (with XCR0 switching per-silo) ──
-<a href=#717 id=717 data-nosnippet>717</a>
-<a href=#718 id=718 data-nosnippet>718</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu, r8=new_xcr0
-<a href=#719 id=719 data-nosnippet>719</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#720 id=720 data-nosnippet>720</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_xsave(
-<a href=#721 id=721 data-nosnippet>721</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
-<a href=#722 id=722 data-nosnippet>722</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#723 id=723 data-nosnippet>723</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
-<a href=#724 id=724 data-nosnippet>724</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#725 id=725 data-nosnippet>725</a>    _new_xcr0: u64,
-<a href=#726 id=726 data-nosnippet>726</a>) {
-<a href=#727 id=727 data-nosnippet>727</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#728 id=728 data-nosnippet>728</a>        <span class="comment">// xsave clobbers edx — save old_fpu_ptr in r10 first
-<a href=#729 id=729 data-nosnippet>729</a>        </span><span class="string">"mov r10, rdx"</span>,
-<a href=#730 id=730 data-nosnippet>730</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
-<a href=#731 id=731 data-nosnippet>731</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
-<a href=#732 id=732 data-nosnippet>732</a>        <span class="string">"xsave [r10]"</span>,
-<a href=#733 id=733 data-nosnippet>733</a>        <span class="string">"push rbx"</span>,
-<a href=#734 id=734 data-nosnippet>734</a>        <span class="string">"push rbp"</span>,
-<a href=#735 id=735 data-nosnippet>735</a>        <span class="string">"push r12"</span>,
-<a href=#736 id=736 data-nosnippet>736</a>        <span class="string">"push r13"</span>,
-<a href=#737 id=737 data-nosnippet>737</a>        <span class="string">"push r14"</span>,
-<a href=#738 id=738 data-nosnippet>738</a>        <span class="string">"push r15"</span>,
-<a href=#739 id=739 data-nosnippet>739</a>        <span class="string">"mov [rdi], rsp"</span>,
-<a href=#740 id=740 data-nosnippet>740</a>        <span class="string">"mov rsp, [rsi]"</span>,
-<a href=#741 id=741 data-nosnippet>741</a>        <span class="string">"pop r15"</span>,
-<a href=#742 id=742 data-nosnippet>742</a>        <span class="string">"pop r14"</span>,
-<a href=#743 id=743 data-nosnippet>743</a>        <span class="string">"pop r13"</span>,
-<a href=#744 id=744 data-nosnippet>744</a>        <span class="string">"pop r12"</span>,
-<a href=#745 id=745 data-nosnippet>745</a>        <span class="string">"pop rbp"</span>,
-<a href=#746 id=746 data-nosnippet>746</a>        <span class="string">"pop rbx"</span>,
-<a href=#747 id=747 data-nosnippet>747</a>        <span class="comment">// Switch XCR0 to new task's silo mask (r8 = new_xcr0)
-<a href=#748 id=748 data-nosnippet>748</a>        </span><span class="string">"push rcx"</span>,
-<a href=#749 id=749 data-nosnippet>749</a>        <span class="string">"mov ecx, 0"</span>,
-<a href=#750 id=750 data-nosnippet>750</a>        <span class="string">"mov eax, r8d"</span>,
-<a href=#751 id=751 data-nosnippet>751</a>        <span class="string">"shr r8, 32"</span>,
-<a href=#752 id=752 data-nosnippet>752</a>        <span class="string">"mov edx, r8d"</span>,
-<a href=#753 id=753 data-nosnippet>753</a>        <span class="string">"xsetbv"</span>,
-<a href=#754 id=754 data-nosnippet>754</a>        <span class="string">"pop rcx"</span>,
-<a href=#755 id=755 data-nosnippet>755</a>        <span class="comment">// Restore new FPU state
-<a href=#756 id=756 data-nosnippet>756</a>        </span><span class="string">"mov eax, 0xFFFFFFFF"</span>,
-<a href=#757 id=757 data-nosnippet>757</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
-<a href=#758 id=758 data-nosnippet>758</a>        <span class="string">"xrstor [rcx]"</span>,
-<a href=#759 id=759 data-nosnippet>759</a>        <span class="string">"ret"</span>,
-<a href=#760 id=760 data-nosnippet>760</a>    );
-<a href=#761 id=761 data-nosnippet>761</a>}
-<a href=#762 id=762 data-nosnippet>762</a>
-<a href=#763 id=763 data-nosnippet>763</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr, rdx=xcr0
-<a href=#764 id=764 data-nosnippet>764</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
-<a href=#765 id=765 data-nosnippet>765</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_xsave(
-<a href=#766 id=766 data-nosnippet>766</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
-<a href=#767 id=767 data-nosnippet>767</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
-<a href=#768 id=768 data-nosnippet>768</a>    _xcr0: u64,
-<a href=#769 id=769 data-nosnippet>769</a>) {
-<a href=#770 id=770 data-nosnippet>770</a>    <span class="macro">core::arch::naked_asm!</span>(
-<a href=#771 id=771 data-nosnippet>771</a>        <span class="string">"mov rsp, [rdi]"</span>,
-<a href=#772 id=772 data-nosnippet>772</a>        <span class="string">"pop r15"</span>,
-<a href=#773 id=773 data-nosnippet>773</a>        <span class="string">"pop r14"</span>,
-<a href=#774 id=774 data-nosnippet>774</a>        <span class="string">"pop r13"</span>,
-<a href=#775 id=775 data-nosnippet>775</a>        <span class="string">"pop r12"</span>,
-<a href=#776 id=776 data-nosnippet>776</a>        <span class="string">"pop rbp"</span>,
-<a href=#777 id=777 data-nosnippet>777</a>        <span class="string">"pop rbx"</span>,
-<a href=#778 id=778 data-nosnippet>778</a>        <span class="comment">// Set XCR0 for the first task
-<a href=#779 id=779 data-nosnippet>779</a>        </span><span class="string">"push rsi"</span>,
+<a href=#663 id=663 data-nosnippet>663</a>}
+<a href=#664 id=664 data-nosnippet>664</a>
+<a href=#665 id=665 data-nosnippet>665</a><span class="comment">// ── FXSAVE path (legacy, no XSAVE support) ──
+<a href=#666 id=666 data-nosnippet>666</a>
+<a href=#667 id=667 data-nosnippet>667</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu
+<a href=#668 id=668 data-nosnippet>668</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#669 id=669 data-nosnippet>669</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_fxsave(
+<a href=#670 id=670 data-nosnippet>670</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#671 id=671 data-nosnippet>671</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#672 id=672 data-nosnippet>672</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#673 id=673 data-nosnippet>673</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#674 id=674 data-nosnippet>674</a>) {
+<a href=#675 id=675 data-nosnippet>675</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#676 id=676 data-nosnippet>676</a>        <span class="string">"fxsave [rdx]"</span>,
+<a href=#677 id=677 data-nosnippet>677</a>        <span class="string">"push rbx"</span>,
+<a href=#678 id=678 data-nosnippet>678</a>        <span class="string">"push rbp"</span>,
+<a href=#679 id=679 data-nosnippet>679</a>        <span class="string">"push r12"</span>,
+<a href=#680 id=680 data-nosnippet>680</a>        <span class="string">"push r13"</span>,
+<a href=#681 id=681 data-nosnippet>681</a>        <span class="string">"push r14"</span>,
+<a href=#682 id=682 data-nosnippet>682</a>        <span class="string">"push r15"</span>,
+<a href=#683 id=683 data-nosnippet>683</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#684 id=684 data-nosnippet>684</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#685 id=685 data-nosnippet>685</a>        <span class="string">"pop r15"</span>,
+<a href=#686 id=686 data-nosnippet>686</a>        <span class="string">"pop r14"</span>,
+<a href=#687 id=687 data-nosnippet>687</a>        <span class="string">"pop r13"</span>,
+<a href=#688 id=688 data-nosnippet>688</a>        <span class="string">"pop r12"</span>,
+<a href=#689 id=689 data-nosnippet>689</a>        <span class="string">"pop rbp"</span>,
+<a href=#690 id=690 data-nosnippet>690</a>        <span class="string">"pop rbx"</span>,
+<a href=#691 id=691 data-nosnippet>691</a>        <span class="string">"fxrstor [rcx]"</span>,
+<a href=#692 id=692 data-nosnippet>692</a>        <span class="string">"ret"</span>,
+<a href=#693 id=693 data-nosnippet>693</a>    );
+<a href=#694 id=694 data-nosnippet>694</a>}
+<a href=#695 id=695 data-nosnippet>695</a>
+<a href=#696 id=696 data-nosnippet>696</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr
+<a href=#697 id=697 data-nosnippet>697</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#698 id=698 data-nosnippet>698</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_fxsave(
+<a href=#699 id=699 data-nosnippet>699</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#700 id=700 data-nosnippet>700</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#701 id=701 data-nosnippet>701</a>) -&gt; ! {
+<a href=#702 id=702 data-nosnippet>702</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#703 id=703 data-nosnippet>703</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#704 id=704 data-nosnippet>704</a>        <span class="string">"pop r15"</span>,
+<a href=#705 id=705 data-nosnippet>705</a>        <span class="string">"pop r14"</span>,
+<a href=#706 id=706 data-nosnippet>706</a>        <span class="string">"pop r13"</span>,
+<a href=#707 id=707 data-nosnippet>707</a>        <span class="string">"pop r12"</span>,
+<a href=#708 id=708 data-nosnippet>708</a>        <span class="string">"pop rbp"</span>,
+<a href=#709 id=709 data-nosnippet>709</a>        <span class="string">"pop rbx"</span>,
+<a href=#710 id=710 data-nosnippet>710</a>        <span class="string">"fxrstor [rsi]"</span>,
+<a href=#711 id=711 data-nosnippet>711</a>        <span class="string">"ret"</span>,
+<a href=#712 id=712 data-nosnippet>712</a>    );
+<a href=#713 id=713 data-nosnippet>713</a>}
+<a href=#714 id=714 data-nosnippet>714</a>
+<a href=#715 id=715 data-nosnippet>715</a><span class="comment">// ── XSAVE path (with XCR0 switching per-silo) ──
+<a href=#716 id=716 data-nosnippet>716</a>
+<a href=#717 id=717 data-nosnippet>717</a></span><span class="doccomment">/// rdi=old_rsp, rsi=new_rsp, rdx=old_fpu, rcx=new_fpu, r8=new_xcr0
+<a href=#718 id=718 data-nosnippet>718</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#719 id=719 data-nosnippet>719</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>switch_context_xsave(
+<a href=#720 id=720 data-nosnippet>720</a>    _old_rsp_ptr: <span class="kw-2">*mut </span>u64,
+<a href=#721 id=721 data-nosnippet>721</a>    _new_rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#722 id=722 data-nosnippet>722</a>    _old_fpu_ptr: <span class="kw-2">*mut </span>u8,
+<a href=#723 id=723 data-nosnippet>723</a>    _new_fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#724 id=724 data-nosnippet>724</a>    _new_xcr0: u64,
+<a href=#725 id=725 data-nosnippet>725</a>) {
+<a href=#726 id=726 data-nosnippet>726</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#727 id=727 data-nosnippet>727</a>        <span class="string">"mov r10, rdx"</span>,
+<a href=#728 id=728 data-nosnippet>728</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#729 id=729 data-nosnippet>729</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="string">"xsave [r10]"</span>,
+<a href=#731 id=731 data-nosnippet>731</a>        <span class="string">"push rbx"</span>,
+<a href=#732 id=732 data-nosnippet>732</a>        <span class="string">"push rbp"</span>,
+<a href=#733 id=733 data-nosnippet>733</a>        <span class="string">"push r12"</span>,
+<a href=#734 id=734 data-nosnippet>734</a>        <span class="string">"push r13"</span>,
+<a href=#735 id=735 data-nosnippet>735</a>        <span class="string">"push r14"</span>,
+<a href=#736 id=736 data-nosnippet>736</a>        <span class="string">"push r15"</span>,
+<a href=#737 id=737 data-nosnippet>737</a>        <span class="string">"mov [rdi], rsp"</span>,
+<a href=#738 id=738 data-nosnippet>738</a>        <span class="string">"mov rsp, [rsi]"</span>,
+<a href=#739 id=739 data-nosnippet>739</a>        <span class="string">"pop r15"</span>,
+<a href=#740 id=740 data-nosnippet>740</a>        <span class="string">"pop r14"</span>,
+<a href=#741 id=741 data-nosnippet>741</a>        <span class="string">"pop r13"</span>,
+<a href=#742 id=742 data-nosnippet>742</a>        <span class="string">"pop r12"</span>,
+<a href=#743 id=743 data-nosnippet>743</a>        <span class="string">"pop rbp"</span>,
+<a href=#744 id=744 data-nosnippet>744</a>        <span class="string">"pop rbx"</span>,
+<a href=#745 id=745 data-nosnippet>745</a>        <span class="string">"test r8, r8"</span>,
+<a href=#746 id=746 data-nosnippet>746</a>        <span class="string">"jz 2f"</span>,
+<a href=#747 id=747 data-nosnippet>747</a>        <span class="string">"push rcx"</span>,
+<a href=#748 id=748 data-nosnippet>748</a>        <span class="string">"mov ecx, 0"</span>,
+<a href=#749 id=749 data-nosnippet>749</a>        <span class="string">"mov eax, r8d"</span>,
+<a href=#750 id=750 data-nosnippet>750</a>        <span class="string">"shr r8, 32"</span>,
+<a href=#751 id=751 data-nosnippet>751</a>        <span class="string">"mov edx, r8d"</span>,
+<a href=#752 id=752 data-nosnippet>752</a>        <span class="string">"xsetbv"</span>,
+<a href=#753 id=753 data-nosnippet>753</a>        <span class="string">"pop rcx"</span>,
+<a href=#754 id=754 data-nosnippet>754</a>        <span class="string">"2:"</span>,
+<a href=#755 id=755 data-nosnippet>755</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#756 id=756 data-nosnippet>756</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
+<a href=#757 id=757 data-nosnippet>757</a>        <span class="string">"xrstor [rcx]"</span>,
+<a href=#758 id=758 data-nosnippet>758</a>        <span class="string">"ret"</span>,
+<a href=#759 id=759 data-nosnippet>759</a>    );
+<a href=#760 id=760 data-nosnippet>760</a>}
+<a href=#761 id=761 data-nosnippet>761</a>
+<a href=#762 id=762 data-nosnippet>762</a><span class="doccomment">/// rdi=rsp_ptr, rsi=fpu_ptr, rdx=xcr0
+<a href=#763 id=763 data-nosnippet>763</a></span><span class="attr">#[<span class="kw">unsafe</span>(naked)]
+<a href=#764 id=764 data-nosnippet>764</a></span><span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>restore_first_task_xsave(
+<a href=#765 id=765 data-nosnippet>765</a>    _rsp_ptr: <span class="kw-2">*const </span>u64,
+<a href=#766 id=766 data-nosnippet>766</a>    _fpu_ptr: <span class="kw-2">*const </span>u8,
+<a href=#767 id=767 data-nosnippet>767</a>    _xcr0: u64,
+<a href=#768 id=768 data-nosnippet>768</a>) -&gt; ! {
+<a href=#769 id=769 data-nosnippet>769</a>    <span class="macro">core::arch::naked_asm!</span>(
+<a href=#770 id=770 data-nosnippet>770</a>        <span class="string">"mov rsp, [rdi]"</span>,
+<a href=#771 id=771 data-nosnippet>771</a>        <span class="string">"pop r15"</span>,
+<a href=#772 id=772 data-nosnippet>772</a>        <span class="string">"pop r14"</span>,
+<a href=#773 id=773 data-nosnippet>773</a>        <span class="string">"pop r13"</span>,
+<a href=#774 id=774 data-nosnippet>774</a>        <span class="string">"pop r12"</span>,
+<a href=#775 id=775 data-nosnippet>775</a>        <span class="string">"pop rbp"</span>,
+<a href=#776 id=776 data-nosnippet>776</a>        <span class="string">"pop rbx"</span>,
+<a href=#777 id=777 data-nosnippet>777</a>        <span class="string">"test rdx, rdx"</span>,
+<a href=#778 id=778 data-nosnippet>778</a>        <span class="string">"jz 2f"</span>,
+<a href=#779 id=779 data-nosnippet>779</a>        <span class="string">"push rsi"</span>,
 <a href=#780 id=780 data-nosnippet>780</a>        <span class="string">"mov ecx, 0"</span>,
 <a href=#781 id=781 data-nosnippet>781</a>        <span class="string">"mov eax, edx"</span>,
 <a href=#782 id=782 data-nosnippet>782</a>        <span class="string">"shr rdx, 32"</span>,
 <a href=#783 id=783 data-nosnippet>783</a>        <span class="string">"xsetbv"</span>,
 <a href=#784 id=784 data-nosnippet>784</a>        <span class="string">"pop rsi"</span>,
-<a href=#785 id=785 data-nosnippet>785</a>        <span class="comment">// Restore FPU
-<a href=#786 id=786 data-nosnippet>786</a>        </span><span class="string">"mov eax, 0xFFFFFFFF"</span>,
+<a href=#785 id=785 data-nosnippet>785</a>        <span class="string">"2:"</span>,
+<a href=#786 id=786 data-nosnippet>786</a>        <span class="string">"mov eax, 0xFFFFFFFF"</span>,
 <a href=#787 id=787 data-nosnippet>787</a>        <span class="string">"mov edx, 0xFFFFFFFF"</span>,
 <a href=#788 id=788 data-nosnippet>788</a>        <span class="string">"xrstor [rsi]"</span>,
 <a href=#789 id=789 data-nosnippet>789</a>        <span class="string">"ret"</span>,

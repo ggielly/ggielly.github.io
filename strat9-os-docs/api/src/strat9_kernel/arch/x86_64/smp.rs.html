@@ -83,263 +83,278 @@
 <a href=#83 id=83 data-nosnippet>83</a>    mov eax, [SMP_VAR_ADDR]
 <a href=#84 id=84 data-nosnippet>84</a>    mov cr3, eax
 <a href=#85 id=85 data-nosnippet>85</a>
-<a href=#86 id=86 data-nosnippet>86</a>    # Enable PSE, PAE, OSFXSR, OSXMMEXCPT, OSXSAVE
-<a href=#87 id=87 data-nosnippet>87</a>    mov eax, cr4
-<a href=#88 id=88 data-nosnippet>88</a>    or eax, 0x40630
-<a href=#89 id=89 data-nosnippet>89</a>    mov cr4, eax
-<a href=#90 id=90 data-nosnippet>90</a>
-<a href=#91 id=91 data-nosnippet>91</a>    # Enable LME
-<a href=#92 id=92 data-nosnippet>92</a>    mov ecx, 0xc0000080 # EFER
-<a href=#93 id=93 data-nosnippet>93</a>    xor edx, edx
-<a href=#94 id=94 data-nosnippet>94</a>    rdmsr
-<a href=#95 id=95 data-nosnippet>95</a>    or eax, 0x901
-<a href=#96 id=96 data-nosnippet>96</a>    wrmsr
-<a href=#97 id=97 data-nosnippet>97</a>
-<a href=#98 id=98 data-nosnippet>98</a>    # Enable paging, write protect, and FPU/SSE
-<a href=#99 id=99 data-nosnippet>99</a>    mov eax, cr0
-<a href=#100 id=100 data-nosnippet>100</a>    and eax, 0xFFFFFFFB # Clear EM (bit 2)
-<a href=#101 id=101 data-nosnippet>101</a>    or eax, 0x80010002  # Set PG, WP, MP (bit 1)
-<a href=#102 id=102 data-nosnippet>102</a>    mov cr0, eax
-<a href=#103 id=103 data-nosnippet>103</a>
-<a href=#104 id=104 data-nosnippet>104</a>    ljmp 8, 0x80c0
+<a href=#86 id=86 data-nosnippet>86</a>    # Enable PSE, PAE, OSFXSR, OSXMMEXCPT.
+<a href=#87 id=87 data-nosnippet>87</a>    # Do not force OSXSAVE here: some VMs/CPUs may fault before Rust-side
+<a href=#88 id=88 data-nosnippet>88</a>    # feature probing. init_cpu_extensions() enables OSXSAVE conditionally.
+<a href=#89 id=89 data-nosnippet>89</a>    mov eax, cr4
+<a href=#90 id=90 data-nosnippet>90</a>    or eax, 0x630
+<a href=#91 id=91 data-nosnippet>91</a>    mov cr4, eax
+<a href=#92 id=92 data-nosnippet>92</a>
+<a href=#93 id=93 data-nosnippet>93</a>    # Enable LME
+<a href=#94 id=94 data-nosnippet>94</a>    mov ecx, 0xc0000080 # EFER
+<a href=#95 id=95 data-nosnippet>95</a>    xor edx, edx
+<a href=#96 id=96 data-nosnippet>96</a>    rdmsr
+<a href=#97 id=97 data-nosnippet>97</a>    or eax, 0x901
+<a href=#98 id=98 data-nosnippet>98</a>    wrmsr
+<a href=#99 id=99 data-nosnippet>99</a>
+<a href=#100 id=100 data-nosnippet>100</a>    # Enable paging, write protect, and FPU/SSE
+<a href=#101 id=101 data-nosnippet>101</a>    mov eax, cr0
+<a href=#102 id=102 data-nosnippet>102</a>    and eax, 0xFFFFFFFB # Clear EM (bit 2)
+<a href=#103 id=103 data-nosnippet>103</a>    or eax, 0x80010002  # Set PG, WP, MP (bit 1)
+<a href=#104 id=104 data-nosnippet>104</a>    mov cr0, eax
 <a href=#105 id=105 data-nosnippet>105</a>
-<a href=#106 id=106 data-nosnippet>106</a>.align 32
-<a href=#107 id=107 data-nosnippet>107</a>.code64
-<a href=#108 id=108 data-nosnippet>108</a>    # Setup local stack
-<a href=#109 id=109 data-nosnippet>109</a>    mov rsp, [SMP_VAR_ADDR + 8]
-<a href=#110 id=110 data-nosnippet>110</a>    shl rbx, 3
-<a href=#111 id=111 data-nosnippet>111</a>    add rsp, rbx
-<a href=#112 id=112 data-nosnippet>112</a>    mov rsp, [rsp]
-<a href=#113 id=113 data-nosnippet>113</a>
-<a href=#114 id=114 data-nosnippet>114</a>    push 0
-<a href=#115 id=115 data-nosnippet>115</a>    popfq
-<a href=#116 id=116 data-nosnippet>116</a>
-<a href=#117 id=117 data-nosnippet>117</a>    movabs rax, offset smp_main
-<a href=#118 id=118 data-nosnippet>118</a>    jmp rax
-<a href=#119 id=119 data-nosnippet>119</a>
-<a href=#120 id=120 data-nosnippet>120</a>.align 8
-<a href=#121 id=121 data-nosnippet>121</a>smp_trampoline_end:
-<a href=#122 id=122 data-nosnippet>122</a>"#
-<a href=#123 id=123 data-nosnippet>123</a></span>);
-<a href=#124 id=124 data-nosnippet>124</a>
-<a href=#125 id=125 data-nosnippet>125</a><span class="kw">unsafe extern </span><span class="string">"C" </span>{
-<a href=#126 id=126 data-nosnippet>126</a>    <span class="doccomment">/// Performs the smp trampoline operation.
-<a href=#127 id=127 data-nosnippet>127</a>    </span><span class="kw">fn </span>smp_trampoline();
-<a href=#128 id=128 data-nosnippet>128</a>    <span class="doccomment">/// Performs the smp trampoline end operation.
-<a href=#129 id=129 data-nosnippet>129</a>    </span><span class="kw">fn </span>smp_trampoline_end();
-<a href=#130 id=130 data-nosnippet>130</a>}
-<a href=#131 id=131 data-nosnippet>131</a>
-<a href=#132 id=132 data-nosnippet>132</a><span class="doccomment">/// Busy-wait for the given number of microseconds (very rough).
-<a href=#133 id=133 data-nosnippet>133</a></span><span class="kw">fn </span>udelay(us: u32) {
-<a href=#134 id=134 data-nosnippet>134</a>    <span class="kw">for _ in </span><span class="number">0</span>..us {
-<a href=#135 id=135 data-nosnippet>135</a>        io_wait();
-<a href=#136 id=136 data-nosnippet>136</a>    }
-<a href=#137 id=137 data-nosnippet>137</a>}
-<a href=#138 id=138 data-nosnippet>138</a>
-<a href=#139 id=139 data-nosnippet>139</a><span class="doccomment">/// Performs the ensure identity mapping operation.
-<a href=#140 id=140 data-nosnippet>140</a></span><span class="kw">fn </span>ensure_identity_mapping(phys_start: u64, length: usize) {
-<a href=#141 id=141 data-nosnippet>141</a>    <span class="kw">let </span>start = phys_start &amp; !<span class="number">0xFFFu64</span>;
-<a href=#142 id=142 data-nosnippet>142</a>    <span class="kw">let </span>end = (phys_start + length <span class="kw">as </span>u64 + <span class="number">0xFFF</span>) &amp; !<span class="number">0xFFFu64</span>;
-<a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">let </span>flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-<a href=#144 id=144 data-nosnippet>144</a>
-<a href=#145 id=145 data-nosnippet>145</a>    <span class="kw">let </span><span class="kw-2">mut </span>addr = start;
-<a href=#146 id=146 data-nosnippet>146</a>    <span class="kw">while </span>addr &lt; end {
-<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">let </span>virt = VirtAddr::new(addr);
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(mapped) = <span class="kw">crate</span>::memory::paging::translate(virt) {
-<a href=#149 id=149 data-nosnippet>149</a>            <span class="kw">if </span>mapped.as_u64() != addr {
-<a href=#150 id=150 data-nosnippet>150</a>                <span class="macro">log::warn!</span>(
-<a href=#151 id=151 data-nosnippet>151</a>                    <span class="string">"SMP: identity map collision at {:#x} -&gt; {:#x}"</span>,
-<a href=#152 id=152 data-nosnippet>152</a>                    addr,
-<a href=#153 id=153 data-nosnippet>153</a>                    mapped.as_u64()
-<a href=#154 id=154 data-nosnippet>154</a>                );
-<a href=#155 id=155 data-nosnippet>155</a>            }
-<a href=#156 id=156 data-nosnippet>156</a>        } <span class="kw">else </span>{
-<a href=#157 id=157 data-nosnippet>157</a>            <span class="kw">let </span>page = Page::&lt;Size4KiB&gt;::containing_address(virt);
-<a href=#158 id=158 data-nosnippet>158</a>            <span class="kw">let </span>frame = PhysFrame::&lt;Size4KiB&gt;::containing_address(PhysAddr::new(addr));
-<a href=#159 id=159 data-nosnippet>159</a>            <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="kw">crate</span>::memory::paging::map_page(page, frame, flags) {
-<a href=#160 id=160 data-nosnippet>160</a>                <span class="macro">log::error!</span>(<span class="string">"SMP: failed to identity map {:#x}: {}"</span>, addr, e);
-<a href=#161 id=161 data-nosnippet>161</a>            }
-<a href=#162 id=162 data-nosnippet>162</a>        }
-<a href=#163 id=163 data-nosnippet>163</a>        addr += <span class="number">0x1000</span>;
-<a href=#164 id=164 data-nosnippet>164</a>    }
-<a href=#165 id=165 data-nosnippet>165</a>}
-<a href=#166 id=166 data-nosnippet>166</a>
-<a href=#167 id=167 data-nosnippet>167</a><span class="doccomment">/// Performs the copy trampoline operation.
-<a href=#168 id=168 data-nosnippet>168</a></span><span class="kw">fn </span>copy_trampoline(cr3_phys: u64, stacks_ptr: <span class="kw-2">*const </span>u64) {
-<a href=#169 id=169 data-nosnippet>169</a>    <span class="kw">let </span>tramp_len = (smp_trampoline_end <span class="kw">as </span><span class="kw-2">*const </span>u8 <span class="kw">as </span>usize)
-<a href=#170 id=170 data-nosnippet>170</a>        .saturating_sub(smp_trampoline <span class="kw">as </span><span class="kw-2">*const </span>u8 <span class="kw">as </span>usize);
-<a href=#171 id=171 data-nosnippet>171</a>
-<a href=#172 id=172 data-nosnippet>172</a>    ensure_identity_mapping(TRAMPOLINE_PHYS_ADDR, tramp_len + <span class="number">16</span>);
+<a href=#106 id=106 data-nosnippet>106</a>    ljmp 8, 0x80c0
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a>.align 32
+<a href=#109 id=109 data-nosnippet>109</a>.code64
+<a href=#110 id=110 data-nosnippet>110</a>    # Setup local stack
+<a href=#111 id=111 data-nosnippet>111</a>    mov rsp, [SMP_VAR_ADDR + 8]
+<a href=#112 id=112 data-nosnippet>112</a>    shl rbx, 3
+<a href=#113 id=113 data-nosnippet>113</a>    add rsp, rbx
+<a href=#114 id=114 data-nosnippet>114</a>    mov rsp, [rsp]
+<a href=#115 id=115 data-nosnippet>115</a>
+<a href=#116 id=116 data-nosnippet>116</a>    push 0
+<a href=#117 id=117 data-nosnippet>117</a>    popfq
+<a href=#118 id=118 data-nosnippet>118</a>
+<a href=#119 id=119 data-nosnippet>119</a>    movabs rax, offset smp_main
+<a href=#120 id=120 data-nosnippet>120</a>    jmp rax
+<a href=#121 id=121 data-nosnippet>121</a>
+<a href=#122 id=122 data-nosnippet>122</a>.align 8
+<a href=#123 id=123 data-nosnippet>123</a>smp_trampoline_end:
+<a href=#124 id=124 data-nosnippet>124</a>"#
+<a href=#125 id=125 data-nosnippet>125</a></span>);
+<a href=#126 id=126 data-nosnippet>126</a>
+<a href=#127 id=127 data-nosnippet>127</a><span class="kw">unsafe extern </span><span class="string">"C" </span>{
+<a href=#128 id=128 data-nosnippet>128</a>    <span class="doccomment">/// Performs the smp trampoline operation.
+<a href=#129 id=129 data-nosnippet>129</a>    </span><span class="kw">fn </span>smp_trampoline();
+<a href=#130 id=130 data-nosnippet>130</a>    <span class="doccomment">/// Performs the smp trampoline end operation.
+<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">fn </span>smp_trampoline_end();
+<a href=#132 id=132 data-nosnippet>132</a>}
+<a href=#133 id=133 data-nosnippet>133</a>
+<a href=#134 id=134 data-nosnippet>134</a><span class="doccomment">/// Busy-wait for the given number of microseconds (very rough).
+<a href=#135 id=135 data-nosnippet>135</a></span><span class="kw">fn </span>udelay(us: u32) {
+<a href=#136 id=136 data-nosnippet>136</a>    <span class="kw">for _ in </span><span class="number">0</span>..us {
+<a href=#137 id=137 data-nosnippet>137</a>        io_wait();
+<a href=#138 id=138 data-nosnippet>138</a>    }
+<a href=#139 id=139 data-nosnippet>139</a>}
+<a href=#140 id=140 data-nosnippet>140</a>
+<a href=#141 id=141 data-nosnippet>141</a><span class="doccomment">/// Performs the ensure identity mapping operation.
+<a href=#142 id=142 data-nosnippet>142</a></span><span class="kw">fn </span>ensure_identity_mapping(phys_start: u64, length: usize) {
+<a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">let </span>start = phys_start &amp; !<span class="number">0xFFFu64</span>;
+<a href=#144 id=144 data-nosnippet>144</a>    <span class="kw">let </span>end = (phys_start + length <span class="kw">as </span>u64 + <span class="number">0xFFF</span>) &amp; !<span class="number">0xFFFu64</span>;
+<a href=#145 id=145 data-nosnippet>145</a>    <span class="kw">let </span>flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+<a href=#146 id=146 data-nosnippet>146</a>
+<a href=#147 id=147 data-nosnippet>147</a>    <span class="kw">let </span><span class="kw-2">mut </span>addr = start;
+<a href=#148 id=148 data-nosnippet>148</a>    <span class="kw">while </span>addr &lt; end {
+<a href=#149 id=149 data-nosnippet>149</a>        <span class="kw">let </span>virt = VirtAddr::new(addr);
+<a href=#150 id=150 data-nosnippet>150</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(mapped) = <span class="kw">crate</span>::memory::paging::translate(virt) {
+<a href=#151 id=151 data-nosnippet>151</a>            <span class="kw">if </span>mapped.as_u64() != addr {
+<a href=#152 id=152 data-nosnippet>152</a>                <span class="macro">log::warn!</span>(
+<a href=#153 id=153 data-nosnippet>153</a>                    <span class="string">"SMP: identity map collision at {:#x} -&gt; {:#x}"</span>,
+<a href=#154 id=154 data-nosnippet>154</a>                    addr,
+<a href=#155 id=155 data-nosnippet>155</a>                    mapped.as_u64()
+<a href=#156 id=156 data-nosnippet>156</a>                );
+<a href=#157 id=157 data-nosnippet>157</a>            }
+<a href=#158 id=158 data-nosnippet>158</a>        } <span class="kw">else </span>{
+<a href=#159 id=159 data-nosnippet>159</a>            <span class="kw">let </span>page = Page::&lt;Size4KiB&gt;::containing_address(virt);
+<a href=#160 id=160 data-nosnippet>160</a>            <span class="kw">let </span>frame = PhysFrame::&lt;Size4KiB&gt;::containing_address(PhysAddr::new(addr));
+<a href=#161 id=161 data-nosnippet>161</a>            <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="kw">crate</span>::memory::paging::map_page(page, frame, flags) {
+<a href=#162 id=162 data-nosnippet>162</a>                <span class="macro">log::error!</span>(<span class="string">"SMP: failed to identity map {:#x}: {}"</span>, addr, e);
+<a href=#163 id=163 data-nosnippet>163</a>            }
+<a href=#164 id=164 data-nosnippet>164</a>        }
+<a href=#165 id=165 data-nosnippet>165</a>        addr += <span class="number">0x1000</span>;
+<a href=#166 id=166 data-nosnippet>166</a>    }
+<a href=#167 id=167 data-nosnippet>167</a>}
+<a href=#168 id=168 data-nosnippet>168</a>
+<a href=#169 id=169 data-nosnippet>169</a><span class="doccomment">/// Performs the copy trampoline operation.
+<a href=#170 id=170 data-nosnippet>170</a></span><span class="kw">fn </span>copy_trampoline(cr3_phys: u64, stacks_ptr: <span class="kw-2">*const </span>u64) {
+<a href=#171 id=171 data-nosnippet>171</a>    <span class="kw">let </span>tramp_len = (smp_trampoline_end <span class="kw">as </span><span class="kw-2">*const </span>u8 <span class="kw">as </span>usize)
+<a href=#172 id=172 data-nosnippet>172</a>        .saturating_sub(smp_trampoline <span class="kw">as </span><span class="kw-2">*const </span>u8 <span class="kw">as </span>usize);
 <a href=#173 id=173 data-nosnippet>173</a>
-<a href=#174 id=174 data-nosnippet>174</a>    <span class="kw">let </span>tramp_virt = memory::phys_to_virt(TRAMPOLINE_PHYS_ADDR) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#174 id=174 data-nosnippet>174</a>    ensure_identity_mapping(TRAMPOLINE_PHYS_ADDR, tramp_len + <span class="number">16</span>);
 <a href=#175 id=175 data-nosnippet>175</a>
-<a href=#176 id=176 data-nosnippet>176</a>    <span class="comment">// SAFETY: trampoline destination is mapped and writable in HHDM.
-<a href=#177 id=177 data-nosnippet>177</a>    </span><span class="kw">unsafe </span>{
-<a href=#178 id=178 data-nosnippet>178</a>        core::ptr::copy_nonoverlapping(smp_trampoline <span class="kw">as </span><span class="kw-2">*const </span>u8, tramp_virt, tramp_len);
-<a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span>ptrs = tramp_virt.add(tramp_len) <span class="kw">as </span><span class="kw-2">*mut </span>u64;
-<a href=#180 id=180 data-nosnippet>180</a>        core::ptr::write_volatile(ptrs, cr3_phys);
-<a href=#181 id=181 data-nosnippet>181</a>        core::ptr::write_volatile(ptrs.add(<span class="number">1</span>), stacks_ptr <span class="kw">as </span>u64);
-<a href=#182 id=182 data-nosnippet>182</a>    }
-<a href=#183 id=183 data-nosnippet>183</a>}
-<a href=#184 id=184 data-nosnippet>184</a>
-<a href=#185 id=185 data-nosnippet>185</a><span class="doccomment">/// Performs the wait delivery operation.
-<a href=#186 id=186 data-nosnippet>186</a></span><span class="kw">fn </span>wait_delivery() {
-<a href=#187 id=187 data-nosnippet>187</a>    <span class="kw">const </span>DELIVERY_STATUS: u32 = <span class="number">1 </span>&lt;&lt; <span class="number">12</span>;
-<a href=#188 id=188 data-nosnippet>188</a>    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">1_000_000 </span>{
-<a href=#189 id=189 data-nosnippet>189</a>        <span class="comment">// SAFETY: APIC initialized, ICR low is readable.
-<a href=#190 id=190 data-nosnippet>190</a>        </span><span class="kw">let </span>val = <span class="kw">unsafe </span>{ apic::read_reg(apic::REG_ICR_LOW) };
-<a href=#191 id=191 data-nosnippet>191</a>        <span class="kw">if </span>val &amp; DELIVERY_STATUS == <span class="number">0 </span>{
-<a href=#192 id=192 data-nosnippet>192</a>            <span class="kw">return</span>;
-<a href=#193 id=193 data-nosnippet>193</a>        }
-<a href=#194 id=194 data-nosnippet>194</a>        core::hint::spin_loop();
-<a href=#195 id=195 data-nosnippet>195</a>    }
-<a href=#196 id=196 data-nosnippet>196</a>    <span class="macro">log::warn!</span>(<span class="string">"SMP: IPI delivery timeout"</span>);
-<a href=#197 id=197 data-nosnippet>197</a>}
-<a href=#198 id=198 data-nosnippet>198</a>
-<a href=#199 id=199 data-nosnippet>199</a><span class="doccomment">/// Performs the send ipi operation.
-<a href=#200 id=200 data-nosnippet>200</a></span><span class="kw">fn </span>send_ipi(apic_id: u32, value: u32) {
-<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">unsafe </span>{
-<a href=#202 id=202 data-nosnippet>202</a>        apic::write_reg(apic::REG_ESR, <span class="number">0</span>);
-<a href=#203 id=203 data-nosnippet>203</a>        apic::write_reg(apic::REG_ESR, <span class="number">0</span>);
-<a href=#204 id=204 data-nosnippet>204</a>        apic::write_reg(apic::REG_ICR_HIGH, apic_id &lt;&lt; <span class="number">24</span>);
-<a href=#205 id=205 data-nosnippet>205</a>        apic::write_reg(apic::REG_ICR_LOW, value);
-<a href=#206 id=206 data-nosnippet>206</a>    }
-<a href=#207 id=207 data-nosnippet>207</a>    wait_delivery();
-<a href=#208 id=208 data-nosnippet>208</a>}
-<a href=#209 id=209 data-nosnippet>209</a>
-<a href=#210 id=210 data-nosnippet>210</a><span class="doccomment">/// Performs the send init sipi operation.
-<a href=#211 id=211 data-nosnippet>211</a></span><span class="kw">fn </span>send_init_sipi(apic_id: u32) {
-<a href=#212 id=212 data-nosnippet>212</a>    <span class="comment">// INIT IPI (assert)
-<a href=#213 id=213 data-nosnippet>213</a>    </span>send_ipi(apic_id, <span class="number">0x0000_c500</span>);
-<a href=#214 id=214 data-nosnippet>214</a>    udelay(<span class="number">10_000</span>);
-<a href=#215 id=215 data-nosnippet>215</a>
-<a href=#216 id=216 data-nosnippet>216</a>    <span class="comment">// INIT de-assert
-<a href=#217 id=217 data-nosnippet>217</a>    </span>send_ipi(apic_id, <span class="number">0x0000_8500</span>);
-<a href=#218 id=218 data-nosnippet>218</a>    udelay(<span class="number">200</span>);
-<a href=#219 id=219 data-nosnippet>219</a>
-<a href=#220 id=220 data-nosnippet>220</a>    <span class="comment">// SIPI twice, vector = 0x8 (0x8000 &gt;&gt; 12)
-<a href=#221 id=221 data-nosnippet>221</a>    </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">2 </span>{
-<a href=#222 id=222 data-nosnippet>222</a>        send_ipi(apic_id, <span class="number">0x0000_0608</span>);
-<a href=#223 id=223 data-nosnippet>223</a>        udelay(<span class="number">200</span>);
-<a href=#224 id=224 data-nosnippet>224</a>    }
-<a href=#225 id=225 data-nosnippet>225</a>}
-<a href=#226 id=226 data-nosnippet>226</a>
-<a href=#227 id=227 data-nosnippet>227</a><span class="doccomment">/// Boot Application Processors.
-<a href=#228 id=228 data-nosnippet>228</a></span><span class="kw">pub fn </span>init() -&gt; <span class="prelude-ty">Result</span>&lt;usize, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#229 id=229 data-nosnippet>229</a>    <span class="kw">if </span>!apic::is_initialized() {
-<a href=#230 id=230 data-nosnippet>230</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"APIC not initialized"</span>);
-<a href=#231 id=231 data-nosnippet>231</a>    }
-<a href=#232 id=232 data-nosnippet>232</a>
-<a href=#233 id=233 data-nosnippet>233</a>    BOOTED_CORES.store(<span class="number">1</span>, Ordering::Release);
+<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">let </span>tramp_virt = memory::phys_to_virt(TRAMPOLINE_PHYS_ADDR) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#177 id=177 data-nosnippet>177</a>
+<a href=#178 id=178 data-nosnippet>178</a>    <span class="comment">// SAFETY: trampoline destination is mapped and writable in HHDM.
+<a href=#179 id=179 data-nosnippet>179</a>    </span><span class="kw">unsafe </span>{
+<a href=#180 id=180 data-nosnippet>180</a>        core::ptr::copy_nonoverlapping(smp_trampoline <span class="kw">as </span><span class="kw-2">*const </span>u8, tramp_virt, tramp_len);
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="kw">let </span>ptrs = tramp_virt.add(tramp_len) <span class="kw">as </span><span class="kw-2">*mut </span>u64;
+<a href=#182 id=182 data-nosnippet>182</a>        core::ptr::write_volatile(ptrs, cr3_phys);
+<a href=#183 id=183 data-nosnippet>183</a>        core::ptr::write_volatile(ptrs.add(<span class="number">1</span>), stacks_ptr <span class="kw">as </span>u64);
+<a href=#184 id=184 data-nosnippet>184</a>    }
+<a href=#185 id=185 data-nosnippet>185</a>}
+<a href=#186 id=186 data-nosnippet>186</a>
+<a href=#187 id=187 data-nosnippet>187</a><span class="doccomment">/// Performs the wait delivery operation.
+<a href=#188 id=188 data-nosnippet>188</a></span><span class="kw">fn </span>wait_delivery() {
+<a href=#189 id=189 data-nosnippet>189</a>    <span class="kw">const </span>DELIVERY_STATUS: u32 = <span class="number">1 </span>&lt;&lt; <span class="number">12</span>;
+<a href=#190 id=190 data-nosnippet>190</a>    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">1_000_000 </span>{
+<a href=#191 id=191 data-nosnippet>191</a>        <span class="comment">// SAFETY: APIC initialized, ICR low is readable.
+<a href=#192 id=192 data-nosnippet>192</a>        </span><span class="kw">let </span>val = <span class="kw">unsafe </span>{ apic::read_reg(apic::REG_ICR_LOW) };
+<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw">if </span>val &amp; DELIVERY_STATUS == <span class="number">0 </span>{
+<a href=#194 id=194 data-nosnippet>194</a>            <span class="kw">return</span>;
+<a href=#195 id=195 data-nosnippet>195</a>        }
+<a href=#196 id=196 data-nosnippet>196</a>        core::hint::spin_loop();
+<a href=#197 id=197 data-nosnippet>197</a>    }
+<a href=#198 id=198 data-nosnippet>198</a>    <span class="macro">log::warn!</span>(<span class="string">"SMP: IPI delivery timeout"</span>);
+<a href=#199 id=199 data-nosnippet>199</a>}
+<a href=#200 id=200 data-nosnippet>200</a>
+<a href=#201 id=201 data-nosnippet>201</a><span class="doccomment">/// Performs the send ipi operation.
+<a href=#202 id=202 data-nosnippet>202</a></span><span class="kw">fn </span>send_ipi(apic_id: u32, value: u32) {
+<a href=#203 id=203 data-nosnippet>203</a>    <span class="kw">unsafe </span>{
+<a href=#204 id=204 data-nosnippet>204</a>        apic::write_reg(apic::REG_ESR, <span class="number">0</span>);
+<a href=#205 id=205 data-nosnippet>205</a>        apic::write_reg(apic::REG_ESR, <span class="number">0</span>);
+<a href=#206 id=206 data-nosnippet>206</a>        apic::write_reg(apic::REG_ICR_HIGH, apic_id &lt;&lt; <span class="number">24</span>);
+<a href=#207 id=207 data-nosnippet>207</a>        apic::write_reg(apic::REG_ICR_LOW, value);
+<a href=#208 id=208 data-nosnippet>208</a>    }
+<a href=#209 id=209 data-nosnippet>209</a>    wait_delivery();
+<a href=#210 id=210 data-nosnippet>210</a>}
+<a href=#211 id=211 data-nosnippet>211</a>
+<a href=#212 id=212 data-nosnippet>212</a><span class="doccomment">/// Performs the send init sipi operation.
+<a href=#213 id=213 data-nosnippet>213</a></span><span class="kw">fn </span>send_init_sipi(apic_id: u32) {
+<a href=#214 id=214 data-nosnippet>214</a>    <span class="comment">// INIT IPI (assert)
+<a href=#215 id=215 data-nosnippet>215</a>    </span>send_ipi(apic_id, <span class="number">0x0000_c500</span>);
+<a href=#216 id=216 data-nosnippet>216</a>    udelay(<span class="number">10_000</span>);
+<a href=#217 id=217 data-nosnippet>217</a>
+<a href=#218 id=218 data-nosnippet>218</a>    <span class="comment">// INIT de-assert
+<a href=#219 id=219 data-nosnippet>219</a>    </span>send_ipi(apic_id, <span class="number">0x0000_8500</span>);
+<a href=#220 id=220 data-nosnippet>220</a>    udelay(<span class="number">200</span>);
+<a href=#221 id=221 data-nosnippet>221</a>
+<a href=#222 id=222 data-nosnippet>222</a>    <span class="comment">// SIPI twice, vector = 0x8 (0x8000 &gt;&gt; 12)
+<a href=#223 id=223 data-nosnippet>223</a>    </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">2 </span>{
+<a href=#224 id=224 data-nosnippet>224</a>        send_ipi(apic_id, <span class="number">0x0000_0608</span>);
+<a href=#225 id=225 data-nosnippet>225</a>        udelay(<span class="number">200</span>);
+<a href=#226 id=226 data-nosnippet>226</a>    }
+<a href=#227 id=227 data-nosnippet>227</a>}
+<a href=#228 id=228 data-nosnippet>228</a>
+<a href=#229 id=229 data-nosnippet>229</a><span class="doccomment">/// Boot Application Processors.
+<a href=#230 id=230 data-nosnippet>230</a></span><span class="kw">pub fn </span>init() -&gt; <span class="prelude-ty">Result</span>&lt;usize, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#231 id=231 data-nosnippet>231</a>    <span class="kw">if </span>!apic::is_initialized() {
+<a href=#232 id=232 data-nosnippet>232</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"APIC not initialized"</span>);
+<a href=#233 id=233 data-nosnippet>233</a>    }
 <a href=#234 id=234 data-nosnippet>234</a>
-<a href=#235 id=235 data-nosnippet>235</a>    <span class="kw">let </span>madt_info = madt::parse_madt().ok_or(<span class="string">"MADT not available"</span>)<span class="question-mark">?</span>;
-<a href=#236 id=236 data-nosnippet>236</a>    <span class="kw">let </span>bsp_apic_id = apic::lapic_id();
-<a href=#237 id=237 data-nosnippet>237</a>
-<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">if </span>madt_info.local_apic_count &lt;= <span class="number">1 </span>{
-<a href=#239 id=239 data-nosnippet>239</a>        <span class="macro">log::info!</span>(<span class="string">"SMP: single CPU system"</span>);
-<a href=#240 id=240 data-nosnippet>240</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">1</span>);
-<a href=#241 id=241 data-nosnippet>241</a>    }
-<a href=#242 id=242 data-nosnippet>242</a>
-<a href=#243 id=243 data-nosnippet>243</a>    <span class="kw">let </span><span class="kw-2">mut </span>max_apic_id: usize = <span class="number">0</span>;
-<a href=#244 id=244 data-nosnippet>244</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..madt_info.local_apic_count {
-<a href=#245 id=245 data-nosnippet>245</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>entry) = madt_info.local_apics[i] {
-<a href=#246 id=246 data-nosnippet>246</a>            max_apic_id = max_apic_id.max(entry.apic_id <span class="kw">as </span>usize);
-<a href=#247 id=247 data-nosnippet>247</a>        }
-<a href=#248 id=248 data-nosnippet>248</a>    }
-<a href=#249 id=249 data-nosnippet>249</a>
-<a href=#250 id=250 data-nosnippet>250</a>    <span class="kw">let </span><span class="kw-2">mut </span>stacks: Vec&lt;u64&gt; = <span class="macro">vec!</span>[<span class="number">0</span>; max_apic_id + <span class="number">1</span>];
-<a href=#251 id=251 data-nosnippet>251</a>    <span class="kw">let </span>cr3_phys = <span class="kw">crate</span>::memory::paging::kernel_l4_phys().as_u64();
-<a href=#252 id=252 data-nosnippet>252</a>    <span class="kw">let </span><span class="kw-2">mut </span>targets: Vec&lt;u32&gt; = Vec::new();
-<a href=#253 id=253 data-nosnippet>253</a>    <span class="kw">let </span><span class="kw-2">mut </span>expected: usize = <span class="number">1</span>;
-<a href=#254 id=254 data-nosnippet>254</a>
-<a href=#255 id=255 data-nosnippet>255</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..madt_info.local_apic_count {
-<a href=#256 id=256 data-nosnippet>256</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>entry) = madt_info.local_apics[i] <span class="kw">else </span>{
-<a href=#257 id=257 data-nosnippet>257</a>            <span class="kw">continue</span>;
-<a href=#258 id=258 data-nosnippet>258</a>        };
-<a href=#259 id=259 data-nosnippet>259</a>
-<a href=#260 id=260 data-nosnippet>260</a>        <span class="kw">let </span>apic_id = entry.apic_id <span class="kw">as </span>u32;
-<a href=#261 id=261 data-nosnippet>261</a>        <span class="kw">if </span>apic_id == bsp_apic_id {
-<a href=#262 id=262 data-nosnippet>262</a>            <span class="kw">continue</span>;
-<a href=#263 id=263 data-nosnippet>263</a>        }
-<a href=#264 id=264 data-nosnippet>264</a>
-<a href=#265 id=265 data-nosnippet>265</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="kw">crate</span>::process::task::Task::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
-<a href=#266 id=266 data-nosnippet>266</a>        <span class="kw">let </span>stack_top = kernel_stack.virt_base.as_u64() + kernel_stack.size <span class="kw">as </span>u64;
-<a href=#267 id=267 data-nosnippet>267</a>
-<a href=#268 id=268 data-nosnippet>268</a>        <span class="kw">if </span>apic_id <span class="kw">as </span>usize &gt;= stacks.len() {
-<a href=#269 id=269 data-nosnippet>269</a>            <span class="macro">log::warn!</span>(<span class="string">"SMP: APIC id {} out of stack array range"</span>, apic_id);
-<a href=#270 id=270 data-nosnippet>270</a>            <span class="kw">continue</span>;
-<a href=#271 id=271 data-nosnippet>271</a>        }
-<a href=#272 id=272 data-nosnippet>272</a>
-<a href=#273 id=273 data-nosnippet>273</a>        stacks[apic_id <span class="kw">as </span>usize] = stack_top;
+<a href=#235 id=235 data-nosnippet>235</a>    BOOTED_CORES.store(<span class="number">1</span>, Ordering::Release);
+<a href=#236 id=236 data-nosnippet>236</a>
+<a href=#237 id=237 data-nosnippet>237</a>    <span class="kw">let </span>madt_info = madt::parse_madt().ok_or(<span class="string">"MADT not available"</span>)<span class="question-mark">?</span>;
+<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">let </span>bsp_apic_id = apic::lapic_id();
+<a href=#239 id=239 data-nosnippet>239</a>
+<a href=#240 id=240 data-nosnippet>240</a>    <span class="kw">if </span>madt_info.local_apic_count &lt;= <span class="number">1 </span>{
+<a href=#241 id=241 data-nosnippet>241</a>        <span class="macro">log::info!</span>(<span class="string">"SMP: single CPU system"</span>);
+<a href=#242 id=242 data-nosnippet>242</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">1</span>);
+<a href=#243 id=243 data-nosnippet>243</a>    }
+<a href=#244 id=244 data-nosnippet>244</a>
+<a href=#245 id=245 data-nosnippet>245</a>    <span class="kw">let </span><span class="kw-2">mut </span>max_apic_id: usize = <span class="number">0</span>;
+<a href=#246 id=246 data-nosnippet>246</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..madt_info.local_apic_count {
+<a href=#247 id=247 data-nosnippet>247</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>entry) = madt_info.local_apics[i] {
+<a href=#248 id=248 data-nosnippet>248</a>            max_apic_id = max_apic_id.max(entry.apic_id <span class="kw">as </span>usize);
+<a href=#249 id=249 data-nosnippet>249</a>        }
+<a href=#250 id=250 data-nosnippet>250</a>    }
+<a href=#251 id=251 data-nosnippet>251</a>
+<a href=#252 id=252 data-nosnippet>252</a>    <span class="kw">let </span><span class="kw-2">mut </span>stacks: Vec&lt;u64&gt; = <span class="macro">vec!</span>[<span class="number">0</span>; max_apic_id + <span class="number">1</span>];
+<a href=#253 id=253 data-nosnippet>253</a>    <span class="kw">let </span>cr3_phys = <span class="kw">crate</span>::memory::paging::kernel_l4_phys().as_u64();
+<a href=#254 id=254 data-nosnippet>254</a>    <span class="kw">let </span><span class="kw-2">mut </span>targets: Vec&lt;u32&gt; = Vec::new();
+<a href=#255 id=255 data-nosnippet>255</a>    <span class="kw">let </span><span class="kw-2">mut </span>expected: usize = <span class="number">1</span>;
+<a href=#256 id=256 data-nosnippet>256</a>
+<a href=#257 id=257 data-nosnippet>257</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..madt_info.local_apic_count {
+<a href=#258 id=258 data-nosnippet>258</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>entry) = madt_info.local_apics[i] <span class="kw">else </span>{
+<a href=#259 id=259 data-nosnippet>259</a>            <span class="kw">continue</span>;
+<a href=#260 id=260 data-nosnippet>260</a>        };
+<a href=#261 id=261 data-nosnippet>261</a>
+<a href=#262 id=262 data-nosnippet>262</a>        <span class="kw">let </span>apic_id = entry.apic_id <span class="kw">as </span>u32;
+<a href=#263 id=263 data-nosnippet>263</a>        <span class="kw">if </span>apic_id == bsp_apic_id {
+<a href=#264 id=264 data-nosnippet>264</a>            <span class="kw">continue</span>;
+<a href=#265 id=265 data-nosnippet>265</a>        }
+<a href=#266 id=266 data-nosnippet>266</a>
+<a href=#267 id=267 data-nosnippet>267</a>        <span class="kw">let </span>kernel_stack = KernelStack::allocate(<span class="kw">crate</span>::process::task::Task::DEFAULT_STACK_SIZE)<span class="question-mark">?</span>;
+<a href=#268 id=268 data-nosnippet>268</a>        <span class="kw">let </span>stack_top = kernel_stack.virt_base.as_u64() + kernel_stack.size <span class="kw">as </span>u64;
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>        <span class="kw">if </span>apic_id <span class="kw">as </span>usize &gt;= stacks.len() {
+<a href=#271 id=271 data-nosnippet>271</a>            <span class="macro">log::warn!</span>(<span class="string">"SMP: APIC id {} out of stack array range"</span>, apic_id);
+<a href=#272 id=272 data-nosnippet>272</a>            <span class="kw">continue</span>;
+<a href=#273 id=273 data-nosnippet>273</a>        }
 <a href=#274 id=274 data-nosnippet>274</a>
-<a href=#275 id=275 data-nosnippet>275</a>        <span class="kw">let </span>cpu_index =
-<a href=#276 id=276 data-nosnippet>276</a>            percpu::register_cpu(apic_id).ok_or(<span class="string">"SMP: exceeded MAX_CPUS for per-CPU data"</span>)<span class="question-mark">?</span>;
-<a href=#277 id=277 data-nosnippet>277</a>        percpu::set_kernel_stack_top(cpu_index, stack_top);
-<a href=#278 id=278 data-nosnippet>278</a>
-<a href=#279 id=279 data-nosnippet>279</a>        AP_KERNEL_STACKS.lock().push(kernel_stack);
-<a href=#280 id=280 data-nosnippet>280</a>        targets.push(apic_id);
-<a href=#281 id=281 data-nosnippet>281</a>        expected += <span class="number">1</span>;
-<a href=#282 id=282 data-nosnippet>282</a>    }
-<a href=#283 id=283 data-nosnippet>283</a>
-<a href=#284 id=284 data-nosnippet>284</a>    copy_trampoline(cr3_phys, stacks.as_ptr());
+<a href=#275 id=275 data-nosnippet>275</a>        stacks[apic_id <span class="kw">as </span>usize] = stack_top;
+<a href=#276 id=276 data-nosnippet>276</a>
+<a href=#277 id=277 data-nosnippet>277</a>        <span class="kw">let </span>cpu_index =
+<a href=#278 id=278 data-nosnippet>278</a>            percpu::register_cpu(apic_id).ok_or(<span class="string">"SMP: exceeded MAX_CPUS for per-CPU data"</span>)<span class="question-mark">?</span>;
+<a href=#279 id=279 data-nosnippet>279</a>        percpu::set_kernel_stack_top(cpu_index, stack_top);
+<a href=#280 id=280 data-nosnippet>280</a>
+<a href=#281 id=281 data-nosnippet>281</a>        AP_KERNEL_STACKS.lock().push(kernel_stack);
+<a href=#282 id=282 data-nosnippet>282</a>        targets.push(apic_id);
+<a href=#283 id=283 data-nosnippet>283</a>        expected += <span class="number">1</span>;
+<a href=#284 id=284 data-nosnippet>284</a>    }
 <a href=#285 id=285 data-nosnippet>285</a>
-<a href=#286 id=286 data-nosnippet>286</a>    <span class="kw">for </span>apic_id <span class="kw">in </span>targets {
-<a href=#287 id=287 data-nosnippet>287</a>        send_init_sipi(apic_id);
-<a href=#288 id=288 data-nosnippet>288</a>    }
-<a href=#289 id=289 data-nosnippet>289</a>
-<a href=#290 id=290 data-nosnippet>290</a>    <span class="kw">while </span>BOOTED_CORES.load(Ordering::Acquire) &lt; expected {
-<a href=#291 id=291 data-nosnippet>291</a>        core::hint::spin_loop();
-<a href=#292 id=292 data-nosnippet>292</a>    }
-<a href=#293 id=293 data-nosnippet>293</a>
-<a href=#294 id=294 data-nosnippet>294</a>    <span class="macro">log::info!</span>(<span class="string">"SMP: {} cores online"</span>, expected);
-<a href=#295 id=295 data-nosnippet>295</a>    <span class="prelude-val">Ok</span>(expected)
-<a href=#296 id=296 data-nosnippet>296</a>}
-<a href=#297 id=297 data-nosnippet>297</a>
-<a href=#298 id=298 data-nosnippet>298</a><span class="doccomment">/// First Rust function executed on APs after the trampoline.
-<a href=#299 id=299 data-nosnippet>299</a></span><span class="attr">#[<span class="kw">unsafe</span>(no_mangle)]
-<a href=#300 id=300 data-nosnippet>300</a></span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>smp_main() -&gt; ! {
-<a href=#301 id=301 data-nosnippet>301</a>    <span class="comment">// Load IDT for this core (shared IDT is fine for now).
-<a href=#302 id=302 data-nosnippet>302</a>    </span>idt::init();
-<a href=#303 id=303 data-nosnippet>303</a>
-<a href=#304 id=304 data-nosnippet>304</a>    <span class="comment">// Re-initialize Local APIC for this core (per-core registers).
-<a href=#305 id=305 data-nosnippet>305</a>    </span>apic::init_ap();
-<a href=#306 id=306 data-nosnippet>306</a>
-<a href=#307 id=307 data-nosnippet>307</a>    <span class="kw">let </span>apic_id = apic::lapic_id();
-<a href=#308 id=308 data-nosnippet>308</a>    <span class="kw">let </span>cpu_index = <span class="kw">match </span>percpu::cpu_index_by_apic(apic_id) {
-<a href=#309 id=309 data-nosnippet>309</a>        <span class="prelude-val">Some</span>(idx) =&gt; idx,
-<a href=#310 id=310 data-nosnippet>310</a>        <span class="prelude-val">None </span>=&gt; {
-<a href=#311 id=311 data-nosnippet>311</a>            <span class="comment">// If we fall back to 0, this AP would share the BSP's
-<a href=#312 id=312 data-nosnippet>312</a>            // CPU index and double-increment TICK_COUNT 2× timer speed.
-<a href=#313 id=313 data-nosnippet>313</a>            </span><span class="macro">log::error!</span>(<span class="string">"SMP AP: APIC id {} not registered — halting core"</span>, apic_id);
-<a href=#314 id=314 data-nosnippet>314</a>            <span class="kw">loop </span>{
-<a href=#315 id=315 data-nosnippet>315</a>                core::hint::spin_loop();
-<a href=#316 id=316 data-nosnippet>316</a>            }
-<a href=#317 id=317 data-nosnippet>317</a>        }
-<a href=#318 id=318 data-nosnippet>318</a>    };
-<a href=#319 id=319 data-nosnippet>319</a>
-<a href=#320 id=320 data-nosnippet>320</a>    <span class="comment">// Initialize per-CPU TSS/GDT.
-<a href=#321 id=321 data-nosnippet>321</a>    </span><span class="kw">crate</span>::arch::x86_64::tss::init_cpu(cpu_index);
-<a href=#322 id=322 data-nosnippet>322</a>    <span class="kw">crate</span>::arch::x86_64::gdt::init_cpu(cpu_index);
-<a href=#323 id=323 data-nosnippet>323</a>    <span class="kw">crate</span>::arch::x86_64::percpu::init_gs_base(cpu_index);
-<a href=#324 id=324 data-nosnippet>324</a>    <span class="kw">crate</span>::arch::x86_64::syscall::init();
-<a href=#325 id=325 data-nosnippet>325</a>    <span class="kw">crate</span>::arch::x86_64::init_cpu_extensions();
-<a href=#326 id=326 data-nosnippet>326</a>
-<a href=#327 id=327 data-nosnippet>327</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(stack_top) = percpu::kernel_stack_top(cpu_index) {
-<a href=#328 id=328 data-nosnippet>328</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack_for(cpu_index, x86_64::VirtAddr::new(stack_top));
-<a href=#329 id=329 data-nosnippet>329</a>    }
-<a href=#330 id=330 data-nosnippet>330</a>
-<a href=#331 id=331 data-nosnippet>331</a>    <span class="kw">let _ </span>= percpu::mark_online_by_apic(apic_id);
-<a href=#332 id=332 data-nosnippet>332</a>    BOOTED_CORES.fetch_add(<span class="number">1</span>, Ordering::Release);
-<a href=#333 id=333 data-nosnippet>333</a>
-<a href=#334 id=334 data-nosnippet>334</a>    <span class="comment">// Start APIC timer on this CPU (uses cached calibration from BSP).
-<a href=#335 id=335 data-nosnippet>335</a>    </span>timer::start_apic_timer_cached();
-<a href=#336 id=336 data-nosnippet>336</a>
-<a href=#337 id=337 data-nosnippet>337</a>    <span class="comment">// Start per-CPU scheduler (never returns).
-<a href=#338 id=338 data-nosnippet>338</a>    </span><span class="kw">crate</span>::process::scheduler::schedule_on_cpu(cpu_index)
-<a href=#339 id=339 data-nosnippet>339</a>}
-<a href=#340 id=340 data-nosnippet>340</a>
-<a href=#341 id=341 data-nosnippet>341</a><span class="doccomment">/// Return the number of online CPUs.
-<a href=#342 id=342 data-nosnippet>342</a></span><span class="kw">pub fn </span>cpu_count() -&gt; usize {
-<a href=#343 id=343 data-nosnippet>343</a>    BOOTED_CORES.load(Ordering::Acquire)
-<a href=#344 id=344 data-nosnippet>344</a>}
+<a href=#286 id=286 data-nosnippet>286</a>    copy_trampoline(cr3_phys, stacks.as_ptr());
+<a href=#287 id=287 data-nosnippet>287</a>
+<a href=#288 id=288 data-nosnippet>288</a>    <span class="kw">for </span>apic_id <span class="kw">in </span>targets {
+<a href=#289 id=289 data-nosnippet>289</a>        send_init_sipi(apic_id);
+<a href=#290 id=290 data-nosnippet>290</a>    }
+<a href=#291 id=291 data-nosnippet>291</a>
+<a href=#292 id=292 data-nosnippet>292</a>    <span class="comment">// Do not spin forever if one AP fails very early (e.g. trampoline fault).
+<a href=#293 id=293 data-nosnippet>293</a>    // Keep booting with available CPUs and report partial bring-up.
+<a href=#294 id=294 data-nosnippet>294</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>spins: u64 = <span class="number">0</span>;
+<a href=#295 id=295 data-nosnippet>295</a>    <span class="kw">const </span>MAX_SPINS: u64 = <span class="number">200_000_000</span>;
+<a href=#296 id=296 data-nosnippet>296</a>    <span class="kw">while </span>BOOTED_CORES.load(Ordering::Acquire) &lt; expected &amp;&amp; spins &lt; MAX_SPINS {
+<a href=#297 id=297 data-nosnippet>297</a>        core::hint::spin_loop();
+<a href=#298 id=298 data-nosnippet>298</a>        spins = spins.saturating_add(<span class="number">1</span>);
+<a href=#299 id=299 data-nosnippet>299</a>    }
+<a href=#300 id=300 data-nosnippet>300</a>    <span class="kw">if </span>BOOTED_CORES.load(Ordering::Acquire) &lt; expected {
+<a href=#301 id=301 data-nosnippet>301</a>        <span class="macro">log::warn!</span>(
+<a href=#302 id=302 data-nosnippet>302</a>            <span class="string">"SMP: timeout waiting APs (online={} expected={}), continuing"</span>,
+<a href=#303 id=303 data-nosnippet>303</a>            BOOTED_CORES.load(Ordering::Acquire),
+<a href=#304 id=304 data-nosnippet>304</a>            expected
+<a href=#305 id=305 data-nosnippet>305</a>        );
+<a href=#306 id=306 data-nosnippet>306</a>    }
+<a href=#307 id=307 data-nosnippet>307</a>
+<a href=#308 id=308 data-nosnippet>308</a>    <span class="kw">let </span>online = BOOTED_CORES.load(Ordering::Acquire);
+<a href=#309 id=309 data-nosnippet>309</a>    <span class="macro">log::info!</span>(<span class="string">"SMP: {} cores online (expected {})"</span>, online, expected);
+<a href=#310 id=310 data-nosnippet>310</a>    <span class="prelude-val">Ok</span>(online)
+<a href=#311 id=311 data-nosnippet>311</a>}
+<a href=#312 id=312 data-nosnippet>312</a>
+<a href=#313 id=313 data-nosnippet>313</a><span class="doccomment">/// First Rust function executed on APs after the trampoline.
+<a href=#314 id=314 data-nosnippet>314</a></span><span class="attr">#[<span class="kw">unsafe</span>(no_mangle)]
+<a href=#315 id=315 data-nosnippet>315</a></span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>smp_main() -&gt; ! {
+<a href=#316 id=316 data-nosnippet>316</a>    <span class="comment">// Load IDT for this core (shared IDT is fine for now).
+<a href=#317 id=317 data-nosnippet>317</a>    </span>idt::init();
+<a href=#318 id=318 data-nosnippet>318</a>
+<a href=#319 id=319 data-nosnippet>319</a>    <span class="comment">// Re-initialize Local APIC for this core (per-core registers).
+<a href=#320 id=320 data-nosnippet>320</a>    </span>apic::init_ap();
+<a href=#321 id=321 data-nosnippet>321</a>
+<a href=#322 id=322 data-nosnippet>322</a>    <span class="kw">let </span>apic_id = apic::lapic_id();
+<a href=#323 id=323 data-nosnippet>323</a>    <span class="kw">let </span>cpu_index = <span class="kw">match </span>percpu::cpu_index_by_apic(apic_id) {
+<a href=#324 id=324 data-nosnippet>324</a>        <span class="prelude-val">Some</span>(idx) =&gt; idx,
+<a href=#325 id=325 data-nosnippet>325</a>        <span class="prelude-val">None </span>=&gt; {
+<a href=#326 id=326 data-nosnippet>326</a>            <span class="comment">// If we fall back to 0, this AP would share the BSP's
+<a href=#327 id=327 data-nosnippet>327</a>            // CPU index and double-increment TICK_COUNT 2× timer speed.
+<a href=#328 id=328 data-nosnippet>328</a>            </span><span class="macro">log::error!</span>(<span class="string">"SMP AP: APIC id {} not registered — halting core"</span>, apic_id);
+<a href=#329 id=329 data-nosnippet>329</a>            <span class="kw">loop </span>{
+<a href=#330 id=330 data-nosnippet>330</a>                core::hint::spin_loop();
+<a href=#331 id=331 data-nosnippet>331</a>            }
+<a href=#332 id=332 data-nosnippet>332</a>        }
+<a href=#333 id=333 data-nosnippet>333</a>    };
+<a href=#334 id=334 data-nosnippet>334</a>
+<a href=#335 id=335 data-nosnippet>335</a>    <span class="comment">// Initialize per-CPU TSS/GDT.
+<a href=#336 id=336 data-nosnippet>336</a>    </span><span class="kw">crate</span>::arch::x86_64::tss::init_cpu(cpu_index);
+<a href=#337 id=337 data-nosnippet>337</a>    <span class="kw">crate</span>::arch::x86_64::gdt::init_cpu(cpu_index);
+<a href=#338 id=338 data-nosnippet>338</a>    <span class="kw">crate</span>::arch::x86_64::percpu::init_gs_base(cpu_index);
+<a href=#339 id=339 data-nosnippet>339</a>    <span class="kw">crate</span>::arch::x86_64::syscall::init();
+<a href=#340 id=340 data-nosnippet>340</a>    <span class="kw">crate</span>::arch::x86_64::init_cpu_extensions();
+<a href=#341 id=341 data-nosnippet>341</a>
+<a href=#342 id=342 data-nosnippet>342</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(stack_top) = percpu::kernel_stack_top(cpu_index) {
+<a href=#343 id=343 data-nosnippet>343</a>        <span class="kw">crate</span>::arch::x86_64::tss::set_kernel_stack_for(cpu_index, x86_64::VirtAddr::new(stack_top));
+<a href=#344 id=344 data-nosnippet>344</a>    }
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="kw">let _ </span>= percpu::mark_online_by_apic(apic_id);
+<a href=#347 id=347 data-nosnippet>347</a>    BOOTED_CORES.fetch_add(<span class="number">1</span>, Ordering::Release);
+<a href=#348 id=348 data-nosnippet>348</a>
+<a href=#349 id=349 data-nosnippet>349</a>    <span class="comment">// Start APIC timer on this CPU (uses cached calibration from BSP).
+<a href=#350 id=350 data-nosnippet>350</a>    </span>timer::start_apic_timer_cached();
+<a href=#351 id=351 data-nosnippet>351</a>
+<a href=#352 id=352 data-nosnippet>352</a>    <span class="comment">// Start per-CPU scheduler (never returns).
+<a href=#353 id=353 data-nosnippet>353</a>    </span><span class="kw">crate</span>::process::scheduler::schedule_on_cpu(cpu_index)
+<a href=#354 id=354 data-nosnippet>354</a>}
+<a href=#355 id=355 data-nosnippet>355</a>
+<a href=#356 id=356 data-nosnippet>356</a><span class="doccomment">/// Return the number of online CPUs.
+<a href=#357 id=357 data-nosnippet>357</a></span><span class="kw">pub fn </span>cpu_count() -&gt; usize {
+<a href=#358 id=358 data-nosnippet>358</a>    BOOTED_CORES.load(Ordering::Acquire)
+<a href=#359 id=359 data-nosnippet>359</a>}
 </code></pre></div></section></main></body></html>

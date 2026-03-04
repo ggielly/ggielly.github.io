@@ -475,44 +475,46 @@
 <a href=#475 id=475 data-nosnippet>475</a>    <span class="doccomment">/// Session membership index: sid -&gt; task ids.
 <a href=#476 id=476 data-nosnippet>476</a>    </span>sid_members: BTreeMap&lt;Pid, alloc::vec::Vec&lt;TaskId&gt;&gt;,
 <a href=#477 id=477 data-nosnippet>477</a>    <span class="doccomment">/// Deadline -&gt; task ids map for sleeping tasks (ordered wakeups).
-<a href=#478 id=478 data-nosnippet>478</a>    </span>wake_deadlines: BTreeMap&lt;u64, alloc::vec::Vec&lt;TaskId&gt;&gt;,
-<a href=#479 id=479 data-nosnippet>479</a>    <span class="doccomment">/// Task -&gt; deadline reverse index.
-<a href=#480 id=480 data-nosnippet>480</a>    </span>wake_deadline_of: BTreeMap&lt;TaskId, u64&gt;,
-<a href=#481 id=481 data-nosnippet>481</a>    <span class="doccomment">/// Parent relationship: child -&gt; parent
-<a href=#482 id=482 data-nosnippet>482</a>    </span>parent_of: BTreeMap&lt;TaskId, TaskId&gt;,
-<a href=#483 id=483 data-nosnippet>483</a>    <span class="doccomment">/// Children list: parent -&gt; children
-<a href=#484 id=484 data-nosnippet>484</a>    </span>children_of: BTreeMap&lt;TaskId, alloc::vec::Vec&lt;TaskId&gt;&gt;,
-<a href=#485 id=485 data-nosnippet>485</a>    <span class="doccomment">/// Zombie exit statuses: child -&gt; (exit_code, pid)
-<a href=#486 id=486 data-nosnippet>486</a>    </span>zombies: BTreeMap&lt;TaskId, (i32, Pid)&gt;,
-<a href=#487 id=487 data-nosnippet>487</a>    <span class="doccomment">/// Scheduler class table (pick order, steal order, class metadata)
-<a href=#488 id=488 data-nosnippet>488</a>    </span>class_table: <span class="kw">crate</span>::process::sched::SchedClassTable,
-<a href=#489 id=489 data-nosnippet>489</a>}
-<a href=#490 id=490 data-nosnippet>490</a>
-<a href=#491 id=491 data-nosnippet>491</a><span class="doccomment">/// Performs the validate task context operation.
-<a href=#492 id=492 data-nosnippet>492</a></span><span class="kw">fn </span>validate_task_context(task: <span class="kw-2">&amp;</span>Arc&lt;Task&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
-<a href=#493 id=493 data-nosnippet>493</a>    <span class="kw">let </span>saved_rsp = <span class="kw">unsafe </span>{ (<span class="kw-2">*</span>task.context.get()).saved_rsp };
-<a href=#494 id=494 data-nosnippet>494</a>    <span class="kw">let </span>stack_base = task.kernel_stack.virt_base.as_u64();
-<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">let </span>stack_top = stack_base.saturating_add(task.kernel_stack.size <span class="kw">as </span>u64);
-<a href=#496 id=496 data-nosnippet>496</a>
-<a href=#497 id=497 data-nosnippet>497</a>    <span class="kw">if </span>saved_rsp &lt; stack_base || saved_rsp.saturating_add(<span class="number">56</span>) &gt; stack_top {
-<a href=#498 id=498 data-nosnippet>498</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"saved_rsp outside kernel stack bounds"</span>);
-<a href=#499 id=499 data-nosnippet>499</a>    }
-<a href=#500 id=500 data-nosnippet>500</a>
-<a href=#501 id=501 data-nosnippet>501</a>    <span class="comment">// For our switch frame layout, return IP is at [saved_rsp + 48].
-<a href=#502 id=502 data-nosnippet>502</a>    </span><span class="kw">let </span>ret_ip = <span class="kw">unsafe </span>{ core::ptr::read((saved_rsp + <span class="number">48</span>) <span class="kw">as </span><span class="kw-2">*const </span>u64) };
-<a href=#503 id=503 data-nosnippet>503</a>    <span class="kw">if </span>ret_ip == <span class="number">0 </span>{
-<a href=#504 id=504 data-nosnippet>504</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"null return IP in switch frame"</span>);
-<a href=#505 id=505 data-nosnippet>505</a>    }
-<a href=#506 id=506 data-nosnippet>506</a>
-<a href=#507 id=507 data-nosnippet>507</a>    <span class="prelude-val">Ok</span>(())
-<a href=#508 id=508 data-nosnippet>508</a>}
-<a href=#509 id=509 data-nosnippet>509</a>
-<a href=#510 id=510 data-nosnippet>510</a><span class="kw">mod </span>core_impl;
-<a href=#511 id=511 data-nosnippet>511</a><span class="kw">mod </span>runtime_ops;
-<a href=#512 id=512 data-nosnippet>512</a><span class="kw">mod </span>task_ops;
-<a href=#513 id=513 data-nosnippet>513</a><span class="kw">mod </span>timer_ops;
-<a href=#514 id=514 data-nosnippet>514</a>
-<a href=#515 id=515 data-nosnippet>515</a><span class="kw">pub use </span>runtime_ops::<span class="kw-2">*</span>;
-<a href=#516 id=516 data-nosnippet>516</a><span class="kw">pub use </span>task_ops::<span class="kw-2">*</span>;
-<a href=#517 id=517 data-nosnippet>517</a><span class="kw">pub use </span>timer_ops::<span class="kw-2">*</span>;
+<a href=#478 id=478 data-nosnippet>478</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#479 id=479 data-nosnippet>479</a>    </span>wake_deadlines: BTreeMap&lt;u64, alloc::vec::Vec&lt;TaskId&gt;&gt;,
+<a href=#480 id=480 data-nosnippet>480</a>    <span class="doccomment">/// Task -&gt; deadline reverse index.
+<a href=#481 id=481 data-nosnippet>481</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#482 id=482 data-nosnippet>482</a>    </span>wake_deadline_of: BTreeMap&lt;TaskId, u64&gt;,
+<a href=#483 id=483 data-nosnippet>483</a>    <span class="doccomment">/// Parent relationship: child -&gt; parent
+<a href=#484 id=484 data-nosnippet>484</a>    </span>parent_of: BTreeMap&lt;TaskId, TaskId&gt;,
+<a href=#485 id=485 data-nosnippet>485</a>    <span class="doccomment">/// Children list: parent -&gt; children
+<a href=#486 id=486 data-nosnippet>486</a>    </span>children_of: BTreeMap&lt;TaskId, alloc::vec::Vec&lt;TaskId&gt;&gt;,
+<a href=#487 id=487 data-nosnippet>487</a>    <span class="doccomment">/// Zombie exit statuses: child -&gt; (exit_code, pid)
+<a href=#488 id=488 data-nosnippet>488</a>    </span>zombies: BTreeMap&lt;TaskId, (i32, Pid)&gt;,
+<a href=#489 id=489 data-nosnippet>489</a>    <span class="doccomment">/// Scheduler class table (pick order, steal order, class metadata)
+<a href=#490 id=490 data-nosnippet>490</a>    </span>class_table: <span class="kw">crate</span>::process::sched::SchedClassTable,
+<a href=#491 id=491 data-nosnippet>491</a>}
+<a href=#492 id=492 data-nosnippet>492</a>
+<a href=#493 id=493 data-nosnippet>493</a><span class="doccomment">/// Performs the validate task context operation.
+<a href=#494 id=494 data-nosnippet>494</a></span><span class="kw">fn </span>validate_task_context(task: <span class="kw-2">&amp;</span>Arc&lt;Task&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str&gt; {
+<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">let </span>saved_rsp = <span class="kw">unsafe </span>{ (<span class="kw-2">*</span>task.context.get()).saved_rsp };
+<a href=#496 id=496 data-nosnippet>496</a>    <span class="kw">let </span>stack_base = task.kernel_stack.virt_base.as_u64();
+<a href=#497 id=497 data-nosnippet>497</a>    <span class="kw">let </span>stack_top = stack_base.saturating_add(task.kernel_stack.size <span class="kw">as </span>u64);
+<a href=#498 id=498 data-nosnippet>498</a>
+<a href=#499 id=499 data-nosnippet>499</a>    <span class="kw">if </span>saved_rsp &lt; stack_base || saved_rsp.saturating_add(<span class="number">56</span>) &gt; stack_top {
+<a href=#500 id=500 data-nosnippet>500</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"saved_rsp outside kernel stack bounds"</span>);
+<a href=#501 id=501 data-nosnippet>501</a>    }
+<a href=#502 id=502 data-nosnippet>502</a>
+<a href=#503 id=503 data-nosnippet>503</a>    <span class="comment">// For our switch frame layout, return IP is at [saved_rsp + 48].
+<a href=#504 id=504 data-nosnippet>504</a>    </span><span class="kw">let </span>ret_ip = <span class="kw">unsafe </span>{ core::ptr::read((saved_rsp + <span class="number">48</span>) <span class="kw">as </span><span class="kw-2">*const </span>u64) };
+<a href=#505 id=505 data-nosnippet>505</a>    <span class="kw">if </span>ret_ip == <span class="number">0 </span>{
+<a href=#506 id=506 data-nosnippet>506</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"null return IP in switch frame"</span>);
+<a href=#507 id=507 data-nosnippet>507</a>    }
+<a href=#508 id=508 data-nosnippet>508</a>
+<a href=#509 id=509 data-nosnippet>509</a>    <span class="prelude-val">Ok</span>(())
+<a href=#510 id=510 data-nosnippet>510</a>}
+<a href=#511 id=511 data-nosnippet>511</a>
+<a href=#512 id=512 data-nosnippet>512</a><span class="kw">mod </span>core_impl;
+<a href=#513 id=513 data-nosnippet>513</a><span class="kw">mod </span>runtime_ops;
+<a href=#514 id=514 data-nosnippet>514</a><span class="kw">mod </span>task_ops;
+<a href=#515 id=515 data-nosnippet>515</a><span class="kw">mod </span>timer_ops;
+<a href=#516 id=516 data-nosnippet>516</a>
+<a href=#517 id=517 data-nosnippet>517</a><span class="kw">pub use </span>runtime_ops::<span class="kw-2">*</span>;
+<a href=#518 id=518 data-nosnippet>518</a><span class="kw">pub use </span>task_ops::<span class="kw-2">*</span>;
+<a href=#519 id=519 data-nosnippet>519</a><span class="kw">pub use </span>timer_ops::<span class="kw-2">*</span>;
 </code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["O_ACCMODE","O_APPEND","O_CREAT","O_DIRECTORY","O_DSYNC","O_EXCL","O_NOCTTY","O_NOFOLLOW","O_NONBLOCK","O_RDONLY","O_RDWR","O_RSYNC","O_SYNC","O_TRUNC","O_WRONLY"],"struct":["CallFlags","MapFlags","OpenFlags","UnlinkFlags"]};
+window.SIDEBAR_ITEMS = {"constant":["O_ACCMODE","O_APPEND","O_CREAT","O_DIRECTORY","O_DSYNC","O_EXCL","O_NOCTTY","O_NOFOLLOW","O_NONBLOCK","O_RDONLY","O_RDWR","O_RSYNC","O_SYNC","O_TRUNC","O_WRONLY"],"fn":["posix_oflags_to_strat9"],"struct":["CallFlags","MapFlags","OpenFlags","UnlinkFlags"]};
