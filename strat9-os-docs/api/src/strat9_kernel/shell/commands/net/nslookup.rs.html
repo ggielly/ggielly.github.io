@@ -39,8 +39,8 @@
 <a href=#39 id=39 data-nosnippet>39</a>            }
 <a href=#40 id=40 data-nosnippet>40</a>        }
 <a href=#41 id=41 data-nosnippet>41</a>        <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
-<a href=#42 id=42 data-nosnippet>42</a>            <span class="comment">// TODO: implement raw UDP DNS query when UDP sockets are available
-<a href=#43 id=43 data-nosnippet>43</a>            </span><span class="macro">shell_println!</span>(<span class="string">"** DNS resolution not yet available (no UDP socket support)"</span>);
+<a href=#42 id=42 data-nosnippet>42</a>            <span class="comment">// TODO: optional fallback resolver if /net/resolve is unavailable
+<a href=#43 id=43 data-nosnippet>43</a>            </span><span class="macro">shell_println!</span>(<span class="string">"** DNS resolution unavailable in /net scheme"</span>);
 <a href=#44 id=44 data-nosnippet>44</a>            <span class="macro">shell_println!</span>(<span class="string">"   Configured nameserver(s): {}"</span>, dns);
 <a href=#45 id=45 data-nosnippet>45</a>        }
 <a href=#46 id=46 data-nosnippet>46</a>    }

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["TRAMPOLINE_PHYS_ADDR"],"fn":["cpu_count","init","smp_main"]};
+window.SIDEBAR_ITEMS = {"constant":["TRAMPOLINE_PHYS_ADDR"],"fn":["broadcast_panic_halt","cpu_count","init","open_ap_scheduler_gate","smp_main"]};

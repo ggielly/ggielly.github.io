@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["init"]};
+window.SIDEBAR_ITEMS = {"fn":["enter_emergency_mode","init"]};

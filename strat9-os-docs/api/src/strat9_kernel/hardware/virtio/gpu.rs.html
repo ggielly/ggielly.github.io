@@ -3,7 +3,7 @@
 <a href=#3 id=3 data-nosnippet>3</a>
 <a href=#4 id=4 data-nosnippet>4</a></span><span class="kw">use </span>crate::{
 <a href=#5 id=5 data-nosnippet>5</a>    arch::x86_64::pci::{<span class="self">self</span>, Bar, ProbeCriteria},
-<a href=#6 id=6 data-nosnippet>6</a>    memory::{allocate_dma_frame, get_allocator, phys_to_virt, FrameAllocator, PhysFrame},
+<a href=#6 id=6 data-nosnippet>6</a>    memory::{<span class="self">self</span>, allocate_dma_frame, phys_to_virt, PhysFrame},
 <a href=#7 id=7 data-nosnippet>7</a>};
 <a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>alloc::{sync::Arc, vec::Vec};
 <a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>core::sync::atomic::{AtomicBool, Ordering};
@@ -854,147 +854,140 @@
 <a href=#854 id=854 data-nosnippet>854</a>            <span class="kw">let </span>cmd_frame = allocate_dma_frame().ok_or(<span class="string">"Failed to allocate command buffer"</span>)<span class="question-mark">?</span>;
 <a href=#855 id=855 data-nosnippet>855</a>            <span class="kw">let </span>resp_frame = allocate_dma_frame().ok_or(<span class="string">"Failed to allocate response buffer"</span>)<span class="question-mark">?</span>;
 <a href=#856 id=856 data-nosnippet>856</a>
-<a href=#857 id=857 data-nosnippet>857</a>            <span class="kw">let </span>payload_frame = {
-<a href=#858 id=858 data-nosnippet>858</a>                <span class="kw">let </span><span class="kw-2">mut </span>alloc_guard = get_allocator().lock();
-<a href=#859 id=859 data-nosnippet>859</a>                <span class="kw">let </span>allocator = alloc_guard
-<a href=#860 id=860 data-nosnippet>860</a>                    .as_mut()
-<a href=#861 id=861 data-nosnippet>861</a>                    .ok_or(<span class="string">"Allocator unavailable for payload buffer"</span>)<span class="question-mark">?</span>;
-<a href=#862 id=862 data-nosnippet>862</a>                allocator
-<a href=#863 id=863 data-nosnippet>863</a>                    .alloc(VIRTQ_PAYLOAD_ORDER)
-<a href=#864 id=864 data-nosnippet>864</a>                    .map_err(|<span class="kw">_</span>| <span class="string">"Failed to allocate payload buffer"</span>)<span class="question-mark">?
-<a href=#865 id=865 data-nosnippet>865</a>            </span>};
+<a href=#857 id=857 data-nosnippet>857</a>            <span class="kw">let </span>payload_frame = memory::allocate_frames(VIRTQ_PAYLOAD_ORDER)
+<a href=#858 id=858 data-nosnippet>858</a>                .map_err(|<span class="kw">_</span>| <span class="string">"Failed to allocate payload buffer"</span>)<span class="question-mark">?</span>;
+<a href=#859 id=859 data-nosnippet>859</a>
+<a href=#860 id=860 data-nosnippet>860</a>            <span class="kw">let </span>desc_phys = desc_frame.start_address.as_u64();
+<a href=#861 id=861 data-nosnippet>861</a>            <span class="kw">let </span>avail_phys = avail_frame.start_address.as_u64();
+<a href=#862 id=862 data-nosnippet>862</a>            <span class="kw">let </span>used_phys = used_frame.start_address.as_u64();
+<a href=#863 id=863 data-nosnippet>863</a>            <span class="kw">let </span>cmd_phys = cmd_frame.start_address.as_u64();
+<a href=#864 id=864 data-nosnippet>864</a>            <span class="kw">let </span>payload_phys = payload_frame.start_address.as_u64();
+<a href=#865 id=865 data-nosnippet>865</a>            <span class="kw">let </span>resp_phys = resp_frame.start_address.as_u64();
 <a href=#866 id=866 data-nosnippet>866</a>
-<a href=#867 id=867 data-nosnippet>867</a>            <span class="kw">let </span>desc_phys = desc_frame.start_address.as_u64();
-<a href=#868 id=868 data-nosnippet>868</a>            <span class="kw">let </span>avail_phys = avail_frame.start_address.as_u64();
-<a href=#869 id=869 data-nosnippet>869</a>            <span class="kw">let </span>used_phys = used_frame.start_address.as_u64();
-<a href=#870 id=870 data-nosnippet>870</a>            <span class="kw">let </span>cmd_phys = cmd_frame.start_address.as_u64();
-<a href=#871 id=871 data-nosnippet>871</a>            <span class="kw">let </span>payload_phys = payload_frame.start_address.as_u64();
-<a href=#872 id=872 data-nosnippet>872</a>            <span class="kw">let </span>resp_phys = resp_frame.start_address.as_u64();
+<a href=#867 id=867 data-nosnippet>867</a>            <span class="kw">let </span>desc_virt = phys_to_virt(desc_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqDesc;
+<a href=#868 id=868 data-nosnippet>868</a>            <span class="kw">let </span>avail_virt = phys_to_virt(avail_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqAvail;
+<a href=#869 id=869 data-nosnippet>869</a>            <span class="kw">let </span>used_virt = phys_to_virt(used_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqUsed;
+<a href=#870 id=870 data-nosnippet>870</a>            <span class="kw">let </span>cmd_virt = phys_to_virt(cmd_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#871 id=871 data-nosnippet>871</a>            <span class="kw">let </span>payload_virt = phys_to_virt(payload_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#872 id=872 data-nosnippet>872</a>            <span class="kw">let </span>resp_virt = phys_to_virt(resp_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
 <a href=#873 id=873 data-nosnippet>873</a>
-<a href=#874 id=874 data-nosnippet>874</a>            <span class="kw">let </span>desc_virt = phys_to_virt(desc_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqDesc;
-<a href=#875 id=875 data-nosnippet>875</a>            <span class="kw">let </span>avail_virt = phys_to_virt(avail_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqAvail;
-<a href=#876 id=876 data-nosnippet>876</a>            <span class="kw">let </span>used_virt = phys_to_virt(used_phys) <span class="kw">as </span><span class="kw-2">*mut </span>VirtqUsed;
-<a href=#877 id=877 data-nosnippet>877</a>            <span class="kw">let </span>cmd_virt = phys_to_virt(cmd_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
-<a href=#878 id=878 data-nosnippet>878</a>            <span class="kw">let </span>payload_virt = phys_to_virt(payload_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
-<a href=#879 id=879 data-nosnippet>879</a>            <span class="kw">let </span>resp_virt = phys_to_virt(resp_phys) <span class="kw">as </span><span class="kw-2">*mut </span>u8;
-<a href=#880 id=880 data-nosnippet>880</a>
-<a href=#881 id=881 data-nosnippet>881</a>            core::ptr::write_bytes(
-<a href=#882 id=882 data-nosnippet>882</a>                desc_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8,
-<a href=#883 id=883 data-nosnippet>883</a>                <span class="number">0</span>,
-<a href=#884 id=884 data-nosnippet>884</a>                core::mem::size_of::&lt;VirtqDesc&gt;() * VIRTIO_RING_SIZE,
-<a href=#885 id=885 data-nosnippet>885</a>            );
-<a href=#886 id=886 data-nosnippet>886</a>            core::ptr::write_bytes(avail_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, core::mem::size_of::&lt;VirtqAvail&gt;());
-<a href=#887 id=887 data-nosnippet>887</a>            core::ptr::write_bytes(used_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, core::mem::size_of::&lt;VirtqUsed&gt;());
-<a href=#888 id=888 data-nosnippet>888</a>            core::ptr::write_bytes(payload_virt, <span class="number">0</span>, PAGE_SIZE &lt;&lt; (VIRTQ_PAYLOAD_ORDER <span class="kw">as </span>usize));
-<a href=#889 id=889 data-nosnippet>889</a>
-<a href=#890 id=890 data-nosnippet>890</a>            ((device.mmio + <span class="number">0x10</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32).write_volatile((desc_phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32);
-<a href=#891 id=891 data-nosnippet>891</a>            ((device.mmio + <span class="number">0x1A</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u16).write_volatile(<span class="number">0xFFFF</span>);
-<a href=#892 id=892 data-nosnippet>892</a>
-<a href=#893 id=893 data-nosnippet>893</a>            <span class="kw">let </span><span class="kw-2">mut </span>free_stack = [<span class="number">0u16</span>; VIRTIO_RING_SIZE];
-<a href=#894 id=894 data-nosnippet>894</a>            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(queue_size <span class="kw">as </span>usize) {
-<a href=#895 id=895 data-nosnippet>895</a>                free_stack[i] = i <span class="kw">as </span>u16;
-<a href=#896 id=896 data-nosnippet>896</a>            }
-<a href=#897 id=897 data-nosnippet>897</a>
-<a href=#898 id=898 data-nosnippet>898</a>            <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-<a href=#899 id=899 data-nosnippet>899</a>                desc: desc_virt,
-<a href=#900 id=900 data-nosnippet>900</a>                avail: avail_virt,
-<a href=#901 id=901 data-nosnippet>901</a>                used: used_virt,
-<a href=#902 id=902 data-nosnippet>902</a>                queue_idx,
-<a href=#903 id=903 data-nosnippet>903</a>                queue_size,
-<a href=#904 id=904 data-nosnippet>904</a>                notify_addr: device.queue_notify_addr,
-<a href=#905 id=905 data-nosnippet>905</a>                free_stack,
-<a href=#906 id=906 data-nosnippet>906</a>                free_len: queue_size <span class="kw">as </span>usize,
-<a href=#907 id=907 data-nosnippet>907</a>                last_used_idx: <span class="number">0</span>,
-<a href=#908 id=908 data-nosnippet>908</a>                cmd_phys,
-<a href=#909 id=909 data-nosnippet>909</a>                cmd_virt,
-<a href=#910 id=910 data-nosnippet>910</a>                payload_phys,
-<a href=#911 id=911 data-nosnippet>911</a>                payload_virt,
-<a href=#912 id=912 data-nosnippet>912</a>                payload_capacity: PAGE_SIZE &lt;&lt; (VIRTQ_PAYLOAD_ORDER <span class="kw">as </span>usize),
-<a href=#913 id=913 data-nosnippet>913</a>                resp_phys,
-<a href=#914 id=914 data-nosnippet>914</a>                resp_virt,
-<a href=#915 id=915 data-nosnippet>915</a>            })
-<a href=#916 id=916 data-nosnippet>916</a>        }
-<a href=#917 id=917 data-nosnippet>917</a>    }
-<a href=#918 id=918 data-nosnippet>918</a>
-<a href=#919 id=919 data-nosnippet>919</a>    <span class="doccomment">/// Performs the pop desc operation.
-<a href=#920 id=920 data-nosnippet>920</a>    </span><span class="kw">fn </span>pop_desc(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;u16&gt; {
-<a href=#921 id=921 data-nosnippet>921</a>        <span class="kw">if </span><span class="self">self</span>.free_len == <span class="number">0 </span>{
-<a href=#922 id=922 data-nosnippet>922</a>            <span class="prelude-val">None
-<a href=#923 id=923 data-nosnippet>923</a>        </span>} <span class="kw">else </span>{
-<a href=#924 id=924 data-nosnippet>924</a>            <span class="self">self</span>.free_len -= <span class="number">1</span>;
-<a href=#925 id=925 data-nosnippet>925</a>            <span class="prelude-val">Some</span>(<span class="self">self</span>.free_stack[<span class="self">self</span>.free_len])
-<a href=#926 id=926 data-nosnippet>926</a>        }
-<a href=#927 id=927 data-nosnippet>927</a>    }
-<a href=#928 id=928 data-nosnippet>928</a>
-<a href=#929 id=929 data-nosnippet>929</a>    <span class="doccomment">/// Performs the push desc operation.
-<a href=#930 id=930 data-nosnippet>930</a>    </span><span class="kw">fn </span>push_desc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, idx: u16) {
-<a href=#931 id=931 data-nosnippet>931</a>        <span class="kw">if </span><span class="self">self</span>.free_len &lt; <span class="self">self</span>.free_stack.len() {
-<a href=#932 id=932 data-nosnippet>932</a>            <span class="self">self</span>.free_stack[<span class="self">self</span>.free_len] = idx;
-<a href=#933 id=933 data-nosnippet>933</a>            <span class="self">self</span>.free_len += <span class="number">1</span>;
-<a href=#934 id=934 data-nosnippet>934</a>        }
-<a href=#935 id=935 data-nosnippet>935</a>    }
-<a href=#936 id=936 data-nosnippet>936</a>}
+<a href=#874 id=874 data-nosnippet>874</a>            core::ptr::write_bytes(
+<a href=#875 id=875 data-nosnippet>875</a>                desc_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8,
+<a href=#876 id=876 data-nosnippet>876</a>                <span class="number">0</span>,
+<a href=#877 id=877 data-nosnippet>877</a>                core::mem::size_of::&lt;VirtqDesc&gt;() * VIRTIO_RING_SIZE,
+<a href=#878 id=878 data-nosnippet>878</a>            );
+<a href=#879 id=879 data-nosnippet>879</a>            core::ptr::write_bytes(avail_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, core::mem::size_of::&lt;VirtqAvail&gt;());
+<a href=#880 id=880 data-nosnippet>880</a>            core::ptr::write_bytes(used_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, core::mem::size_of::&lt;VirtqUsed&gt;());
+<a href=#881 id=881 data-nosnippet>881</a>            core::ptr::write_bytes(payload_virt, <span class="number">0</span>, PAGE_SIZE &lt;&lt; (VIRTQ_PAYLOAD_ORDER <span class="kw">as </span>usize));
+<a href=#882 id=882 data-nosnippet>882</a>
+<a href=#883 id=883 data-nosnippet>883</a>            ((device.mmio + <span class="number">0x10</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32).write_volatile((desc_phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32);
+<a href=#884 id=884 data-nosnippet>884</a>            ((device.mmio + <span class="number">0x1A</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u16).write_volatile(<span class="number">0xFFFF</span>);
+<a href=#885 id=885 data-nosnippet>885</a>
+<a href=#886 id=886 data-nosnippet>886</a>            <span class="kw">let </span><span class="kw-2">mut </span>free_stack = [<span class="number">0u16</span>; VIRTIO_RING_SIZE];
+<a href=#887 id=887 data-nosnippet>887</a>            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(queue_size <span class="kw">as </span>usize) {
+<a href=#888 id=888 data-nosnippet>888</a>                free_stack[i] = i <span class="kw">as </span>u16;
+<a href=#889 id=889 data-nosnippet>889</a>            }
+<a href=#890 id=890 data-nosnippet>890</a>
+<a href=#891 id=891 data-nosnippet>891</a>            <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+<a href=#892 id=892 data-nosnippet>892</a>                desc: desc_virt,
+<a href=#893 id=893 data-nosnippet>893</a>                avail: avail_virt,
+<a href=#894 id=894 data-nosnippet>894</a>                used: used_virt,
+<a href=#895 id=895 data-nosnippet>895</a>                queue_idx,
+<a href=#896 id=896 data-nosnippet>896</a>                queue_size,
+<a href=#897 id=897 data-nosnippet>897</a>                notify_addr: device.queue_notify_addr,
+<a href=#898 id=898 data-nosnippet>898</a>                free_stack,
+<a href=#899 id=899 data-nosnippet>899</a>                free_len: queue_size <span class="kw">as </span>usize,
+<a href=#900 id=900 data-nosnippet>900</a>                last_used_idx: <span class="number">0</span>,
+<a href=#901 id=901 data-nosnippet>901</a>                cmd_phys,
+<a href=#902 id=902 data-nosnippet>902</a>                cmd_virt,
+<a href=#903 id=903 data-nosnippet>903</a>                payload_phys,
+<a href=#904 id=904 data-nosnippet>904</a>                payload_virt,
+<a href=#905 id=905 data-nosnippet>905</a>                payload_capacity: PAGE_SIZE &lt;&lt; (VIRTQ_PAYLOAD_ORDER <span class="kw">as </span>usize),
+<a href=#906 id=906 data-nosnippet>906</a>                resp_phys,
+<a href=#907 id=907 data-nosnippet>907</a>                resp_virt,
+<a href=#908 id=908 data-nosnippet>908</a>            })
+<a href=#909 id=909 data-nosnippet>909</a>        }
+<a href=#910 id=910 data-nosnippet>910</a>    }
+<a href=#911 id=911 data-nosnippet>911</a>
+<a href=#912 id=912 data-nosnippet>912</a>    <span class="doccomment">/// Performs the pop desc operation.
+<a href=#913 id=913 data-nosnippet>913</a>    </span><span class="kw">fn </span>pop_desc(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;u16&gt; {
+<a href=#914 id=914 data-nosnippet>914</a>        <span class="kw">if </span><span class="self">self</span>.free_len == <span class="number">0 </span>{
+<a href=#915 id=915 data-nosnippet>915</a>            <span class="prelude-val">None
+<a href=#916 id=916 data-nosnippet>916</a>        </span>} <span class="kw">else </span>{
+<a href=#917 id=917 data-nosnippet>917</a>            <span class="self">self</span>.free_len -= <span class="number">1</span>;
+<a href=#918 id=918 data-nosnippet>918</a>            <span class="prelude-val">Some</span>(<span class="self">self</span>.free_stack[<span class="self">self</span>.free_len])
+<a href=#919 id=919 data-nosnippet>919</a>        }
+<a href=#920 id=920 data-nosnippet>920</a>    }
+<a href=#921 id=921 data-nosnippet>921</a>
+<a href=#922 id=922 data-nosnippet>922</a>    <span class="doccomment">/// Performs the push desc operation.
+<a href=#923 id=923 data-nosnippet>923</a>    </span><span class="kw">fn </span>push_desc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, idx: u16) {
+<a href=#924 id=924 data-nosnippet>924</a>        <span class="kw">if </span><span class="self">self</span>.free_len &lt; <span class="self">self</span>.free_stack.len() {
+<a href=#925 id=925 data-nosnippet>925</a>            <span class="self">self</span>.free_stack[<span class="self">self</span>.free_len] = idx;
+<a href=#926 id=926 data-nosnippet>926</a>            <span class="self">self</span>.free_len += <span class="number">1</span>;
+<a href=#927 id=927 data-nosnippet>927</a>        }
+<a href=#928 id=928 data-nosnippet>928</a>    }
+<a href=#929 id=929 data-nosnippet>929</a>}
+<a href=#930 id=930 data-nosnippet>930</a>
+<a href=#931 id=931 data-nosnippet>931</a><span class="kw">static </span>GPU_INSTANCE: Once&lt;Arc&lt;VirtioGpu&gt;&gt; = Once::new();
+<a href=#932 id=932 data-nosnippet>932</a><span class="kw">static </span>GPU_INITIALIZED: AtomicBool = AtomicBool::new(<span class="bool-val">false</span>);
+<a href=#933 id=933 data-nosnippet>933</a>
+<a href=#934 id=934 data-nosnippet>934</a><span class="doccomment">/// Performs the init operation.
+<a href=#935 id=935 data-nosnippet>935</a></span><span class="kw">pub fn </span>init() {
+<a href=#936 id=936 data-nosnippet>936</a>    <span class="macro">log::info!</span>(<span class="string">"[VirtIO-GPU] Scanning for VirtIO GPU devices..."</span>);
 <a href=#937 id=937 data-nosnippet>937</a>
-<a href=#938 id=938 data-nosnippet>938</a><span class="kw">static </span>GPU_INSTANCE: Once&lt;Arc&lt;VirtioGpu&gt;&gt; = Once::new();
-<a href=#939 id=939 data-nosnippet>939</a><span class="kw">static </span>GPU_INITIALIZED: AtomicBool = AtomicBool::new(<span class="bool-val">false</span>);
-<a href=#940 id=940 data-nosnippet>940</a>
-<a href=#941 id=941 data-nosnippet>941</a><span class="doccomment">/// Performs the init operation.
-<a href=#942 id=942 data-nosnippet>942</a></span><span class="kw">pub fn </span>init() {
-<a href=#943 id=943 data-nosnippet>943</a>    <span class="macro">log::info!</span>(<span class="string">"[VirtIO-GPU] Scanning for VirtIO GPU devices..."</span>);
-<a href=#944 id=944 data-nosnippet>944</a>
-<a href=#945 id=945 data-nosnippet>945</a>    <span class="kw">let </span>candidates = pci::probe_all(ProbeCriteria {
-<a href=#946 id=946 data-nosnippet>946</a>        vendor_id: <span class="prelude-val">Some</span>(pci::vendor::VIRTIO),
-<a href=#947 id=947 data-nosnippet>947</a>        device_id: <span class="prelude-val">Some</span>(pci::device::VIRTIO_GPU),
-<a href=#948 id=948 data-nosnippet>948</a>        class_code: <span class="prelude-val">None</span>,
-<a href=#949 id=949 data-nosnippet>949</a>        subclass: <span class="prelude-val">None</span>,
-<a href=#950 id=950 data-nosnippet>950</a>        prog_if: <span class="prelude-val">None</span>,
-<a href=#951 id=951 data-nosnippet>951</a>    });
-<a href=#952 id=952 data-nosnippet>952</a>
-<a href=#953 id=953 data-nosnippet>953</a>    <span class="kw">for </span>pci_dev <span class="kw">in </span>candidates.into_iter() {
-<a href=#954 id=954 data-nosnippet>954</a>        <span class="macro">log::info!</span>(
-<a href=#955 id=955 data-nosnippet>955</a>            <span class="string">"VirtIO-GPU: Found device at {:?} (VEN:{:04x} DEV:{:04x})"</span>,
-<a href=#956 id=956 data-nosnippet>956</a>            pci_dev.address,
-<a href=#957 id=957 data-nosnippet>957</a>            pci_dev.vendor_id,
-<a href=#958 id=958 data-nosnippet>958</a>            pci_dev.device_id
-<a href=#959 id=959 data-nosnippet>959</a>        );
-<a href=#960 id=960 data-nosnippet>960</a>
-<a href=#961 id=961 data-nosnippet>961</a>        pci_dev.enable_bus_master();
-<a href=#962 id=962 data-nosnippet>962</a>
-<a href=#963 id=963 data-nosnippet>963</a>        <span class="kw">match unsafe </span>{ VirtioGpu::new(pci_dev) } {
-<a href=#964 id=964 data-nosnippet>964</a>            <span class="prelude-val">Ok</span>(gpu) =&gt; {
-<a href=#965 id=965 data-nosnippet>965</a>                <span class="kw">let </span>arc = Arc::new(gpu);
-<a href=#966 id=966 data-nosnippet>966</a>                GPU_INSTANCE.call_once(|| arc.clone());
-<a href=#967 id=967 data-nosnippet>967</a>                GPU_INITIALIZED.store(<span class="bool-val">true</span>, Ordering::SeqCst);
-<a href=#968 id=968 data-nosnippet>968</a>
-<a href=#969 id=969 data-nosnippet>969</a>                <span class="kw">let </span>info = arc.info();
-<a href=#970 id=970 data-nosnippet>970</a>                <span class="macro">log::info!</span>(
-<a href=#971 id=971 data-nosnippet>971</a>                    <span class="string">"[VirtIO-GPU] Initialized: {}x{} @ 32bpp"</span>,
-<a href=#972 id=972 data-nosnippet>972</a>                    info.width,
-<a href=#973 id=973 data-nosnippet>973</a>                    info.height
-<a href=#974 id=974 data-nosnippet>974</a>                );
-<a href=#975 id=975 data-nosnippet>975</a>                <span class="kw">return</span>;
-<a href=#976 id=976 data-nosnippet>976</a>            }
-<a href=#977 id=977 data-nosnippet>977</a>            <span class="prelude-val">Err</span>(e) =&gt; {
-<a href=#978 id=978 data-nosnippet>978</a>                <span class="macro">log::warn!</span>(<span class="string">"VirtIO-GPU: Failed to initialize device: {}"</span>, e);
-<a href=#979 id=979 data-nosnippet>979</a>            }
-<a href=#980 id=980 data-nosnippet>980</a>        }
-<a href=#981 id=981 data-nosnippet>981</a>    }
-<a href=#982 id=982 data-nosnippet>982</a>
-<a href=#983 id=983 data-nosnippet>983</a>    <span class="macro">log::info!</span>(<span class="string">"[VirtIO-GPU] No device found"</span>);
-<a href=#984 id=984 data-nosnippet>984</a>}
-<a href=#985 id=985 data-nosnippet>985</a>
-<a href=#986 id=986 data-nosnippet>986</a><span class="doccomment">/// Returns gpu.
-<a href=#987 id=987 data-nosnippet>987</a></span><span class="kw">pub fn </span>get_gpu() -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;VirtioGpu&gt;&gt; {
-<a href=#988 id=988 data-nosnippet>988</a>    GPU_INSTANCE.get().cloned()
-<a href=#989 id=989 data-nosnippet>989</a>}
-<a href=#990 id=990 data-nosnippet>990</a>
-<a href=#991 id=991 data-nosnippet>991</a><span class="doccomment">/// Returns whether available.
-<a href=#992 id=992 data-nosnippet>992</a></span><span class="kw">pub fn </span>is_available() -&gt; bool {
-<a href=#993 id=993 data-nosnippet>993</a>    GPU_INITIALIZED.load(Ordering::Relaxed)
-<a href=#994 id=994 data-nosnippet>994</a>}
-<a href=#995 id=995 data-nosnippet>995</a>
-<a href=#996 id=996 data-nosnippet>996</a><span class="doccomment">/// Returns framebuffer info.
-<a href=#997 id=997 data-nosnippet>997</a></span><span class="kw">pub fn </span>get_framebuffer_info() -&gt; <span class="prelude-ty">Option</span>&lt;GpuInfo&gt; {
-<a href=#998 id=998 data-nosnippet>998</a>    GPU_INSTANCE.get().map(|gpu| gpu.info())
-<a href=#999 id=999 data-nosnippet>999</a>}
+<a href=#938 id=938 data-nosnippet>938</a>    <span class="kw">let </span>candidates = pci::probe_all(ProbeCriteria {
+<a href=#939 id=939 data-nosnippet>939</a>        vendor_id: <span class="prelude-val">Some</span>(pci::vendor::VIRTIO),
+<a href=#940 id=940 data-nosnippet>940</a>        device_id: <span class="prelude-val">Some</span>(pci::device::VIRTIO_GPU),
+<a href=#941 id=941 data-nosnippet>941</a>        class_code: <span class="prelude-val">None</span>,
+<a href=#942 id=942 data-nosnippet>942</a>        subclass: <span class="prelude-val">None</span>,
+<a href=#943 id=943 data-nosnippet>943</a>        prog_if: <span class="prelude-val">None</span>,
+<a href=#944 id=944 data-nosnippet>944</a>    });
+<a href=#945 id=945 data-nosnippet>945</a>
+<a href=#946 id=946 data-nosnippet>946</a>    <span class="kw">for </span>pci_dev <span class="kw">in </span>candidates.into_iter() {
+<a href=#947 id=947 data-nosnippet>947</a>        <span class="macro">log::info!</span>(
+<a href=#948 id=948 data-nosnippet>948</a>            <span class="string">"VirtIO-GPU: Found device at {:?} (VEN:{:04x} DEV:{:04x})"</span>,
+<a href=#949 id=949 data-nosnippet>949</a>            pci_dev.address,
+<a href=#950 id=950 data-nosnippet>950</a>            pci_dev.vendor_id,
+<a href=#951 id=951 data-nosnippet>951</a>            pci_dev.device_id
+<a href=#952 id=952 data-nosnippet>952</a>        );
+<a href=#953 id=953 data-nosnippet>953</a>
+<a href=#954 id=954 data-nosnippet>954</a>        pci_dev.enable_bus_master();
+<a href=#955 id=955 data-nosnippet>955</a>
+<a href=#956 id=956 data-nosnippet>956</a>        <span class="kw">match unsafe </span>{ VirtioGpu::new(pci_dev) } {
+<a href=#957 id=957 data-nosnippet>957</a>            <span class="prelude-val">Ok</span>(gpu) =&gt; {
+<a href=#958 id=958 data-nosnippet>958</a>                <span class="kw">let </span>arc = Arc::new(gpu);
+<a href=#959 id=959 data-nosnippet>959</a>                GPU_INSTANCE.call_once(|| arc.clone());
+<a href=#960 id=960 data-nosnippet>960</a>                GPU_INITIALIZED.store(<span class="bool-val">true</span>, Ordering::SeqCst);
+<a href=#961 id=961 data-nosnippet>961</a>
+<a href=#962 id=962 data-nosnippet>962</a>                <span class="kw">let </span>info = arc.info();
+<a href=#963 id=963 data-nosnippet>963</a>                <span class="macro">log::info!</span>(
+<a href=#964 id=964 data-nosnippet>964</a>                    <span class="string">"[VirtIO-GPU] Initialized: {}x{} @ 32bpp"</span>,
+<a href=#965 id=965 data-nosnippet>965</a>                    info.width,
+<a href=#966 id=966 data-nosnippet>966</a>                    info.height
+<a href=#967 id=967 data-nosnippet>967</a>                );
+<a href=#968 id=968 data-nosnippet>968</a>                <span class="kw">return</span>;
+<a href=#969 id=969 data-nosnippet>969</a>            }
+<a href=#970 id=970 data-nosnippet>970</a>            <span class="prelude-val">Err</span>(e) =&gt; {
+<a href=#971 id=971 data-nosnippet>971</a>                <span class="macro">log::warn!</span>(<span class="string">"VirtIO-GPU: Failed to initialize device: {}"</span>, e);
+<a href=#972 id=972 data-nosnippet>972</a>            }
+<a href=#973 id=973 data-nosnippet>973</a>        }
+<a href=#974 id=974 data-nosnippet>974</a>    }
+<a href=#975 id=975 data-nosnippet>975</a>
+<a href=#976 id=976 data-nosnippet>976</a>    <span class="macro">log::info!</span>(<span class="string">"[VirtIO-GPU] No device found"</span>);
+<a href=#977 id=977 data-nosnippet>977</a>}
+<a href=#978 id=978 data-nosnippet>978</a>
+<a href=#979 id=979 data-nosnippet>979</a><span class="doccomment">/// Returns gpu.
+<a href=#980 id=980 data-nosnippet>980</a></span><span class="kw">pub fn </span>get_gpu() -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;VirtioGpu&gt;&gt; {
+<a href=#981 id=981 data-nosnippet>981</a>    GPU_INSTANCE.get().cloned()
+<a href=#982 id=982 data-nosnippet>982</a>}
+<a href=#983 id=983 data-nosnippet>983</a>
+<a href=#984 id=984 data-nosnippet>984</a><span class="doccomment">/// Returns whether available.
+<a href=#985 id=985 data-nosnippet>985</a></span><span class="kw">pub fn </span>is_available() -&gt; bool {
+<a href=#986 id=986 data-nosnippet>986</a>    GPU_INITIALIZED.load(Ordering::Relaxed)
+<a href=#987 id=987 data-nosnippet>987</a>}
+<a href=#988 id=988 data-nosnippet>988</a>
+<a href=#989 id=989 data-nosnippet>989</a><span class="doccomment">/// Returns framebuffer info.
+<a href=#990 id=990 data-nosnippet>990</a></span><span class="kw">pub fn </span>get_framebuffer_info() -&gt; <span class="prelude-ty">Option</span>&lt;GpuInfo&gt; {
+<a href=#991 id=991 data-nosnippet>991</a>    GPU_INSTANCE.get().map(|gpu| gpu.info())
+<a href=#992 id=992 data-nosnippet>992</a>}
 </code></pre></div></section></main></body></html>

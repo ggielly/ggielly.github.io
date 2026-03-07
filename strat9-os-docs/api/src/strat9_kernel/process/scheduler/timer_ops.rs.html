@@ -12,157 +12,144 @@
 <a href=#12 id=12 data-nosnippet>12</a>/// its own `try_lock`. These are separate acquisitions by design - the inner
 <a href=#13 id=13 data-nosnippet>13</a>/// functions must not be called while the outer lock is held (that would deadlock).
 <a href=#14 id=14 data-nosnippet>14</a></span><span class="kw">pub fn </span>timer_tick() {
-<a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">let </span>cpu_idx = <span class="kw">if let </span><span class="prelude-val">Some</span>(idx) = percpu::cpu_index_from_gs() {
-<a href=#16 id=16 data-nosnippet>16</a>        idx
-<a href=#17 id=17 data-nosnippet>17</a>    } <span class="kw">else if </span>apic::is_initialized() {
-<a href=#18 id=18 data-nosnippet>18</a>        <span class="kw">let </span>apic_id = apic::lapic_id();
-<a href=#19 id=19 data-nosnippet>19</a>        <span class="kw">match </span>percpu::cpu_index_by_apic(apic_id) {
-<a href=#20 id=20 data-nosnippet>20</a>            <span class="prelude-val">Some</span>(idx) =&gt; idx,
-<a href=#21 id=21 data-nosnippet>21</a>            <span class="prelude-val">None </span>=&gt; {
-<a href=#22 id=22 data-nosnippet>22</a>                <span class="macro">log::trace!</span>(<span class="string">"timer_tick: unmapped LAPIC id {}"</span>, apic_id);
-<a href=#23 id=23 data-nosnippet>23</a>                <span class="kw">return</span>;
-<a href=#24 id=24 data-nosnippet>24</a>            }
-<a href=#25 id=25 data-nosnippet>25</a>        }
-<a href=#26 id=26 data-nosnippet>26</a>    } <span class="kw">else </span>{
-<a href=#27 id=27 data-nosnippet>27</a>        <span class="kw">return</span>;
-<a href=#28 id=28 data-nosnippet>28</a>    };
-<a href=#29 id=29 data-nosnippet>29</a>
-<a href=#30 id=30 data-nosnippet>30</a>    <span class="kw">if </span>cpu_is_valid(cpu_idx) {
-<a href=#31 id=31 data-nosnippet>31</a>        CPU_TOTAL_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#32 id=32 data-nosnippet>32</a>    }
-<a href=#33 id=33 data-nosnippet>33</a>
-<a href=#34 id=34 data-nosnippet>34</a>    <span class="comment">// BSP wall-clock: ALWAYS advance, regardless of any lock state.
-<a href=#35 id=35 data-nosnippet>35</a>    </span><span class="kw">if </span>cpu_idx == <span class="number">0 </span>{
-<a href=#36 id=36 data-nosnippet>36</a>        TICK_COUNT.fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#37 id=37 data-nosnippet>37</a>    }
-<a href=#38 id=38 data-nosnippet>38</a>
-<a href=#39 id=39 data-nosnippet>39</a>    <span class="comment">// BSP-only secondary bookkeeping: interval timers and sleep wakeups.
-<a href=#40 id=40 data-nosnippet>40</a>    // NS_PER_TICK = 1_000_000_000 / TIMER_HZ (10_000_000 ns at 100 Hz).
-<a href=#41 id=41 data-nosnippet>41</a>    // Both helpers acquire the scheduler lock internally via try_lock and
-<a href=#42 id=42 data-nosnippet>42</a>    // skip silently when contended - no probe needed.
-<a href=#43 id=43 data-nosnippet>43</a>    </span><span class="kw">if </span>cpu_idx == <span class="number">0 </span>{
-<a href=#44 id=44 data-nosnippet>44</a>        <span class="kw">let </span>tick = TICK_COUNT.load(Ordering::Relaxed);
-<a href=#45 id=45 data-nosnippet>45</a>        <span class="kw">let </span>current_time_ns = tick * NS_PER_TICK;
-<a href=#46 id=46 data-nosnippet>46</a>        <span class="kw">crate</span>::process::timer::tick_all_timers(current_time_ns);
-<a href=#47 id=47 data-nosnippet>47</a>        check_wake_deadlines(current_time_ns);
-<a href=#48 id=48 data-nosnippet>48</a>    }
-<a href=#49 id=49 data-nosnippet>49</a>
-<a href=#50 id=50 data-nosnippet>50</a>    <span class="comment">// Per-task accounting on this CPU.
-<a href=#51 id=51 data-nosnippet>51</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>guard) = SCHEDULER.try_lock() {
-<a href=#52 id=52 data-nosnippet>52</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>sched) = <span class="kw-2">*</span>guard {
-<a href=#53 id=53 data-nosnippet>53</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = sched.cpus.get_mut(cpu_idx) {
-<a href=#54 id=54 data-nosnippet>54</a>                <span class="kw">let </span>should_resched = <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>current_task) = cpu.current_task {
-<a href=#55 id=55 data-nosnippet>55</a>                    <span class="kw">if </span>cpu_is_valid(cpu_idx) {
-<a href=#56 id=56 data-nosnippet>56</a>                        <span class="kw">match </span>sched.class_table.class_for_task(current_task) {
-<a href=#57 id=57 data-nosnippet>57</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::RealTime =&gt; {
-<a href=#58 id=58 data-nosnippet>58</a>                                CPU_RT_RUNTIME_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#59 id=59 data-nosnippet>59</a>                            }
-<a href=#60 id=60 data-nosnippet>60</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::Fair =&gt; {
-<a href=#61 id=61 data-nosnippet>61</a>                                CPU_FAIR_RUNTIME_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#62 id=62 data-nosnippet>62</a>                            }
-<a href=#63 id=63 data-nosnippet>63</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::Idle =&gt; {
-<a href=#64 id=64 data-nosnippet>64</a>                                CPU_IDLE_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#65 id=65 data-nosnippet>65</a>                            }
-<a href=#66 id=66 data-nosnippet>66</a>                        }
-<a href=#67 id=67 data-nosnippet>67</a>                    }
-<a href=#68 id=68 data-nosnippet>68</a>                    current_task.ticks.fetch_add(<span class="number">1</span>, Ordering::Relaxed);
-<a href=#69 id=69 data-nosnippet>69</a>                    cpu.current_runtime.update();
-<a href=#70 id=70 data-nosnippet>70</a>                    cpu.class_rqs.update_current(
-<a href=#71 id=71 data-nosnippet>71</a>                        <span class="kw-2">&amp;</span>cpu.current_runtime,
-<a href=#72 id=72 data-nosnippet>72</a>                        current_task,
-<a href=#73 id=73 data-nosnippet>73</a>                        <span class="bool-val">false</span>,
-<a href=#74 id=74 data-nosnippet>74</a>                        <span class="kw-2">&amp;</span>sched.class_table,
-<a href=#75 id=75 data-nosnippet>75</a>                    )
-<a href=#76 id=76 data-nosnippet>76</a>                } <span class="kw">else </span>{
-<a href=#77 id=77 data-nosnippet>77</a>                    <span class="bool-val">false
-<a href=#78 id=78 data-nosnippet>78</a>                </span>};
-<a href=#79 id=79 data-nosnippet>79</a>                <span class="kw">if </span>should_resched {
-<a href=#80 id=80 data-nosnippet>80</a>                    cpu.need_resched = <span class="bool-val">true</span>;
-<a href=#81 id=81 data-nosnippet>81</a>                }
-<a href=#82 id=82 data-nosnippet>82</a>            }
-<a href=#83 id=83 data-nosnippet>83</a>        }
-<a href=#84 id=84 data-nosnippet>84</a>    } <span class="kw">else </span>{
-<a href=#85 id=85 data-nosnippet>85</a>        note_try_lock_fail_on_cpu(cpu_idx);
-<a href=#86 id=86 data-nosnippet>86</a>    }
-<a href=#87 id=87 data-nosnippet>87</a>}
-<a href=#88 id=88 data-nosnippet>88</a>
-<a href=#89 id=89 data-nosnippet>89</a><span class="doccomment">/// Check wake deadlines for all tasks and wake up those whose sleep has expired.
-<a href=#90 id=90 data-nosnippet>90</a>///
-<a href=#91 id=91 data-nosnippet>91</a>/// Called from timer_tick() with interrupts disabled.
-<a href=#92 id=92 data-nosnippet>92</a>/// Uses try_lock() to avoid deadlock if called while scheduler lock is held.
-<a href=#93 id=93 data-nosnippet>93</a></span><span class="kw">fn </span>check_wake_deadlines(current_time_ns: u64) {
-<a href=#94 id=94 data-nosnippet>94</a>    <span class="kw">let </span><span class="kw-2">mut </span>ipi_targets = [<span class="bool-val">false</span>; <span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS];
-<a href=#95 id=95 data-nosnippet>95</a>    <span class="kw">let </span>my_cpu = current_cpu_index();
-<a href=#96 id=96 data-nosnippet>96</a>    <span class="kw">let </span><span class="kw-2">mut </span>scheduler = <span class="kw">match </span>SCHEDULER.try_lock() {
-<a href=#97 id=97 data-nosnippet>97</a>        <span class="prelude-val">Some</span>(guard) =&gt; guard,
-<a href=#98 id=98 data-nosnippet>98</a>        <span class="prelude-val">None </span>=&gt; <span class="kw">return</span>,
-<a href=#99 id=99 data-nosnippet>99</a>    };
-<a href=#100 id=100 data-nosnippet>100</a>
-<a href=#101 id=101 data-nosnippet>101</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>sched) = <span class="kw-2">*</span>scheduler {
-<a href=#102 id=102 data-nosnippet>102</a>        <span class="kw">const </span>BATCH: usize = <span class="number">128</span>;
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="kw">let </span><span class="kw-2">mut </span>to_wake = [TaskId::from_u64(<span class="number">0</span>); BATCH];
-<a href=#104 id=104 data-nosnippet>104</a>        <span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0usize</span>;
-<a href=#105 id=105 data-nosnippet>105</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span>sched.blocked_tasks.iter() {
-<a href=#106 id=106 data-nosnippet>106</a>            <span class="kw">let </span>deadline = task.wake_deadline_ns.load(Ordering::Relaxed);
-<a href=#107 id=107 data-nosnippet>107</a>            <span class="kw">if </span>deadline != <span class="number">0 </span>&amp;&amp; current_time_ns &gt;= deadline {
-<a href=#108 id=108 data-nosnippet>108</a>                <span class="kw">if </span>count &lt; BATCH {
-<a href=#109 id=109 data-nosnippet>109</a>                    to_wake[count] = <span class="kw-2">*</span>id;
-<a href=#110 id=110 data-nosnippet>110</a>                    count += <span class="number">1</span>;
-<a href=#111 id=111 data-nosnippet>111</a>                } <span class="kw">else </span>{
-<a href=#112 id=112 data-nosnippet>112</a>                    <span class="kw">break</span>;
-<a href=#113 id=113 data-nosnippet>113</a>                }
-<a href=#114 id=114 data-nosnippet>114</a>            }
-<a href=#115 id=115 data-nosnippet>115</a>        }
-<a href=#116 id=116 data-nosnippet>116</a>
-<a href=#117 id=117 data-nosnippet>117</a>        <span class="kw">for </span>id <span class="kw">in </span>to_wake.iter().copied().take(count) {
-<a href=#118 id=118 data-nosnippet>118</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(blocked_task) = sched.blocked_tasks.remove(<span class="kw-2">&amp;</span>id) {
-<a href=#119 id=119 data-nosnippet>119</a>                blocked_task.wake_deadline_ns.store(<span class="number">0</span>, Ordering::Relaxed);
-<a href=#120 id=120 data-nosnippet>120</a>                <span class="kw">unsafe </span>{ <span class="kw-2">*</span>blocked_task.state.get() = TaskState::Ready };
-<a href=#121 id=121 data-nosnippet>121</a>                <span class="kw">let </span>cpu = sched.task_cpu.get(<span class="kw-2">&amp;</span>id).copied().unwrap_or(<span class="number">0</span>);
-<a href=#122 id=122 data-nosnippet>122</a>                <span class="kw">let </span>class = sched.class_table.class_for_task(<span class="kw-2">&amp;</span>blocked_task);
-<a href=#123 id=123 data-nosnippet>123</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu_sched) = sched.cpus.get_mut(cpu) {
-<a href=#124 id=124 data-nosnippet>124</a>                    cpu_sched.class_rqs.enqueue(class, blocked_task);
-<a href=#125 id=125 data-nosnippet>125</a>                    cpu_sched.need_resched = <span class="bool-val">true</span>;
-<a href=#126 id=126 data-nosnippet>126</a>                    <span class="kw">if </span>cpu != my_cpu &amp;&amp; cpu_is_valid(cpu) {
-<a href=#127 id=127 data-nosnippet>127</a>                        ipi_targets[cpu] = <span class="bool-val">true</span>;
-<a href=#128 id=128 data-nosnippet>128</a>                    }
-<a href=#129 id=129 data-nosnippet>129</a>                }
-<a href=#130 id=130 data-nosnippet>130</a>            }
-<a href=#131 id=131 data-nosnippet>131</a>        }
-<a href=#132 id=132 data-nosnippet>132</a>    }
+<a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">let </span>cpu_idx = <span class="kw">crate</span>::arch::x86_64::percpu::current_cpu_index();
+<a href=#16 id=16 data-nosnippet>16</a>
+<a href=#17 id=17 data-nosnippet>17</a>    <span class="kw">if </span>cpu_is_valid(cpu_idx) {
+<a href=#18 id=18 data-nosnippet>18</a>        CPU_TOTAL_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#19 id=19 data-nosnippet>19</a>    }
+<a href=#20 id=20 data-nosnippet>20</a>
+<a href=#21 id=21 data-nosnippet>21</a>    <span class="comment">// BSP wall-clock: ALWAYS advance, regardless of any lock state.
+<a href=#22 id=22 data-nosnippet>22</a>    </span><span class="kw">if </span>cpu_idx == <span class="number">0 </span>{
+<a href=#23 id=23 data-nosnippet>23</a>        TICK_COUNT.fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#24 id=24 data-nosnippet>24</a>    }
+<a href=#25 id=25 data-nosnippet>25</a>
+<a href=#26 id=26 data-nosnippet>26</a>    <span class="comment">// BSP-only secondary bookkeeping: interval timers and sleep wakeups.
+<a href=#27 id=27 data-nosnippet>27</a>    // NS_PER_TICK = 1_000_000_000 / TIMER_HZ (10_000_000 ns at 100 Hz).
+<a href=#28 id=28 data-nosnippet>28</a>    // Both helpers acquire the scheduler lock internally via try_lock and
+<a href=#29 id=29 data-nosnippet>29</a>    // skip silently when contended - no probe needed.
+<a href=#30 id=30 data-nosnippet>30</a>    </span><span class="kw">if </span>cpu_idx == <span class="number">0 </span>{
+<a href=#31 id=31 data-nosnippet>31</a>        <span class="kw">let </span>tick = TICK_COUNT.load(Ordering::Relaxed);
+<a href=#32 id=32 data-nosnippet>32</a>        <span class="kw">let </span>current_time_ns = tick * NS_PER_TICK;
+<a href=#33 id=33 data-nosnippet>33</a>        <span class="kw">crate</span>::process::timer::tick_all_timers(current_time_ns);
+<a href=#34 id=34 data-nosnippet>34</a>        check_wake_deadlines(current_time_ns);
+<a href=#35 id=35 data-nosnippet>35</a>    }
+<a href=#36 id=36 data-nosnippet>36</a>
+<a href=#37 id=37 data-nosnippet>37</a>    <span class="comment">// Per-task accounting on this CPU.
+<a href=#38 id=38 data-nosnippet>38</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>guard) = SCHEDULER.try_lock() {
+<a href=#39 id=39 data-nosnippet>39</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>sched) = <span class="kw-2">*</span>guard {
+<a href=#40 id=40 data-nosnippet>40</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu) = sched.cpus.get_mut(cpu_idx) {
+<a href=#41 id=41 data-nosnippet>41</a>                <span class="kw">let </span>should_resched = <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>current_task) = cpu.current_task {
+<a href=#42 id=42 data-nosnippet>42</a>                    <span class="kw">if </span>cpu_is_valid(cpu_idx) {
+<a href=#43 id=43 data-nosnippet>43</a>                        <span class="kw">match </span>sched.class_table.class_for_task(current_task) {
+<a href=#44 id=44 data-nosnippet>44</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::RealTime =&gt; {
+<a href=#45 id=45 data-nosnippet>45</a>                                CPU_RT_RUNTIME_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#46 id=46 data-nosnippet>46</a>                            }
+<a href=#47 id=47 data-nosnippet>47</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::Fair =&gt; {
+<a href=#48 id=48 data-nosnippet>48</a>                                CPU_FAIR_RUNTIME_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#49 id=49 data-nosnippet>49</a>                            }
+<a href=#50 id=50 data-nosnippet>50</a>                            <span class="kw">crate</span>::process::sched::SchedClassId::Idle =&gt; {
+<a href=#51 id=51 data-nosnippet>51</a>                                CPU_IDLE_TICKS[cpu_idx].fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#52 id=52 data-nosnippet>52</a>                            }
+<a href=#53 id=53 data-nosnippet>53</a>                        }
+<a href=#54 id=54 data-nosnippet>54</a>                    }
+<a href=#55 id=55 data-nosnippet>55</a>                    current_task.ticks.fetch_add(<span class="number">1</span>, Ordering::Relaxed);
+<a href=#56 id=56 data-nosnippet>56</a>                    cpu.current_runtime.update();
+<a href=#57 id=57 data-nosnippet>57</a>                    cpu.class_rqs.update_current(
+<a href=#58 id=58 data-nosnippet>58</a>                        <span class="kw-2">&amp;</span>cpu.current_runtime,
+<a href=#59 id=59 data-nosnippet>59</a>                        current_task,
+<a href=#60 id=60 data-nosnippet>60</a>                        <span class="bool-val">false</span>,
+<a href=#61 id=61 data-nosnippet>61</a>                        <span class="kw-2">&amp;</span>sched.class_table,
+<a href=#62 id=62 data-nosnippet>62</a>                    )
+<a href=#63 id=63 data-nosnippet>63</a>                } <span class="kw">else </span>{
+<a href=#64 id=64 data-nosnippet>64</a>                    <span class="bool-val">false
+<a href=#65 id=65 data-nosnippet>65</a>                </span>};
+<a href=#66 id=66 data-nosnippet>66</a>                <span class="kw">if </span>should_resched {
+<a href=#67 id=67 data-nosnippet>67</a>                    cpu.need_resched = <span class="bool-val">true</span>;
+<a href=#68 id=68 data-nosnippet>68</a>                }
+<a href=#69 id=69 data-nosnippet>69</a>            }
+<a href=#70 id=70 data-nosnippet>70</a>        }
+<a href=#71 id=71 data-nosnippet>71</a>    } <span class="kw">else </span>{
+<a href=#72 id=72 data-nosnippet>72</a>        note_try_lock_fail_on_cpu(cpu_idx);
+<a href=#73 id=73 data-nosnippet>73</a>    }
+<a href=#74 id=74 data-nosnippet>74</a>}
+<a href=#75 id=75 data-nosnippet>75</a>
+<a href=#76 id=76 data-nosnippet>76</a><span class="doccomment">/// Check wake deadlines for all tasks and wake up those whose sleep has expired.
+<a href=#77 id=77 data-nosnippet>77</a>///
+<a href=#78 id=78 data-nosnippet>78</a>/// Called from timer_tick() with interrupts disabled.
+<a href=#79 id=79 data-nosnippet>79</a>/// Uses try_lock() to avoid deadlock if called while scheduler lock is held.
+<a href=#80 id=80 data-nosnippet>80</a></span><span class="kw">fn </span>check_wake_deadlines(current_time_ns: u64) {
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">let </span><span class="kw-2">mut </span>ipi_targets = [<span class="bool-val">false</span>; <span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS];
+<a href=#82 id=82 data-nosnippet>82</a>    <span class="kw">let </span>my_cpu = current_cpu_index();
+<a href=#83 id=83 data-nosnippet>83</a>    <span class="kw">let </span><span class="kw-2">mut </span>scheduler = <span class="kw">match </span>SCHEDULER.try_lock() {
+<a href=#84 id=84 data-nosnippet>84</a>        <span class="prelude-val">Some</span>(guard) =&gt; guard,
+<a href=#85 id=85 data-nosnippet>85</a>        <span class="prelude-val">None </span>=&gt; <span class="kw">return</span>,
+<a href=#86 id=86 data-nosnippet>86</a>    };
+<a href=#87 id=87 data-nosnippet>87</a>
+<a href=#88 id=88 data-nosnippet>88</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>sched) = <span class="kw-2">*</span>scheduler {
+<a href=#89 id=89 data-nosnippet>89</a>        <span class="kw">const </span>BATCH: usize = <span class="number">128</span>;
+<a href=#90 id=90 data-nosnippet>90</a>        <span class="kw">let </span><span class="kw-2">mut </span>to_wake = [TaskId::from_u64(<span class="number">0</span>); BATCH];
+<a href=#91 id=91 data-nosnippet>91</a>        <span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0usize</span>;
+<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">for </span>(id, task) <span class="kw">in </span>sched.blocked_tasks.iter() {
+<a href=#93 id=93 data-nosnippet>93</a>            <span class="kw">let </span>deadline = task.wake_deadline_ns.load(Ordering::Relaxed);
+<a href=#94 id=94 data-nosnippet>94</a>            <span class="kw">if </span>deadline != <span class="number">0 </span>&amp;&amp; current_time_ns &gt;= deadline {
+<a href=#95 id=95 data-nosnippet>95</a>                <span class="kw">if </span>count &lt; BATCH {
+<a href=#96 id=96 data-nosnippet>96</a>                    to_wake[count] = <span class="kw-2">*</span>id;
+<a href=#97 id=97 data-nosnippet>97</a>                    count += <span class="number">1</span>;
+<a href=#98 id=98 data-nosnippet>98</a>                } <span class="kw">else </span>{
+<a href=#99 id=99 data-nosnippet>99</a>                    <span class="kw">break</span>;
+<a href=#100 id=100 data-nosnippet>100</a>                }
+<a href=#101 id=101 data-nosnippet>101</a>            }
+<a href=#102 id=102 data-nosnippet>102</a>        }
+<a href=#103 id=103 data-nosnippet>103</a>
+<a href=#104 id=104 data-nosnippet>104</a>        <span class="kw">for </span>id <span class="kw">in </span>to_wake.iter().copied().take(count) {
+<a href=#105 id=105 data-nosnippet>105</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(blocked_task) = sched.blocked_tasks.remove(<span class="kw-2">&amp;</span>id) {
+<a href=#106 id=106 data-nosnippet>106</a>                blocked_task.wake_deadline_ns.store(<span class="number">0</span>, Ordering::Relaxed);
+<a href=#107 id=107 data-nosnippet>107</a>                <span class="kw">unsafe </span>{ <span class="kw-2">*</span>blocked_task.state.get() = TaskState::Ready };
+<a href=#108 id=108 data-nosnippet>108</a>                <span class="kw">let </span>cpu = sched.task_cpu.get(<span class="kw-2">&amp;</span>id).copied().unwrap_or(<span class="number">0</span>);
+<a href=#109 id=109 data-nosnippet>109</a>                <span class="kw">let </span>class = sched.class_table.class_for_task(<span class="kw-2">&amp;</span>blocked_task);
+<a href=#110 id=110 data-nosnippet>110</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(cpu_sched) = sched.cpus.get_mut(cpu) {
+<a href=#111 id=111 data-nosnippet>111</a>                    cpu_sched.class_rqs.enqueue(class, blocked_task);
+<a href=#112 id=112 data-nosnippet>112</a>                    cpu_sched.need_resched = <span class="bool-val">true</span>;
+<a href=#113 id=113 data-nosnippet>113</a>                    <span class="kw">if </span>cpu != my_cpu &amp;&amp; cpu_is_valid(cpu) {
+<a href=#114 id=114 data-nosnippet>114</a>                        ipi_targets[cpu] = <span class="bool-val">true</span>;
+<a href=#115 id=115 data-nosnippet>115</a>                    }
+<a href=#116 id=116 data-nosnippet>116</a>                }
+<a href=#117 id=117 data-nosnippet>117</a>            }
+<a href=#118 id=118 data-nosnippet>118</a>        }
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>
+<a href=#121 id=121 data-nosnippet>121</a>    drop(scheduler);
+<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">for </span>(cpu, send) <span class="kw">in </span>ipi_targets.iter().copied().enumerate() {
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">if </span>send {
+<a href=#124 id=124 data-nosnippet>124</a>            send_resched_ipi_to_cpu(cpu);
+<a href=#125 id=125 data-nosnippet>125</a>        }
+<a href=#126 id=126 data-nosnippet>126</a>    }
+<a href=#127 id=127 data-nosnippet>127</a>}
+<a href=#128 id=128 data-nosnippet>128</a>
+<a href=#129 id=129 data-nosnippet>129</a><span class="doccomment">/// Get the current tick count
+<a href=#130 id=130 data-nosnippet>130</a></span><span class="kw">pub fn </span>ticks() -&gt; u64 {
+<a href=#131 id=131 data-nosnippet>131</a>    TICK_COUNT.load(Ordering::Relaxed)
+<a href=#132 id=132 data-nosnippet>132</a>}
 <a href=#133 id=133 data-nosnippet>133</a>
-<a href=#134 id=134 data-nosnippet>134</a>    drop(scheduler);
-<a href=#135 id=135 data-nosnippet>135</a>    <span class="kw">for </span>(cpu, send) <span class="kw">in </span>ipi_targets.iter().copied().enumerate() {
-<a href=#136 id=136 data-nosnippet>136</a>        <span class="kw">if </span>send {
-<a href=#137 id=137 data-nosnippet>137</a>            send_resched_ipi_to_cpu(cpu);
-<a href=#138 id=138 data-nosnippet>138</a>        }
-<a href=#139 id=139 data-nosnippet>139</a>    }
-<a href=#140 id=140 data-nosnippet>140</a>}
-<a href=#141 id=141 data-nosnippet>141</a>
-<a href=#142 id=142 data-nosnippet>142</a><span class="doccomment">/// Get the current tick count
-<a href=#143 id=143 data-nosnippet>143</a></span><span class="kw">pub fn </span>ticks() -&gt; u64 {
-<a href=#144 id=144 data-nosnippet>144</a>    TICK_COUNT.load(Ordering::Relaxed)
-<a href=#145 id=145 data-nosnippet>145</a>}
-<a href=#146 id=146 data-nosnippet>146</a>
-<a href=#147 id=147 data-nosnippet>147</a><span class="doccomment">/// Get a list of all tasks in the system (for timer checking).
-<a href=#148 id=148 data-nosnippet>148</a>/// Returns None if scheduler is not initialized or currently locked.
-<a href=#149 id=149 data-nosnippet>149</a></span><span class="kw">pub fn </span>get_all_tasks() -&gt; <span class="prelude-ty">Option</span>&lt;alloc::vec::Vec&lt;Arc&lt;Task&gt;&gt;&gt; {
-<a href=#150 id=150 data-nosnippet>150</a>    <span class="kw">use </span>alloc::vec::Vec;
-<a href=#151 id=151 data-nosnippet>151</a>    <span class="kw">let </span>scheduler = <span class="kw">match </span>SCHEDULER.try_lock() {
-<a href=#152 id=152 data-nosnippet>152</a>        <span class="prelude-val">Some</span>(guard) =&gt; guard,
-<a href=#153 id=153 data-nosnippet>153</a>        <span class="prelude-val">None </span>=&gt; {
-<a href=#154 id=154 data-nosnippet>154</a>            note_try_lock_fail();
-<a href=#155 id=155 data-nosnippet>155</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
-<a href=#156 id=156 data-nosnippet>156</a>        }
-<a href=#157 id=157 data-nosnippet>157</a>    };
-<a href=#158 id=158 data-nosnippet>158</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>sched) = <span class="kw-2">*</span>scheduler {
-<a href=#159 id=159 data-nosnippet>159</a>        <span class="kw">let </span><span class="kw-2">mut </span>tasks = Vec::with_capacity(sched.all_tasks.len());
-<a href=#160 id=160 data-nosnippet>160</a>        <span class="kw">for </span>(<span class="kw">_</span>, task) <span class="kw">in </span>sched.all_tasks.iter() {
-<a href=#161 id=161 data-nosnippet>161</a>            tasks.push(task.clone());
-<a href=#162 id=162 data-nosnippet>162</a>        }
-<a href=#163 id=163 data-nosnippet>163</a>        <span class="prelude-val">Some</span>(tasks)
-<a href=#164 id=164 data-nosnippet>164</a>    } <span class="kw">else </span>{
-<a href=#165 id=165 data-nosnippet>165</a>        <span class="prelude-val">None
-<a href=#166 id=166 data-nosnippet>166</a>    </span>}
-<a href=#167 id=167 data-nosnippet>167</a>}
+<a href=#134 id=134 data-nosnippet>134</a><span class="doccomment">/// Get a list of all tasks in the system (for timer checking).
+<a href=#135 id=135 data-nosnippet>135</a>/// Returns None if scheduler is not initialized or currently locked.
+<a href=#136 id=136 data-nosnippet>136</a></span><span class="kw">pub fn </span>get_all_tasks() -&gt; <span class="prelude-ty">Option</span>&lt;alloc::vec::Vec&lt;Arc&lt;Task&gt;&gt;&gt; {
+<a href=#137 id=137 data-nosnippet>137</a>    <span class="kw">use </span>alloc::vec::Vec;
+<a href=#138 id=138 data-nosnippet>138</a>    <span class="kw">let </span>scheduler = <span class="kw">match </span>SCHEDULER.try_lock() {
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="prelude-val">Some</span>(guard) =&gt; guard,
+<a href=#140 id=140 data-nosnippet>140</a>        <span class="prelude-val">None </span>=&gt; {
+<a href=#141 id=141 data-nosnippet>141</a>            note_try_lock_fail();
+<a href=#142 id=142 data-nosnippet>142</a>            <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#143 id=143 data-nosnippet>143</a>        }
+<a href=#144 id=144 data-nosnippet>144</a>    };
+<a href=#145 id=145 data-nosnippet>145</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>sched) = <span class="kw-2">*</span>scheduler {
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">let </span><span class="kw-2">mut </span>tasks = Vec::with_capacity(sched.all_tasks.len());
+<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">for </span>(<span class="kw">_</span>, task) <span class="kw">in </span>sched.all_tasks.iter() {
+<a href=#148 id=148 data-nosnippet>148</a>            tasks.push(task.clone());
+<a href=#149 id=149 data-nosnippet>149</a>        }
+<a href=#150 id=150 data-nosnippet>150</a>        <span class="prelude-val">Some</span>(tasks)
+<a href=#151 id=151 data-nosnippet>151</a>    } <span class="kw">else </span>{
+<a href=#152 id=152 data-nosnippet>152</a>        <span class="prelude-val">None
+<a href=#153 id=153 data-nosnippet>153</a>    </span>}
+<a href=#154 id=154 data-nosnippet>154</a>}
 </code></pre></div></section></main></body></html>

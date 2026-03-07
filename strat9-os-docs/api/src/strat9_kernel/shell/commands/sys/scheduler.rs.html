@@ -294,57 +294,60 @@
 <a href=#294 id=294 data-nosnippet>294</a>            }
 <a href=#295 id=295 data-nosnippet>295</a>            <span class="kw">let </span>s = scheduler_state_snapshot();
 <a href=#296 id=296 data-nosnippet>296</a>            <span class="kw">if </span>kv {
-<a href=#297 id=297 data-nosnippet>297</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.initialized={}"</span>, <span class="kw">if </span>s.initialized { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
-<a href=#298 id=298 data-nosnippet>298</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.boot_phase={}"</span>, s.boot_phase);
-<a href=#299 id=299 data-nosnippet>299</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu_count={}"</span>, s.cpu_count);
-<a href=#300 id=300 data-nosnippet>300</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.0={}"</span>, s.pick_order[<span class="number">0</span>].as_str());
-<a href=#301 id=301 data-nosnippet>301</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.1={}"</span>, s.pick_order[<span class="number">1</span>].as_str());
-<a href=#302 id=302 data-nosnippet>302</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.2={}"</span>, s.pick_order[<span class="number">2</span>].as_str());
-<a href=#303 id=303 data-nosnippet>303</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.steal.0={}"</span>, s.steal_order[<span class="number">0</span>].as_str());
-<a href=#304 id=304 data-nosnippet>304</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.steal.1={}"</span>, s.steal_order[<span class="number">1</span>].as_str());
-<a href=#305 id=305 data-nosnippet>305</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.blocked={}"</span>, s.blocked_tasks);
-<a href=#306 id=306 data-nosnippet>306</a>                <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..s.cpu_count.min(<span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS) {
-<a href=#307 id=307 data-nosnippet>307</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.current={}"</span>, i, s.current_task[i]);
-<a href=#308 id=308 data-nosnippet>308</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_rt={}"</span>, i, s.rq_rt[i]);
-<a href=#309 id=309 data-nosnippet>309</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_fair={}"</span>, i, s.rq_fair[i]);
-<a href=#310 id=310 data-nosnippet>310</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_idle={}"</span>, i, s.rq_idle[i]);
-<a href=#311 id=311 data-nosnippet>311</a>                    <span class="macro">shell_println!</span>(
-<a href=#312 id=312 data-nosnippet>312</a>                        <span class="string">"scheduler.cpu.{}.need_resched={}"</span>,
-<a href=#313 id=313 data-nosnippet>313</a>                        i,
-<a href=#314 id=314 data-nosnippet>314</a>                        <span class="kw">if </span>s.need_resched[i] { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>}
-<a href=#315 id=315 data-nosnippet>315</a>                    );
-<a href=#316 id=316 data-nosnippet>316</a>                }
-<a href=#317 id=317 data-nosnippet>317</a>            } <span class="kw">else </span>{
-<a href=#318 id=318 data-nosnippet>318</a>                <span class="macro">shell_println!</span>(
-<a href=#319 id=319 data-nosnippet>319</a>                    <span class="string">"scheduler dump: initialized={} phase={} cpus={} blocked={} pick=[{},{},{}] steal=[{},{}]"</span>,
-<a href=#320 id=320 data-nosnippet>320</a>                    s.initialized,
-<a href=#321 id=321 data-nosnippet>321</a>                    s.boot_phase,
-<a href=#322 id=322 data-nosnippet>322</a>                    s.cpu_count,
-<a href=#323 id=323 data-nosnippet>323</a>                    s.blocked_tasks,
-<a href=#324 id=324 data-nosnippet>324</a>                    s.pick_order[<span class="number">0</span>].as_str(),
-<a href=#325 id=325 data-nosnippet>325</a>                    s.pick_order[<span class="number">1</span>].as_str(),
-<a href=#326 id=326 data-nosnippet>326</a>                    s.pick_order[<span class="number">2</span>].as_str(),
-<a href=#327 id=327 data-nosnippet>327</a>                    s.steal_order[<span class="number">0</span>].as_str(),
-<a href=#328 id=328 data-nosnippet>328</a>                    s.steal_order[<span class="number">1</span>].as_str()
-<a href=#329 id=329 data-nosnippet>329</a>                );
-<a href=#330 id=330 data-nosnippet>330</a>                <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..s.cpu_count.min(<span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS) {
-<a href=#331 id=331 data-nosnippet>331</a>                    <span class="macro">shell_println!</span>(
-<a href=#332 id=332 data-nosnippet>332</a>                        <span class="string">"  cpu{} current={} rq_rt={} rq_fair={} rq_idle={} need_resched={}"</span>,
-<a href=#333 id=333 data-nosnippet>333</a>                        i,
-<a href=#334 id=334 data-nosnippet>334</a>                        s.current_task[i],
-<a href=#335 id=335 data-nosnippet>335</a>                        s.rq_rt[i],
-<a href=#336 id=336 data-nosnippet>336</a>                        s.rq_fair[i],
-<a href=#337 id=337 data-nosnippet>337</a>                        s.rq_idle[i],
-<a href=#338 id=338 data-nosnippet>338</a>                        s.need_resched[i]
-<a href=#339 id=339 data-nosnippet>339</a>                    );
-<a href=#340 id=340 data-nosnippet>340</a>                }
-<a href=#341 id=341 data-nosnippet>341</a>            }
-<a href=#342 id=342 data-nosnippet>342</a>            <span class="prelude-val">Ok</span>(())
-<a href=#343 id=343 data-nosnippet>343</a>        }
-<a href=#344 id=344 data-nosnippet>344</a>        <span class="kw">_ </span>=&gt; {
-<a href=#345 id=345 data-nosnippet>345</a>            <span class="macro">shell_println!</span>(<span class="string">"Usage: scheduler &lt;debug|class|policy|metrics|dump&gt; ..."</span>);
-<a href=#346 id=346 data-nosnippet>346</a>            <span class="prelude-val">Err</span>(ShellError::InvalidArguments)
-<a href=#347 id=347 data-nosnippet>347</a>        }
-<a href=#348 id=348 data-nosnippet>348</a>    }
-<a href=#349 id=349 data-nosnippet>349</a>}
+<a href=#297 id=297 data-nosnippet>297</a>                <span class="macro">shell_println!</span>(
+<a href=#298 id=298 data-nosnippet>298</a>                    <span class="string">"scheduler.initialized={}"</span>,
+<a href=#299 id=299 data-nosnippet>299</a>                    <span class="kw">if </span>s.initialized { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>}
+<a href=#300 id=300 data-nosnippet>300</a>                );
+<a href=#301 id=301 data-nosnippet>301</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.boot_phase={}"</span>, s.boot_phase);
+<a href=#302 id=302 data-nosnippet>302</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu_count={}"</span>, s.cpu_count);
+<a href=#303 id=303 data-nosnippet>303</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.0={}"</span>, s.pick_order[<span class="number">0</span>].as_str());
+<a href=#304 id=304 data-nosnippet>304</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.1={}"</span>, s.pick_order[<span class="number">1</span>].as_str());
+<a href=#305 id=305 data-nosnippet>305</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.pick.2={}"</span>, s.pick_order[<span class="number">2</span>].as_str());
+<a href=#306 id=306 data-nosnippet>306</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.steal.0={}"</span>, s.steal_order[<span class="number">0</span>].as_str());
+<a href=#307 id=307 data-nosnippet>307</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.steal.1={}"</span>, s.steal_order[<span class="number">1</span>].as_str());
+<a href=#308 id=308 data-nosnippet>308</a>                <span class="macro">shell_println!</span>(<span class="string">"scheduler.blocked={}"</span>, s.blocked_tasks);
+<a href=#309 id=309 data-nosnippet>309</a>                <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..s.cpu_count.min(<span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS) {
+<a href=#310 id=310 data-nosnippet>310</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.current={}"</span>, i, s.current_task[i]);
+<a href=#311 id=311 data-nosnippet>311</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_rt={}"</span>, i, s.rq_rt[i]);
+<a href=#312 id=312 data-nosnippet>312</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_fair={}"</span>, i, s.rq_fair[i]);
+<a href=#313 id=313 data-nosnippet>313</a>                    <span class="macro">shell_println!</span>(<span class="string">"scheduler.cpu.{}.rq_idle={}"</span>, i, s.rq_idle[i]);
+<a href=#314 id=314 data-nosnippet>314</a>                    <span class="macro">shell_println!</span>(
+<a href=#315 id=315 data-nosnippet>315</a>                        <span class="string">"scheduler.cpu.{}.need_resched={}"</span>,
+<a href=#316 id=316 data-nosnippet>316</a>                        i,
+<a href=#317 id=317 data-nosnippet>317</a>                        <span class="kw">if </span>s.need_resched[i] { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>}
+<a href=#318 id=318 data-nosnippet>318</a>                    );
+<a href=#319 id=319 data-nosnippet>319</a>                }
+<a href=#320 id=320 data-nosnippet>320</a>            } <span class="kw">else </span>{
+<a href=#321 id=321 data-nosnippet>321</a>                <span class="macro">shell_println!</span>(
+<a href=#322 id=322 data-nosnippet>322</a>                    <span class="string">"scheduler dump: initialized={} phase={} cpus={} blocked={} pick=[{},{},{}] steal=[{},{}]"</span>,
+<a href=#323 id=323 data-nosnippet>323</a>                    s.initialized,
+<a href=#324 id=324 data-nosnippet>324</a>                    s.boot_phase,
+<a href=#325 id=325 data-nosnippet>325</a>                    s.cpu_count,
+<a href=#326 id=326 data-nosnippet>326</a>                    s.blocked_tasks,
+<a href=#327 id=327 data-nosnippet>327</a>                    s.pick_order[<span class="number">0</span>].as_str(),
+<a href=#328 id=328 data-nosnippet>328</a>                    s.pick_order[<span class="number">1</span>].as_str(),
+<a href=#329 id=329 data-nosnippet>329</a>                    s.pick_order[<span class="number">2</span>].as_str(),
+<a href=#330 id=330 data-nosnippet>330</a>                    s.steal_order[<span class="number">0</span>].as_str(),
+<a href=#331 id=331 data-nosnippet>331</a>                    s.steal_order[<span class="number">1</span>].as_str()
+<a href=#332 id=332 data-nosnippet>332</a>                );
+<a href=#333 id=333 data-nosnippet>333</a>                <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..s.cpu_count.min(<span class="kw">crate</span>::arch::x86_64::percpu::MAX_CPUS) {
+<a href=#334 id=334 data-nosnippet>334</a>                    <span class="macro">shell_println!</span>(
+<a href=#335 id=335 data-nosnippet>335</a>                        <span class="string">"  cpu{} current={} rq_rt={} rq_fair={} rq_idle={} need_resched={}"</span>,
+<a href=#336 id=336 data-nosnippet>336</a>                        i,
+<a href=#337 id=337 data-nosnippet>337</a>                        s.current_task[i],
+<a href=#338 id=338 data-nosnippet>338</a>                        s.rq_rt[i],
+<a href=#339 id=339 data-nosnippet>339</a>                        s.rq_fair[i],
+<a href=#340 id=340 data-nosnippet>340</a>                        s.rq_idle[i],
+<a href=#341 id=341 data-nosnippet>341</a>                        s.need_resched[i]
+<a href=#342 id=342 data-nosnippet>342</a>                    );
+<a href=#343 id=343 data-nosnippet>343</a>                }
+<a href=#344 id=344 data-nosnippet>344</a>            }
+<a href=#345 id=345 data-nosnippet>345</a>            <span class="prelude-val">Ok</span>(())
+<a href=#346 id=346 data-nosnippet>346</a>        }
+<a href=#347 id=347 data-nosnippet>347</a>        <span class="kw">_ </span>=&gt; {
+<a href=#348 id=348 data-nosnippet>348</a>            <span class="macro">shell_println!</span>(<span class="string">"Usage: scheduler &lt;debug|class|policy|metrics|dump&gt; ..."</span>);
+<a href=#349 id=349 data-nosnippet>349</a>            <span class="prelude-val">Err</span>(ShellError::InvalidArguments)
+<a href=#350 id=350 data-nosnippet>350</a>        }
+<a href=#351 id=351 data-nosnippet>351</a>    }
+<a href=#352 id=352 data-nosnippet>352</a>}
 </code></pre></div></section></main></body></html>

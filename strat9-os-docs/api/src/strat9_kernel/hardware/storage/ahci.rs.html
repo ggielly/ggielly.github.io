@@ -24,7 +24,7 @@
 <a href=#24 id=24 data-nosnippet>24</a>
 <a href=#25 id=25 data-nosnippet>25</a></span><span class="kw">use </span>crate::{
 <a href=#26 id=26 data-nosnippet>26</a>    hardware::pci_client::{<span class="self">self </span><span class="kw">as </span>pci, ProbeCriteria},
-<a href=#27 id=27 data-nosnippet>27</a>    memory::{buddy::get_allocator, phys_to_virt, FrameAllocator, PhysFrame},
+<a href=#27 id=27 data-nosnippet>27</a>    memory::{<span class="self">self</span>, phys_to_virt, PhysFrame},
 <a href=#28 id=28 data-nosnippet>28</a>    sync::{SpinLock, WaitQueue},
 <a href=#29 id=29 data-nosnippet>29</a>};
 <a href=#30 id=30 data-nosnippet>30</a><span class="kw">use </span>alloc::{boxed::Box, vec::Vec};
@@ -290,515 +290,498 @@
 <a href=#290 id=290 data-nosnippet>290</a>    </span><span class="kw">fn </span>alloc(bytes: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AhciError&gt; {
 <a href=#291 id=291 data-nosnippet>291</a>        <span class="kw">let </span>pages = (bytes + <span class="number">4095</span>) / <span class="number">4096</span>;
 <a href=#292 id=292 data-nosnippet>292</a>        <span class="kw">let </span>order = pages.next_power_of_two().trailing_zeros() <span class="kw">as </span>u8;
-<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">let </span><span class="kw-2">mut </span>lock = get_allocator().lock();
-<a href=#294 id=294 data-nosnippet>294</a>        <span class="kw">let </span>frame = lock
-<a href=#295 id=295 data-nosnippet>295</a>            .as_mut()
-<a href=#296 id=296 data-nosnippet>296</a>            .ok_or(AhciError::Alloc)<span class="question-mark">?
-<a href=#297 id=297 data-nosnippet>297</a>            </span>.alloc(order)
-<a href=#298 id=298 data-nosnippet>298</a>            .map_err(|<span class="kw">_</span>| AhciError::Alloc)<span class="question-mark">?</span>;
-<a href=#299 id=299 data-nosnippet>299</a>        <span class="kw">let </span>phys = frame.start_address.as_u64();
-<a href=#300 id=300 data-nosnippet>300</a>        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-<a href=#301 id=301 data-nosnippet>301</a>            frame,
-<a href=#302 id=302 data-nosnippet>302</a>            order,
-<a href=#303 id=303 data-nosnippet>303</a>            phys,
-<a href=#304 id=304 data-nosnippet>304</a>            virt: phys_to_virt(phys),
-<a href=#305 id=305 data-nosnippet>305</a>        })
+<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">let </span>frame = memory::allocate_frames(order).map_err(|<span class="kw">_</span>| AhciError::Alloc)<span class="question-mark">?</span>;
+<a href=#294 id=294 data-nosnippet>294</a>        <span class="kw">let </span>phys = frame.start_address.as_u64();
+<a href=#295 id=295 data-nosnippet>295</a>        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+<a href=#296 id=296 data-nosnippet>296</a>            frame,
+<a href=#297 id=297 data-nosnippet>297</a>            order,
+<a href=#298 id=298 data-nosnippet>298</a>            phys,
+<a href=#299 id=299 data-nosnippet>299</a>            virt: phys_to_virt(phys),
+<a href=#300 id=300 data-nosnippet>300</a>        })
+<a href=#301 id=301 data-nosnippet>301</a>    }
+<a href=#302 id=302 data-nosnippet>302</a>
+<a href=#303 id=303 data-nosnippet>303</a>    <span class="doccomment">/// Performs the free operation.
+<a href=#304 id=304 data-nosnippet>304</a>    </span><span class="kw">fn </span>free(<span class="self">self</span>) {
+<a href=#305 id=305 data-nosnippet>305</a>        memory::free_frames(<span class="self">self</span>.frame, <span class="self">self</span>.order);
 <a href=#306 id=306 data-nosnippet>306</a>    }
-<a href=#307 id=307 data-nosnippet>307</a>
-<a href=#308 id=308 data-nosnippet>308</a>    <span class="doccomment">/// Performs the free operation.
-<a href=#309 id=309 data-nosnippet>309</a>    </span><span class="kw">fn </span>free(<span class="self">self</span>) {
-<a href=#310 id=310 data-nosnippet>310</a>        <span class="kw">let </span><span class="kw-2">mut </span>lock = get_allocator().lock();
-<a href=#311 id=311 data-nosnippet>311</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(a) = lock.as_mut() {
-<a href=#312 id=312 data-nosnippet>312</a>            a.free(<span class="self">self</span>.frame, <span class="self">self</span>.order);
-<a href=#313 id=313 data-nosnippet>313</a>        }
-<a href=#314 id=314 data-nosnippet>314</a>    }
-<a href=#315 id=315 data-nosnippet>315</a>}
-<a href=#316 id=316 data-nosnippet>316</a>
-<a href=#317 id=317 data-nosnippet>317</a><span class="comment">// ─── Command submission ───────────────────────────────────────────────────────
-<a href=#318 id=318 data-nosnippet>318</a>//
-<a href=#319 id=319 data-nosnippet>319</a>// Two completion strategies:
-<a href=#320 id=320 data-nosnippet>320</a>//   1. Task context (current_task_id() is Some): IRQ + WaitQueue — the issuing
-<a href=#321 id=321 data-nosnippet>321</a>//      task is blocked by the scheduler until the IRQ fires and wakes it.
-<a href=#322 id=322 data-nosnippet>322</a>//   2. Boot context (no task yet): legacy busy-poll with timeout.
-<a href=#323 id=323 data-nosnippet>323</a>
-<a href=#324 id=324 data-nosnippet>324</a></span><span class="doccomment">/// Performs the submit cmd operation.
-<a href=#325 id=325 data-nosnippet>325</a></span><span class="kw">fn </span>submit_cmd(
-<a href=#326 id=326 data-nosnippet>326</a>    port: <span class="kw-2">&amp;</span>AhciPort,
-<a href=#327 id=327 data-nosnippet>327</a>    lba: u64,
-<a href=#328 id=328 data-nosnippet>328</a>    count: u16,
-<a href=#329 id=329 data-nosnippet>329</a>    buf: <span class="kw-2">&amp;mut </span>[u8],
-<a href=#330 id=330 data-nosnippet>330</a>    write: bool,
-<a href=#331 id=331 data-nosnippet>331</a>    ata_cmd: u8,
-<a href=#332 id=332 data-nosnippet>332</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AhciError&gt; {
-<a href=#333 id=333 data-nosnippet>333</a>    <span class="kw">let </span>nbytes = (count <span class="kw">as </span>usize) * SECTOR_SIZE;
-<a href=#334 id=334 data-nosnippet>334</a>    <span class="kw">if </span>buf.len() &lt; nbytes {
-<a href=#335 id=335 data-nosnippet>335</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::BufferTooSmall);
-<a href=#336 id=336 data-nosnippet>336</a>    }
+<a href=#307 id=307 data-nosnippet>307</a>}
+<a href=#308 id=308 data-nosnippet>308</a>
+<a href=#309 id=309 data-nosnippet>309</a><span class="comment">// ─── Command submission ───────────────────────────────────────────────────────
+<a href=#310 id=310 data-nosnippet>310</a>//
+<a href=#311 id=311 data-nosnippet>311</a>// Two completion strategies:
+<a href=#312 id=312 data-nosnippet>312</a>//   1. Task context (current_task_id() is Some): IRQ + WaitQueue — the issuing
+<a href=#313 id=313 data-nosnippet>313</a>//      task is blocked by the scheduler until the IRQ fires and wakes it.
+<a href=#314 id=314 data-nosnippet>314</a>//   2. Boot context (no task yet): legacy busy-poll with timeout.
+<a href=#315 id=315 data-nosnippet>315</a>
+<a href=#316 id=316 data-nosnippet>316</a></span><span class="doccomment">/// Performs the submit cmd operation.
+<a href=#317 id=317 data-nosnippet>317</a></span><span class="kw">fn </span>submit_cmd(
+<a href=#318 id=318 data-nosnippet>318</a>    port: <span class="kw-2">&amp;</span>AhciPort,
+<a href=#319 id=319 data-nosnippet>319</a>    lba: u64,
+<a href=#320 id=320 data-nosnippet>320</a>    count: u16,
+<a href=#321 id=321 data-nosnippet>321</a>    buf: <span class="kw-2">&amp;mut </span>[u8],
+<a href=#322 id=322 data-nosnippet>322</a>    write: bool,
+<a href=#323 id=323 data-nosnippet>323</a>    ata_cmd: u8,
+<a href=#324 id=324 data-nosnippet>324</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), AhciError&gt; {
+<a href=#325 id=325 data-nosnippet>325</a>    <span class="kw">let </span>nbytes = (count <span class="kw">as </span>usize) * SECTOR_SIZE;
+<a href=#326 id=326 data-nosnippet>326</a>    <span class="kw">if </span>buf.len() &lt; nbytes {
+<a href=#327 id=327 data-nosnippet>327</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::BufferTooSmall);
+<a href=#328 id=328 data-nosnippet>328</a>    }
+<a href=#329 id=329 data-nosnippet>329</a>
+<a href=#330 id=330 data-nosnippet>330</a>    <span class="comment">// SAFETY: MMIO read to check device readiness
+<a href=#331 id=331 data-nosnippet>331</a>    </span><span class="kw">let </span>tfd = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_TFD) };
+<a href=#332 id=332 data-nosnippet>332</a>    <span class="kw">if </span>tfd &amp; (TFD_BSY | TFD_DRQ) != <span class="number">0 </span>{
+<a href=#333 id=333 data-nosnippet>333</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::Busy);
+<a href=#334 id=334 data-nosnippet>334</a>    }
+<a href=#335 id=335 data-nosnippet>335</a>
+<a href=#336 id=336 data-nosnippet>336</a>    <span class="kw">let </span>bounce = Bounce::alloc(nbytes)<span class="question-mark">?</span>;
 <a href=#337 id=337 data-nosnippet>337</a>
-<a href=#338 id=338 data-nosnippet>338</a>    <span class="comment">// SAFETY: MMIO read to check device readiness
-<a href=#339 id=339 data-nosnippet>339</a>    </span><span class="kw">let </span>tfd = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_TFD) };
-<a href=#340 id=340 data-nosnippet>340</a>    <span class="kw">if </span>tfd &amp; (TFD_BSY | TFD_DRQ) != <span class="number">0 </span>{
-<a href=#341 id=341 data-nosnippet>341</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::Busy);
-<a href=#342 id=342 data-nosnippet>342</a>    }
-<a href=#343 id=343 data-nosnippet>343</a>
-<a href=#344 id=344 data-nosnippet>344</a>    <span class="kw">let </span>bounce = Bounce::alloc(nbytes)<span class="question-mark">?</span>;
-<a href=#345 id=345 data-nosnippet>345</a>
-<a href=#346 id=346 data-nosnippet>346</a>    <span class="kw">if </span>write {
-<a href=#347 id=347 data-nosnippet>347</a>        <span class="comment">// SAFETY: bounce.virt is a valid HHDM address ≥ nbytes; buf.len() ≥ nbytes
-<a href=#348 id=348 data-nosnippet>348</a>        </span><span class="kw">unsafe </span>{
-<a href=#349 id=349 data-nosnippet>349</a>            ptr::copy_nonoverlapping(buf.as_ptr(), bounce.virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, nbytes);
-<a href=#350 id=350 data-nosnippet>350</a>        }
-<a href=#351 id=351 data-nosnippet>351</a>    }
-<a href=#352 id=352 data-nosnippet>352</a>
-<a href=#353 id=353 data-nosnippet>353</a>    <span class="kw">let </span>ctab_phys = port.mem_phys + CTAB_OFF;
-<a href=#354 id=354 data-nosnippet>354</a>    <span class="kw">let </span>cmdh_virt = port.mem_virt + CLB_OFF; <span class="comment">// slot 0 = first 32 bytes of CLB
-<a href=#355 id=355 data-nosnippet>355</a>    </span><span class="kw">let </span>ctab_virt = port.mem_virt + CTAB_OFF;
-<a href=#356 id=356 data-nosnippet>356</a>
-<a href=#357 id=357 data-nosnippet>357</a>    <span class="comment">// SAFETY: cmdh_virt and ctab_virt point to our allocated frame (physically valid)
-<a href=#358 id=358 data-nosnippet>358</a>    </span><span class="kw">unsafe </span>{
-<a href=#359 id=359 data-nosnippet>359</a>        <span class="comment">// --- Command header (slot 0, 32 bytes) ---
-<a href=#360 id=360 data-nosnippet>360</a>        </span><span class="kw">let </span>h = cmdh_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8;
-<a href=#361 id=361 data-nosnippet>361</a>        ptr::write_bytes(h, <span class="number">0</span>, <span class="number">32</span>);
-<a href=#362 id=362 data-nosnippet>362</a>
-<a href=#363 id=363 data-nosnippet>363</a>        <span class="comment">// CFL = 5 (H2D FIS = 20 B = 5 DWORDs); W bit set for writes
-<a href=#364 id=364 data-nosnippet>364</a>        </span><span class="kw">let </span>flags: u16 = <span class="number">5u16 </span>| (<span class="kw">if </span>write { <span class="number">1 </span>&lt;&lt; <span class="number">6 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
-<a href=#365 id=365 data-nosnippet>365</a>        ptr::write_unaligned(h.add(CMDH_FLAGS) <span class="kw">as </span><span class="kw-2">*mut </span>u16, flags.to_le());
-<a href=#366 id=366 data-nosnippet>366</a>        ptr::write_unaligned(h.add(CMDH_PRDTL) <span class="kw">as </span><span class="kw-2">*mut </span>u16, <span class="number">1u16</span>.to_le()); <span class="comment">// 1 PRDT entry
-<a href=#367 id=367 data-nosnippet>367</a>        </span>ptr::write_unaligned(
-<a href=#368 id=368 data-nosnippet>368</a>            h.add(CMDH_CTBA) <span class="kw">as </span><span class="kw-2">*mut </span>u32,
-<a href=#369 id=369 data-nosnippet>369</a>            (ctab_phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32,
-<a href=#370 id=370 data-nosnippet>370</a>        );
-<a href=#371 id=371 data-nosnippet>371</a>        ptr::write_unaligned(h.add(CMDH_CTBAU) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (ctab_phys &gt;&gt; <span class="number">32</span>) <span class="kw">as </span>u32);
-<a href=#372 id=372 data-nosnippet>372</a>
-<a href=#373 id=373 data-nosnippet>373</a>        <span class="comment">// --- Command table ---
-<a href=#374 id=374 data-nosnippet>374</a>        </span><span class="kw">let </span>t = ctab_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8;
-<a href=#375 id=375 data-nosnippet>375</a>        ptr::write_bytes(t, <span class="number">0</span>, CTAB_PRDT + <span class="number">16</span>);
-<a href=#376 id=376 data-nosnippet>376</a>
-<a href=#377 id=377 data-nosnippet>377</a>        <span class="comment">// H2D Register FIS (20 bytes at CFIS offset)
-<a href=#378 id=378 data-nosnippet>378</a>        </span><span class="kw">let </span>f = t.add(CTAB_CFIS);
-<a href=#379 id=379 data-nosnippet>379</a>        <span class="kw-2">*</span>f.add(FIS_TYPE) = FIS_TYPE_H2D;
-<a href=#380 id=380 data-nosnippet>380</a>        <span class="kw-2">*</span>f.add(FIS_FLAGS) = FIS_C_BIT;
-<a href=#381 id=381 data-nosnippet>381</a>        <span class="kw-2">*</span>f.add(FIS_CMD) = ata_cmd;
-<a href=#382 id=382 data-nosnippet>382</a>        <span class="kw-2">*</span>f.add(FIS_LBA0) = (lba &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#383 id=383 data-nosnippet>383</a>        <span class="kw-2">*</span>f.add(FIS_LBA1) = ((lba &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#384 id=384 data-nosnippet>384</a>        <span class="kw-2">*</span>f.add(FIS_LBA2) = ((lba &gt;&gt; <span class="number">16</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#385 id=385 data-nosnippet>385</a>        <span class="kw-2">*</span>f.add(FIS_DEVICE) = FIS_LBA_MODE; <span class="comment">// LBA addressing, device 0
-<a href=#386 id=386 data-nosnippet>386</a>        </span><span class="kw-2">*</span>f.add(FIS_LBA3) = ((lba &gt;&gt; <span class="number">24</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#387 id=387 data-nosnippet>387</a>        <span class="kw-2">*</span>f.add(FIS_LBA4) = ((lba &gt;&gt; <span class="number">32</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#388 id=388 data-nosnippet>388</a>        <span class="kw-2">*</span>f.add(FIS_LBA5) = ((lba &gt;&gt; <span class="number">40</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#389 id=389 data-nosnippet>389</a>        <span class="kw-2">*</span>f.add(FIS_CNT_LO) = (count &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
-<a href=#390 id=390 data-nosnippet>390</a>        <span class="kw-2">*</span>f.add(FIS_CNT_HI) = (count &gt;&gt; <span class="number">8</span>) <span class="kw">as </span>u8;
-<a href=#391 id=391 data-nosnippet>391</a>
-<a href=#392 id=392 data-nosnippet>392</a>        <span class="comment">// PRDT entry 0 (16 bytes)
-<a href=#393 id=393 data-nosnippet>393</a>        </span><span class="kw">let </span>p = t.add(CTAB_PRDT);
-<a href=#394 id=394 data-nosnippet>394</a>        <span class="comment">// DBA: physical address of DMA bounce buffer
-<a href=#395 id=395 data-nosnippet>395</a>        </span>ptr::write_unaligned(p.add(<span class="number">0</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (bounce.phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32);
-<a href=#396 id=396 data-nosnippet>396</a>        ptr::write_unaligned(p.add(<span class="number">4</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (bounce.phys &gt;&gt; <span class="number">32</span>) <span class="kw">as </span>u32);
-<a href=#397 id=397 data-nosnippet>397</a>        ptr::write_unaligned(p.add(<span class="number">8</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, <span class="number">0u32</span>);
-<a href=#398 id=398 data-nosnippet>398</a>        <span class="comment">// DBC: byte_count - 1; bit 31 = interrupt on completion
-<a href=#399 id=399 data-nosnippet>399</a>        </span><span class="kw">let </span>dbc = ((nbytes <span class="kw">as </span>u32).saturating_sub(<span class="number">1</span>)) | (<span class="number">1 </span>&lt;&lt; <span class="number">31</span>);
-<a href=#400 id=400 data-nosnippet>400</a>        ptr::write_unaligned(p.add(<span class="number">12</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, dbc);
-<a href=#401 id=401 data-nosnippet>401</a>    }
-<a href=#402 id=402 data-nosnippet>402</a>
-<a href=#403 id=403 data-nosnippet>403</a>    <span class="kw">let </span>idx = port.port_num <span class="kw">as </span>usize;
+<a href=#338 id=338 data-nosnippet>338</a>    <span class="kw">if </span>write {
+<a href=#339 id=339 data-nosnippet>339</a>        <span class="comment">// SAFETY: bounce.virt is a valid HHDM address ≥ nbytes; buf.len() ≥ nbytes
+<a href=#340 id=340 data-nosnippet>340</a>        </span><span class="kw">unsafe </span>{
+<a href=#341 id=341 data-nosnippet>341</a>            ptr::copy_nonoverlapping(buf.as_ptr(), bounce.virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, nbytes);
+<a href=#342 id=342 data-nosnippet>342</a>        }
+<a href=#343 id=343 data-nosnippet>343</a>    }
+<a href=#344 id=344 data-nosnippet>344</a>
+<a href=#345 id=345 data-nosnippet>345</a>    <span class="kw">let </span>ctab_phys = port.mem_phys + CTAB_OFF;
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="kw">let </span>cmdh_virt = port.mem_virt + CLB_OFF; <span class="comment">// slot 0 = first 32 bytes of CLB
+<a href=#347 id=347 data-nosnippet>347</a>    </span><span class="kw">let </span>ctab_virt = port.mem_virt + CTAB_OFF;
+<a href=#348 id=348 data-nosnippet>348</a>
+<a href=#349 id=349 data-nosnippet>349</a>    <span class="comment">// SAFETY: cmdh_virt and ctab_virt point to our allocated frame (physically valid)
+<a href=#350 id=350 data-nosnippet>350</a>    </span><span class="kw">unsafe </span>{
+<a href=#351 id=351 data-nosnippet>351</a>        <span class="comment">// --- Command header (slot 0, 32 bytes) ---
+<a href=#352 id=352 data-nosnippet>352</a>        </span><span class="kw">let </span>h = cmdh_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#353 id=353 data-nosnippet>353</a>        ptr::write_bytes(h, <span class="number">0</span>, <span class="number">32</span>);
+<a href=#354 id=354 data-nosnippet>354</a>
+<a href=#355 id=355 data-nosnippet>355</a>        <span class="comment">// CFL = 5 (H2D FIS = 20 B = 5 DWORDs); W bit set for writes
+<a href=#356 id=356 data-nosnippet>356</a>        </span><span class="kw">let </span>flags: u16 = <span class="number">5u16 </span>| (<span class="kw">if </span>write { <span class="number">1 </span>&lt;&lt; <span class="number">6 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
+<a href=#357 id=357 data-nosnippet>357</a>        ptr::write_unaligned(h.add(CMDH_FLAGS) <span class="kw">as </span><span class="kw-2">*mut </span>u16, flags.to_le());
+<a href=#358 id=358 data-nosnippet>358</a>        ptr::write_unaligned(h.add(CMDH_PRDTL) <span class="kw">as </span><span class="kw-2">*mut </span>u16, <span class="number">1u16</span>.to_le()); <span class="comment">// 1 PRDT entry
+<a href=#359 id=359 data-nosnippet>359</a>        </span>ptr::write_unaligned(
+<a href=#360 id=360 data-nosnippet>360</a>            h.add(CMDH_CTBA) <span class="kw">as </span><span class="kw-2">*mut </span>u32,
+<a href=#361 id=361 data-nosnippet>361</a>            (ctab_phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32,
+<a href=#362 id=362 data-nosnippet>362</a>        );
+<a href=#363 id=363 data-nosnippet>363</a>        ptr::write_unaligned(h.add(CMDH_CTBAU) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (ctab_phys &gt;&gt; <span class="number">32</span>) <span class="kw">as </span>u32);
+<a href=#364 id=364 data-nosnippet>364</a>
+<a href=#365 id=365 data-nosnippet>365</a>        <span class="comment">// --- Command table ---
+<a href=#366 id=366 data-nosnippet>366</a>        </span><span class="kw">let </span>t = ctab_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8;
+<a href=#367 id=367 data-nosnippet>367</a>        ptr::write_bytes(t, <span class="number">0</span>, CTAB_PRDT + <span class="number">16</span>);
+<a href=#368 id=368 data-nosnippet>368</a>
+<a href=#369 id=369 data-nosnippet>369</a>        <span class="comment">// H2D Register FIS (20 bytes at CFIS offset)
+<a href=#370 id=370 data-nosnippet>370</a>        </span><span class="kw">let </span>f = t.add(CTAB_CFIS);
+<a href=#371 id=371 data-nosnippet>371</a>        <span class="kw-2">*</span>f.add(FIS_TYPE) = FIS_TYPE_H2D;
+<a href=#372 id=372 data-nosnippet>372</a>        <span class="kw-2">*</span>f.add(FIS_FLAGS) = FIS_C_BIT;
+<a href=#373 id=373 data-nosnippet>373</a>        <span class="kw-2">*</span>f.add(FIS_CMD) = ata_cmd;
+<a href=#374 id=374 data-nosnippet>374</a>        <span class="kw-2">*</span>f.add(FIS_LBA0) = (lba &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#375 id=375 data-nosnippet>375</a>        <span class="kw-2">*</span>f.add(FIS_LBA1) = ((lba &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#376 id=376 data-nosnippet>376</a>        <span class="kw-2">*</span>f.add(FIS_LBA2) = ((lba &gt;&gt; <span class="number">16</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#377 id=377 data-nosnippet>377</a>        <span class="kw-2">*</span>f.add(FIS_DEVICE) = FIS_LBA_MODE; <span class="comment">// LBA addressing, device 0
+<a href=#378 id=378 data-nosnippet>378</a>        </span><span class="kw-2">*</span>f.add(FIS_LBA3) = ((lba &gt;&gt; <span class="number">24</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#379 id=379 data-nosnippet>379</a>        <span class="kw-2">*</span>f.add(FIS_LBA4) = ((lba &gt;&gt; <span class="number">32</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#380 id=380 data-nosnippet>380</a>        <span class="kw-2">*</span>f.add(FIS_LBA5) = ((lba &gt;&gt; <span class="number">40</span>) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#381 id=381 data-nosnippet>381</a>        <span class="kw-2">*</span>f.add(FIS_CNT_LO) = (count &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8;
+<a href=#382 id=382 data-nosnippet>382</a>        <span class="kw-2">*</span>f.add(FIS_CNT_HI) = (count &gt;&gt; <span class="number">8</span>) <span class="kw">as </span>u8;
+<a href=#383 id=383 data-nosnippet>383</a>
+<a href=#384 id=384 data-nosnippet>384</a>        <span class="comment">// PRDT entry 0 (16 bytes)
+<a href=#385 id=385 data-nosnippet>385</a>        </span><span class="kw">let </span>p = t.add(CTAB_PRDT);
+<a href=#386 id=386 data-nosnippet>386</a>        <span class="comment">// DBA: physical address of DMA bounce buffer
+<a href=#387 id=387 data-nosnippet>387</a>        </span>ptr::write_unaligned(p.add(<span class="number">0</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (bounce.phys &amp; <span class="number">0xFFFF_FFFF</span>) <span class="kw">as </span>u32);
+<a href=#388 id=388 data-nosnippet>388</a>        ptr::write_unaligned(p.add(<span class="number">4</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, (bounce.phys &gt;&gt; <span class="number">32</span>) <span class="kw">as </span>u32);
+<a href=#389 id=389 data-nosnippet>389</a>        ptr::write_unaligned(p.add(<span class="number">8</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, <span class="number">0u32</span>);
+<a href=#390 id=390 data-nosnippet>390</a>        <span class="comment">// DBC: byte_count - 1; bit 31 = interrupt on completion
+<a href=#391 id=391 data-nosnippet>391</a>        </span><span class="kw">let </span>dbc = ((nbytes <span class="kw">as </span>u32).saturating_sub(<span class="number">1</span>)) | (<span class="number">1 </span>&lt;&lt; <span class="number">31</span>);
+<a href=#392 id=392 data-nosnippet>392</a>        ptr::write_unaligned(p.add(<span class="number">12</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u32, dbc);
+<a href=#393 id=393 data-nosnippet>393</a>    }
+<a href=#394 id=394 data-nosnippet>394</a>
+<a href=#395 id=395 data-nosnippet>395</a>    <span class="kw">let </span>idx = port.port_num <span class="kw">as </span>usize;
+<a href=#396 id=396 data-nosnippet>396</a>
+<a href=#397 id=397 data-nosnippet>397</a>    <span class="comment">// Clear any stale completion state before issuing the command
+<a href=#398 id=398 data-nosnippet>398</a>    </span>PORT_SLOT0_DONE[idx].store(<span class="bool-val">false</span>, Ordering::Release);
+<a href=#399 id=399 data-nosnippet>399</a>    PORT_SLOT0_ERROR[idx].store(<span class="bool-val">false</span>, Ordering::Release);
+<a href=#400 id=400 data-nosnippet>400</a>
+<a href=#401 id=401 data-nosnippet>401</a>    <span class="comment">// Issue command in slot 0
+<a href=#402 id=402 data-nosnippet>402</a>    // SAFETY: MMIO write to PxCI
+<a href=#403 id=403 data-nosnippet>403</a>    </span><span class="kw">unsafe </span>{ wr32(port.port_virt, PORT_CI, <span class="number">1</span>) };
 <a href=#404 id=404 data-nosnippet>404</a>
-<a href=#405 id=405 data-nosnippet>405</a>    <span class="comment">// Clear any stale completion state before issuing the command
-<a href=#406 id=406 data-nosnippet>406</a>    </span>PORT_SLOT0_DONE[idx].store(<span class="bool-val">false</span>, Ordering::Release);
-<a href=#407 id=407 data-nosnippet>407</a>    PORT_SLOT0_ERROR[idx].store(<span class="bool-val">false</span>, Ordering::Release);
-<a href=#408 id=408 data-nosnippet>408</a>
-<a href=#409 id=409 data-nosnippet>409</a>    <span class="comment">// Issue command in slot 0
-<a href=#410 id=410 data-nosnippet>410</a>    // SAFETY: MMIO write to PxCI
-<a href=#411 id=411 data-nosnippet>411</a>    </span><span class="kw">unsafe </span>{ wr32(port.port_virt, PORT_CI, <span class="number">1</span>) };
-<a href=#412 id=412 data-nosnippet>412</a>
-<a href=#413 id=413 data-nosnippet>413</a>    <span class="comment">// ── Completion strategy ────────────────────────────────────────────────────
-<a href=#414 id=414 data-nosnippet>414</a>    </span><span class="kw">if </span><span class="kw">crate</span>::process::current_task_id().is_some() {
-<a href=#415 id=415 data-nosnippet>415</a>        <span class="comment">// Task context: block until the IRQ handler signals DONE.
-<a href=#416 id=416 data-nosnippet>416</a>        // WaitQueue::wait_until() atomically checks the condition under the
-<a href=#417 id=417 data-nosnippet>417</a>        // waiters SpinLock (which disables IRQs via CLI), so the completion
-<a href=#418 id=418 data-nosnippet>418</a>        // interrupt cannot be lost between the check and the block.
-<a href=#419 id=419 data-nosnippet>419</a>        </span>PORT_WQ[idx].wait_until(|| {
-<a href=#420 id=420 data-nosnippet>420</a>            <span class="kw">if </span>PORT_SLOT0_DONE[idx].load(Ordering::Acquire) {
-<a href=#421 id=421 data-nosnippet>421</a>                <span class="comment">// Consume the flag atomically before returning
-<a href=#422 id=422 data-nosnippet>422</a>                </span>PORT_SLOT0_DONE[idx].store(<span class="bool-val">false</span>, Ordering::Release);
-<a href=#423 id=423 data-nosnippet>423</a>                <span class="prelude-val">Some</span>(())
-<a href=#424 id=424 data-nosnippet>424</a>            } <span class="kw">else </span>{
-<a href=#425 id=425 data-nosnippet>425</a>                <span class="prelude-val">None
-<a href=#426 id=426 data-nosnippet>426</a>            </span>}
-<a href=#427 id=427 data-nosnippet>427</a>        });
-<a href=#428 id=428 data-nosnippet>428</a>
-<a href=#429 id=429 data-nosnippet>429</a>        <span class="comment">// Check whether the IRQ reported an error
-<a href=#430 id=430 data-nosnippet>430</a>        </span><span class="kw">if </span>PORT_SLOT0_ERROR[idx].load(Ordering::Acquire) {
-<a href=#431 id=431 data-nosnippet>431</a>            bounce.free();
-<a href=#432 id=432 data-nosnippet>432</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::DeviceError);
-<a href=#433 id=433 data-nosnippet>433</a>        }
-<a href=#434 id=434 data-nosnippet>434</a>    } <span class="kw">else </span>{
-<a href=#435 id=435 data-nosnippet>435</a>        <span class="comment">// Boot context (no task): fall back to busy-poll with ≈5 s timeout.
-<a href=#436 id=436 data-nosnippet>436</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>tries = <span class="number">5_000_000u32</span>;
-<a href=#437 id=437 data-nosnippet>437</a>        <span class="kw">loop </span>{
-<a href=#438 id=438 data-nosnippet>438</a>            <span class="comment">// SAFETY: MMIO reads
-<a href=#439 id=439 data-nosnippet>439</a>            </span><span class="kw">let </span>ci = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_CI) };
-<a href=#440 id=440 data-nosnippet>440</a>            <span class="kw">let </span>is = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_IS) };
-<a href=#441 id=441 data-nosnippet>441</a>
-<a href=#442 id=442 data-nosnippet>442</a>            <span class="kw">if </span>is &amp; PXIS_TFES != <span class="number">0 </span>{
-<a href=#443 id=443 data-nosnippet>443</a>                <span class="comment">// SAFETY: MMIO writes to clear error status
-<a href=#444 id=444 data-nosnippet>444</a>                </span><span class="kw">unsafe </span>{
-<a href=#445 id=445 data-nosnippet>445</a>                    wr32(port.port_virt, PORT_IS, <span class="number">0xFFFF_FFFF</span>);
-<a href=#446 id=446 data-nosnippet>446</a>                    wr32(port.port_virt, PORT_SERR, <span class="number">0xFFFF_FFFF</span>);
-<a href=#447 id=447 data-nosnippet>447</a>                }
-<a href=#448 id=448 data-nosnippet>448</a>                bounce.free();
-<a href=#449 id=449 data-nosnippet>449</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::DeviceError);
-<a href=#450 id=450 data-nosnippet>450</a>            }
-<a href=#451 id=451 data-nosnippet>451</a>
-<a href=#452 id=452 data-nosnippet>452</a>            <span class="kw">if </span>ci &amp; <span class="number">1 </span>== <span class="number">0 </span>{
-<a href=#453 id=453 data-nosnippet>453</a>                <span class="kw">break</span>; <span class="comment">// slot 0 completed
-<a href=#454 id=454 data-nosnippet>454</a>            </span>}
+<a href=#405 id=405 data-nosnippet>405</a>    <span class="comment">// ── Completion strategy ────────────────────────────────────────────────────
+<a href=#406 id=406 data-nosnippet>406</a>    </span><span class="kw">if </span><span class="kw">crate</span>::process::current_task_id().is_some() {
+<a href=#407 id=407 data-nosnippet>407</a>        <span class="comment">// Task context: block until the IRQ handler signals DONE.
+<a href=#408 id=408 data-nosnippet>408</a>        // WaitQueue::wait_until() atomically checks the condition under the
+<a href=#409 id=409 data-nosnippet>409</a>        // waiters SpinLock (which disables IRQs via CLI), so the completion
+<a href=#410 id=410 data-nosnippet>410</a>        // interrupt cannot be lost between the check and the block.
+<a href=#411 id=411 data-nosnippet>411</a>        </span>PORT_WQ[idx].wait_until(|| {
+<a href=#412 id=412 data-nosnippet>412</a>            <span class="kw">if </span>PORT_SLOT0_DONE[idx].load(Ordering::Acquire) {
+<a href=#413 id=413 data-nosnippet>413</a>                <span class="comment">// Consume the flag atomically before returning
+<a href=#414 id=414 data-nosnippet>414</a>                </span>PORT_SLOT0_DONE[idx].store(<span class="bool-val">false</span>, Ordering::Release);
+<a href=#415 id=415 data-nosnippet>415</a>                <span class="prelude-val">Some</span>(())
+<a href=#416 id=416 data-nosnippet>416</a>            } <span class="kw">else </span>{
+<a href=#417 id=417 data-nosnippet>417</a>                <span class="prelude-val">None
+<a href=#418 id=418 data-nosnippet>418</a>            </span>}
+<a href=#419 id=419 data-nosnippet>419</a>        });
+<a href=#420 id=420 data-nosnippet>420</a>
+<a href=#421 id=421 data-nosnippet>421</a>        <span class="comment">// Check whether the IRQ reported an error
+<a href=#422 id=422 data-nosnippet>422</a>        </span><span class="kw">if </span>PORT_SLOT0_ERROR[idx].load(Ordering::Acquire) {
+<a href=#423 id=423 data-nosnippet>423</a>            bounce.free();
+<a href=#424 id=424 data-nosnippet>424</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::DeviceError);
+<a href=#425 id=425 data-nosnippet>425</a>        }
+<a href=#426 id=426 data-nosnippet>426</a>    } <span class="kw">else </span>{
+<a href=#427 id=427 data-nosnippet>427</a>        <span class="comment">// Boot context (no task): fall back to busy-poll with ≈5 s timeout.
+<a href=#428 id=428 data-nosnippet>428</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>tries = <span class="number">5_000_000u32</span>;
+<a href=#429 id=429 data-nosnippet>429</a>        <span class="kw">loop </span>{
+<a href=#430 id=430 data-nosnippet>430</a>            <span class="comment">// SAFETY: MMIO reads
+<a href=#431 id=431 data-nosnippet>431</a>            </span><span class="kw">let </span>ci = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_CI) };
+<a href=#432 id=432 data-nosnippet>432</a>            <span class="kw">let </span>is = <span class="kw">unsafe </span>{ rd32(port.port_virt, PORT_IS) };
+<a href=#433 id=433 data-nosnippet>433</a>
+<a href=#434 id=434 data-nosnippet>434</a>            <span class="kw">if </span>is &amp; PXIS_TFES != <span class="number">0 </span>{
+<a href=#435 id=435 data-nosnippet>435</a>                <span class="comment">// SAFETY: MMIO writes to clear error status
+<a href=#436 id=436 data-nosnippet>436</a>                </span><span class="kw">unsafe </span>{
+<a href=#437 id=437 data-nosnippet>437</a>                    wr32(port.port_virt, PORT_IS, <span class="number">0xFFFF_FFFF</span>);
+<a href=#438 id=438 data-nosnippet>438</a>                    wr32(port.port_virt, PORT_SERR, <span class="number">0xFFFF_FFFF</span>);
+<a href=#439 id=439 data-nosnippet>439</a>                }
+<a href=#440 id=440 data-nosnippet>440</a>                bounce.free();
+<a href=#441 id=441 data-nosnippet>441</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::DeviceError);
+<a href=#442 id=442 data-nosnippet>442</a>            }
+<a href=#443 id=443 data-nosnippet>443</a>
+<a href=#444 id=444 data-nosnippet>444</a>            <span class="kw">if </span>ci &amp; <span class="number">1 </span>== <span class="number">0 </span>{
+<a href=#445 id=445 data-nosnippet>445</a>                <span class="kw">break</span>; <span class="comment">// slot 0 completed
+<a href=#446 id=446 data-nosnippet>446</a>            </span>}
+<a href=#447 id=447 data-nosnippet>447</a>
+<a href=#448 id=448 data-nosnippet>448</a>            tries = tries.saturating_sub(<span class="number">1</span>);
+<a href=#449 id=449 data-nosnippet>449</a>            <span class="kw">if </span>tries == <span class="number">0 </span>{
+<a href=#450 id=450 data-nosnippet>450</a>                bounce.free();
+<a href=#451 id=451 data-nosnippet>451</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::Timeout);
+<a href=#452 id=452 data-nosnippet>452</a>            }
+<a href=#453 id=453 data-nosnippet>453</a>            core::hint::spin_loop();
+<a href=#454 id=454 data-nosnippet>454</a>        }
 <a href=#455 id=455 data-nosnippet>455</a>
-<a href=#456 id=456 data-nosnippet>456</a>            tries = tries.saturating_sub(<span class="number">1</span>);
-<a href=#457 id=457 data-nosnippet>457</a>            <span class="kw">if </span>tries == <span class="number">0 </span>{
-<a href=#458 id=458 data-nosnippet>458</a>                bounce.free();
-<a href=#459 id=459 data-nosnippet>459</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::Timeout);
-<a href=#460 id=460 data-nosnippet>460</a>            }
-<a href=#461 id=461 data-nosnippet>461</a>            core::hint::spin_loop();
-<a href=#462 id=462 data-nosnippet>462</a>        }
-<a href=#463 id=463 data-nosnippet>463</a>
-<a href=#464 id=464 data-nosnippet>464</a>        <span class="comment">// SAFETY: MMIO write to clear port interrupt status
-<a href=#465 id=465 data-nosnippet>465</a>        </span><span class="kw">unsafe </span>{ wr32(port.port_virt, PORT_IS, <span class="number">0xFFFF_FFFF</span>) };
-<a href=#466 id=466 data-nosnippet>466</a>    }
-<a href=#467 id=467 data-nosnippet>467</a>
-<a href=#468 id=468 data-nosnippet>468</a>    <span class="kw">if </span>!write {
-<a href=#469 id=469 data-nosnippet>469</a>        <span class="comment">// SAFETY: bounce.virt valid, nbytes ≤ allocated
-<a href=#470 id=470 data-nosnippet>470</a>        </span><span class="kw">unsafe </span>{
-<a href=#471 id=471 data-nosnippet>471</a>            ptr::copy_nonoverlapping(bounce.virt <span class="kw">as </span><span class="kw-2">*const </span>u8, buf.as_mut_ptr(), nbytes);
-<a href=#472 id=472 data-nosnippet>472</a>        }
-<a href=#473 id=473 data-nosnippet>473</a>    }
-<a href=#474 id=474 data-nosnippet>474</a>
-<a href=#475 id=475 data-nosnippet>475</a>    bounce.free();
-<a href=#476 id=476 data-nosnippet>476</a>    <span class="prelude-val">Ok</span>(())
-<a href=#477 id=477 data-nosnippet>477</a>}
-<a href=#478 id=478 data-nosnippet>478</a>
-<a href=#479 id=479 data-nosnippet>479</a><span class="comment">// ─── IRQ handler ─────────────────────────────────────────────────────────────
-<a href=#480 id=480 data-nosnippet>480</a>
-<a href=#481 id=481 data-nosnippet>481</a></span><span class="doccomment">/// Called from the IDT AHCI IRQ handler.
-<a href=#482 id=482 data-nosnippet>482</a>///
-<a href=#483 id=483 data-nosnippet>483</a>/// Reads `HBA_IS` to find which ports raised an interrupt, reads and clears
-<a href=#484 id=484 data-nosnippet>484</a>/// `PxIS` per port, then signals the per-port `WaitQueue` so that any task
-<a href=#485 id=485 data-nosnippet>485</a>/// blocked in `submit_cmd` can resume.
-<a href=#486 id=486 data-nosnippet>486</a>///
-<a href=#487 id=487 data-nosnippet>487</a>/// # Safety of concurrent access
-<a href=#488 id=488 data-nosnippet>488</a>/// All per-port statics (`PORT_SLOT0_DONE`, `PORT_SLOT0_ERROR`, `PORT_WQ`) are
-<a href=#489 id=489 data-nosnippet>489</a>/// accessed via atomics or briefly-held SpinLocks (which disable IRQs).  The
-<a href=#490 id=490 data-nosnippet>490</a>/// IRQ handler itself is not re-entrant (x86 APIC level-triggered delivery
-<a href=#491 id=491 data-nosnippet>491</a>/// ensures this for the same vector).
-<a href=#492 id=492 data-nosnippet>492</a></span><span class="kw">pub fn </span>handle_interrupt() {
-<a href=#493 id=493 data-nosnippet>493</a>    <span class="kw">let </span>abar = AHCI_ABAR_VIRT.load(Ordering::Relaxed);
-<a href=#494 id=494 data-nosnippet>494</a>    <span class="kw">if </span>abar == <span class="number">0 </span>{
-<a href=#495 id=495 data-nosnippet>495</a>        <span class="kw">return</span>; <span class="comment">// controller not yet initialised
-<a href=#496 id=496 data-nosnippet>496</a>    </span>}
-<a href=#497 id=497 data-nosnippet>497</a>
-<a href=#498 id=498 data-nosnippet>498</a>    <span class="comment">// SAFETY: abar is the MMIO-mapped AHCI base set during init
-<a href=#499 id=499 data-nosnippet>499</a>    </span><span class="kw">let </span>global_is = <span class="kw">unsafe </span>{ rd32(abar, HBA_IS) };
-<a href=#500 id=500 data-nosnippet>500</a>    <span class="kw">if </span>global_is == <span class="number">0 </span>{
-<a href=#501 id=501 data-nosnippet>501</a>        <span class="kw">return</span>; <span class="comment">// spurious
-<a href=#502 id=502 data-nosnippet>502</a>    </span>}
-<a href=#503 id=503 data-nosnippet>503</a>
-<a href=#504 id=504 data-nosnippet>504</a>    <span class="kw">for </span>port_num <span class="kw">in </span><span class="number">0</span>..<span class="number">32u8 </span>{
-<a href=#505 id=505 data-nosnippet>505</a>        <span class="kw">if </span>global_is &amp; (<span class="number">1 </span>&lt;&lt; port_num) == <span class="number">0 </span>{
-<a href=#506 id=506 data-nosnippet>506</a>            <span class="kw">continue</span>;
-<a href=#507 id=507 data-nosnippet>507</a>        }
+<a href=#456 id=456 data-nosnippet>456</a>        <span class="comment">// SAFETY: MMIO write to clear port interrupt status
+<a href=#457 id=457 data-nosnippet>457</a>        </span><span class="kw">unsafe </span>{ wr32(port.port_virt, PORT_IS, <span class="number">0xFFFF_FFFF</span>) };
+<a href=#458 id=458 data-nosnippet>458</a>    }
+<a href=#459 id=459 data-nosnippet>459</a>
+<a href=#460 id=460 data-nosnippet>460</a>    <span class="kw">if </span>!write {
+<a href=#461 id=461 data-nosnippet>461</a>        <span class="comment">// SAFETY: bounce.virt valid, nbytes ≤ allocated
+<a href=#462 id=462 data-nosnippet>462</a>        </span><span class="kw">unsafe </span>{
+<a href=#463 id=463 data-nosnippet>463</a>            ptr::copy_nonoverlapping(bounce.virt <span class="kw">as </span><span class="kw-2">*const </span>u8, buf.as_mut_ptr(), nbytes);
+<a href=#464 id=464 data-nosnippet>464</a>        }
+<a href=#465 id=465 data-nosnippet>465</a>    }
+<a href=#466 id=466 data-nosnippet>466</a>
+<a href=#467 id=467 data-nosnippet>467</a>    bounce.free();
+<a href=#468 id=468 data-nosnippet>468</a>    <span class="prelude-val">Ok</span>(())
+<a href=#469 id=469 data-nosnippet>469</a>}
+<a href=#470 id=470 data-nosnippet>470</a>
+<a href=#471 id=471 data-nosnippet>471</a><span class="comment">// ─── IRQ handler ─────────────────────────────────────────────────────────────
+<a href=#472 id=472 data-nosnippet>472</a>
+<a href=#473 id=473 data-nosnippet>473</a></span><span class="doccomment">/// Called from the IDT AHCI IRQ handler.
+<a href=#474 id=474 data-nosnippet>474</a>///
+<a href=#475 id=475 data-nosnippet>475</a>/// Reads `HBA_IS` to find which ports raised an interrupt, reads and clears
+<a href=#476 id=476 data-nosnippet>476</a>/// `PxIS` per port, then signals the per-port `WaitQueue` so that any task
+<a href=#477 id=477 data-nosnippet>477</a>/// blocked in `submit_cmd` can resume.
+<a href=#478 id=478 data-nosnippet>478</a>///
+<a href=#479 id=479 data-nosnippet>479</a>/// # Safety of concurrent access
+<a href=#480 id=480 data-nosnippet>480</a>/// All per-port statics (`PORT_SLOT0_DONE`, `PORT_SLOT0_ERROR`, `PORT_WQ`) are
+<a href=#481 id=481 data-nosnippet>481</a>/// accessed via atomics or briefly-held SpinLocks (which disable IRQs).  The
+<a href=#482 id=482 data-nosnippet>482</a>/// IRQ handler itself is not re-entrant (x86 APIC level-triggered delivery
+<a href=#483 id=483 data-nosnippet>483</a>/// ensures this for the same vector).
+<a href=#484 id=484 data-nosnippet>484</a></span><span class="kw">pub fn </span>handle_interrupt() {
+<a href=#485 id=485 data-nosnippet>485</a>    <span class="kw">let </span>abar = AHCI_ABAR_VIRT.load(Ordering::Relaxed);
+<a href=#486 id=486 data-nosnippet>486</a>    <span class="kw">if </span>abar == <span class="number">0 </span>{
+<a href=#487 id=487 data-nosnippet>487</a>        <span class="kw">return</span>; <span class="comment">// controller not yet initialised
+<a href=#488 id=488 data-nosnippet>488</a>    </span>}
+<a href=#489 id=489 data-nosnippet>489</a>
+<a href=#490 id=490 data-nosnippet>490</a>    <span class="comment">// SAFETY: abar is the MMIO-mapped AHCI base set during init
+<a href=#491 id=491 data-nosnippet>491</a>    </span><span class="kw">let </span>global_is = <span class="kw">unsafe </span>{ rd32(abar, HBA_IS) };
+<a href=#492 id=492 data-nosnippet>492</a>    <span class="kw">if </span>global_is == <span class="number">0 </span>{
+<a href=#493 id=493 data-nosnippet>493</a>        <span class="kw">return</span>; <span class="comment">// spurious
+<a href=#494 id=494 data-nosnippet>494</a>    </span>}
+<a href=#495 id=495 data-nosnippet>495</a>
+<a href=#496 id=496 data-nosnippet>496</a>    <span class="kw">for </span>port_num <span class="kw">in </span><span class="number">0</span>..<span class="number">32u8 </span>{
+<a href=#497 id=497 data-nosnippet>497</a>        <span class="kw">if </span>global_is &amp; (<span class="number">1 </span>&lt;&lt; port_num) == <span class="number">0 </span>{
+<a href=#498 id=498 data-nosnippet>498</a>            <span class="kw">continue</span>;
+<a href=#499 id=499 data-nosnippet>499</a>        }
+<a href=#500 id=500 data-nosnippet>500</a>
+<a href=#501 id=501 data-nosnippet>501</a>        <span class="kw">let </span>pvirt = PORT_VIRT[port_num <span class="kw">as </span>usize].load(Ordering::Relaxed);
+<a href=#502 id=502 data-nosnippet>502</a>        <span class="kw">if </span>pvirt == <span class="number">0 </span>{
+<a href=#503 id=503 data-nosnippet>503</a>            <span class="kw">continue</span>; <span class="comment">// port not in use
+<a href=#504 id=504 data-nosnippet>504</a>        </span>}
+<a href=#505 id=505 data-nosnippet>505</a>
+<a href=#506 id=506 data-nosnippet>506</a>        <span class="comment">// SAFETY: pvirt is the valid MMIO address for this port, set during init
+<a href=#507 id=507 data-nosnippet>507</a>        </span><span class="kw">let </span>pxis = <span class="kw">unsafe </span>{ rd32(pvirt, PORT_IS) };
 <a href=#508 id=508 data-nosnippet>508</a>
-<a href=#509 id=509 data-nosnippet>509</a>        <span class="kw">let </span>pvirt = PORT_VIRT[port_num <span class="kw">as </span>usize].load(Ordering::Relaxed);
-<a href=#510 id=510 data-nosnippet>510</a>        <span class="kw">if </span>pvirt == <span class="number">0 </span>{
-<a href=#511 id=511 data-nosnippet>511</a>            <span class="kw">continue</span>; <span class="comment">// port not in use
-<a href=#512 id=512 data-nosnippet>512</a>        </span>}
-<a href=#513 id=513 data-nosnippet>513</a>
-<a href=#514 id=514 data-nosnippet>514</a>        <span class="comment">// SAFETY: pvirt is the valid MMIO address for this port, set during init
-<a href=#515 id=515 data-nosnippet>515</a>        </span><span class="kw">let </span>pxis = <span class="kw">unsafe </span>{ rd32(pvirt, PORT_IS) };
-<a href=#516 id=516 data-nosnippet>516</a>
-<a href=#517 id=517 data-nosnippet>517</a>        <span class="comment">// Determine outcome and record in the error flag
-<a href=#518 id=518 data-nosnippet>518</a>        </span><span class="kw">if </span>pxis &amp; PXIS_TFES != <span class="number">0 </span>{
-<a href=#519 id=519 data-nosnippet>519</a>            PORT_SLOT0_ERROR[port_num <span class="kw">as </span>usize].store(<span class="bool-val">true</span>, Ordering::Release);
-<a href=#520 id=520 data-nosnippet>520</a>            <span class="comment">// SAFETY: MMIO writes to clear error state
-<a href=#521 id=521 data-nosnippet>521</a>            </span><span class="kw">unsafe </span>{
-<a href=#522 id=522 data-nosnippet>522</a>                wr32(pvirt, PORT_IS, pxis);
-<a href=#523 id=523 data-nosnippet>523</a>                wr32(pvirt, PORT_SERR, <span class="number">0xFFFF_FFFF</span>);
-<a href=#524 id=524 data-nosnippet>524</a>            }
-<a href=#525 id=525 data-nosnippet>525</a>        } <span class="kw">else </span>{
-<a href=#526 id=526 data-nosnippet>526</a>            PORT_SLOT0_ERROR[port_num <span class="kw">as </span>usize].store(<span class="bool-val">false</span>, Ordering::Release);
-<a href=#527 id=527 data-nosnippet>527</a>            <span class="comment">// SAFETY: W1C — write back PxIS to clear all set bits
-<a href=#528 id=528 data-nosnippet>528</a>            </span><span class="kw">unsafe </span>{ wr32(pvirt, PORT_IS, pxis) };
-<a href=#529 id=529 data-nosnippet>529</a>        }
-<a href=#530 id=530 data-nosnippet>530</a>
-<a href=#531 id=531 data-nosnippet>531</a>        <span class="comment">// Clear this port's bit in global IS (W1C)
-<a href=#532 id=532 data-nosnippet>532</a>        // SAFETY: MMIO write to HBA_IS
-<a href=#533 id=533 data-nosnippet>533</a>        </span><span class="kw">unsafe </span>{ wr32(abar, HBA_IS, <span class="number">1 </span>&lt;&lt; port_num) };
+<a href=#509 id=509 data-nosnippet>509</a>        <span class="comment">// Determine outcome and record in the error flag
+<a href=#510 id=510 data-nosnippet>510</a>        </span><span class="kw">if </span>pxis &amp; PXIS_TFES != <span class="number">0 </span>{
+<a href=#511 id=511 data-nosnippet>511</a>            PORT_SLOT0_ERROR[port_num <span class="kw">as </span>usize].store(<span class="bool-val">true</span>, Ordering::Release);
+<a href=#512 id=512 data-nosnippet>512</a>            <span class="comment">// SAFETY: MMIO writes to clear error state
+<a href=#513 id=513 data-nosnippet>513</a>            </span><span class="kw">unsafe </span>{
+<a href=#514 id=514 data-nosnippet>514</a>                wr32(pvirt, PORT_IS, pxis);
+<a href=#515 id=515 data-nosnippet>515</a>                wr32(pvirt, PORT_SERR, <span class="number">0xFFFF_FFFF</span>);
+<a href=#516 id=516 data-nosnippet>516</a>            }
+<a href=#517 id=517 data-nosnippet>517</a>        } <span class="kw">else </span>{
+<a href=#518 id=518 data-nosnippet>518</a>            PORT_SLOT0_ERROR[port_num <span class="kw">as </span>usize].store(<span class="bool-val">false</span>, Ordering::Release);
+<a href=#519 id=519 data-nosnippet>519</a>            <span class="comment">// SAFETY: W1C — write back PxIS to clear all set bits
+<a href=#520 id=520 data-nosnippet>520</a>            </span><span class="kw">unsafe </span>{ wr32(pvirt, PORT_IS, pxis) };
+<a href=#521 id=521 data-nosnippet>521</a>        }
+<a href=#522 id=522 data-nosnippet>522</a>
+<a href=#523 id=523 data-nosnippet>523</a>        <span class="comment">// Clear this port's bit in global IS (W1C)
+<a href=#524 id=524 data-nosnippet>524</a>        // SAFETY: MMIO write to HBA_IS
+<a href=#525 id=525 data-nosnippet>525</a>        </span><span class="kw">unsafe </span>{ wr32(abar, HBA_IS, <span class="number">1 </span>&lt;&lt; port_num) };
+<a href=#526 id=526 data-nosnippet>526</a>
+<a href=#527 id=527 data-nosnippet>527</a>        <span class="comment">// Signal command completion
+<a href=#528 id=528 data-nosnippet>528</a>        </span>PORT_SLOT0_DONE[port_num <span class="kw">as </span>usize].store(<span class="bool-val">true</span>, Ordering::Release);
+<a href=#529 id=529 data-nosnippet>529</a>        PORT_WQ[port_num <span class="kw">as </span>usize].wake_one();
+<a href=#530 id=530 data-nosnippet>530</a>    }
+<a href=#531 id=531 data-nosnippet>531</a>}
+<a href=#532 id=532 data-nosnippet>532</a>
+<a href=#533 id=533 data-nosnippet>533</a><span class="comment">// ─── BlockDevice impl for AhciController ─────────────────────────────────────
 <a href=#534 id=534 data-nosnippet>534</a>
-<a href=#535 id=535 data-nosnippet>535</a>        <span class="comment">// Signal command completion
-<a href=#536 id=536 data-nosnippet>536</a>        </span>PORT_SLOT0_DONE[port_num <span class="kw">as </span>usize].store(<span class="bool-val">true</span>, Ordering::Release);
-<a href=#537 id=537 data-nosnippet>537</a>        PORT_WQ[port_num <span class="kw">as </span>usize].wake_one();
-<a href=#538 id=538 data-nosnippet>538</a>    }
-<a href=#539 id=539 data-nosnippet>539</a>}
-<a href=#540 id=540 data-nosnippet>540</a>
-<a href=#541 id=541 data-nosnippet>541</a><span class="comment">// ─── BlockDevice impl for AhciController ─────────────────────────────────────
-<a href=#542 id=542 data-nosnippet>542</a>
-<a href=#543 id=543 data-nosnippet>543</a></span><span class="kw">impl </span>AhciController {
-<a href=#544 id=544 data-nosnippet>544</a>    <span class="doccomment">/// Probe and initialise an AHCI controller from the PCI bus.
-<a href=#545 id=545 data-nosnippet>545</a>    ///
-<a href=#546 id=546 data-nosnippet>546</a>    /// # Safety
-<a href=#547 id=547 data-nosnippet>547</a>    /// Must be called once during single-threaded kernel init (MMIO mapping).
-<a href=#548 id=548 data-nosnippet>548</a>    </span><span class="kw">pub unsafe fn </span>init() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AhciError&gt; {
-<a href=#549 id=549 data-nosnippet>549</a>        <span class="comment">// AHCI: class=0x01, subclass=0x06 (SATA), prog_if=0x01 (AHCI 1.0)
-<a href=#550 id=550 data-nosnippet>550</a>        </span><span class="kw">let </span>pci_dev = pci::probe_first(ProbeCriteria {
-<a href=#551 id=551 data-nosnippet>551</a>            class_code: <span class="prelude-val">Some</span>(pci::class::MASS_STORAGE),
-<a href=#552 id=552 data-nosnippet>552</a>            subclass: <span class="prelude-val">Some</span>(pci::storage_subclass::SATA),
-<a href=#553 id=553 data-nosnippet>553</a>            prog_if: <span class="prelude-val">Some</span>(pci::sata_progif::AHCI),
-<a href=#554 id=554 data-nosnippet>554</a>            ..ProbeCriteria::any()
-<a href=#555 id=555 data-nosnippet>555</a>        })
-<a href=#556 id=556 data-nosnippet>556</a>        .ok_or(AhciError::NoController)<span class="question-mark">?</span>;
-<a href=#557 id=557 data-nosnippet>557</a>
-<a href=#558 id=558 data-nosnippet>558</a>        <span class="macro">log::info!</span>(<span class="string">"AHCI: found controller at {:?}"</span>, pci_dev.address);
-<a href=#559 id=559 data-nosnippet>559</a>
-<a href=#560 id=560 data-nosnippet>560</a>        <span class="comment">// Enable bus-mastering and memory-space access (required for DMA)
-<a href=#561 id=561 data-nosnippet>561</a>        </span>pci_dev.enable_bus_master();
-<a href=#562 id=562 data-nosnippet>562</a>        pci_dev.enable_memory_space();
-<a href=#563 id=563 data-nosnippet>563</a>
-<a href=#564 id=564 data-nosnippet>564</a>        <span class="comment">// Read PCI interrupt line before we need it later
-<a href=#565 id=565 data-nosnippet>565</a>        </span><span class="kw">let </span>irq_line = pci_dev.read_config_u8(pci::config::INTERRUPT_LINE);
-<a href=#566 id=566 data-nosnippet>566</a>
-<a href=#567 id=567 data-nosnippet>567</a>        <span class="comment">// BAR5 = ABAR (AHCI Base Memory Register)
-<a href=#568 id=568 data-nosnippet>568</a>        </span><span class="kw">let </span>abar_phys = pci_dev.read_bar_raw(<span class="number">5</span>).ok_or(AhciError::BadAbar)<span class="question-mark">?</span>;
-<a href=#569 id=569 data-nosnippet>569</a>        <span class="kw">if </span>abar_phys == <span class="number">0 </span>{
-<a href=#570 id=570 data-nosnippet>570</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::BadAbar);
-<a href=#571 id=571 data-nosnippet>571</a>        }
-<a href=#572 id=572 data-nosnippet>572</a>
-<a href=#573 id=573 data-nosnippet>573</a>        <span class="comment">// Map the entire HBA register space (0x100 + 32 ports * 0x80 = 0x1100 bytes)
-<a href=#574 id=574 data-nosnippet>574</a>        </span><span class="kw">crate</span>::memory::paging::ensure_identity_map_range(abar_phys, <span class="number">0x1200</span>);
-<a href=#575 id=575 data-nosnippet>575</a>        <span class="kw">let </span>abar_virt = phys_to_virt(abar_phys);
-<a href=#576 id=576 data-nosnippet>576</a>
-<a href=#577 id=577 data-nosnippet>577</a>        <span class="comment">// SAFETY: abar_virt is now a mapped MMIO virtual address
-<a href=#578 id=578 data-nosnippet>578</a>        // Enable AHCI mode
-<a href=#579 id=579 data-nosnippet>579</a>        </span><span class="kw">let </span>ghc = rd32(abar_virt, HBA_GHC);
-<a href=#580 id=580 data-nosnippet>580</a>        <span class="kw">if </span>ghc &amp; GHC_AE == <span class="number">0 </span>{
-<a href=#581 id=581 data-nosnippet>581</a>            wr32(abar_virt, HBA_GHC, ghc | GHC_AE);
-<a href=#582 id=582 data-nosnippet>582</a>        }
-<a href=#583 id=583 data-nosnippet>583</a>
-<a href=#584 id=584 data-nosnippet>584</a>        <span class="comment">// Perform HBA reset sequence (HR), then re-enable AHCI.
-<a href=#585 id=585 data-nosnippet>585</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>ghc_after = rd32(abar_virt, HBA_GHC) | GHC_AE;
-<a href=#586 id=586 data-nosnippet>586</a>        wr32(abar_virt, HBA_GHC, ghc_after | GHC_HR);
-<a href=#587 id=587 data-nosnippet>587</a>        <span class="kw">let </span><span class="kw-2">mut </span>reset_timeout = <span class="number">1_000_000u32</span>;
-<a href=#588 id=588 data-nosnippet>588</a>        <span class="kw">while </span>rd32(abar_virt, HBA_GHC) &amp; GHC_HR != <span class="number">0 </span>{
-<a href=#589 id=589 data-nosnippet>589</a>            reset_timeout = reset_timeout.saturating_sub(<span class="number">1</span>);
-<a href=#590 id=590 data-nosnippet>590</a>            <span class="kw">if </span>reset_timeout == <span class="number">0 </span>{
-<a href=#591 id=591 data-nosnippet>591</a>                <span class="macro">log::warn!</span>(<span class="string">"AHCI: HBA reset timed out, continuing with current state"</span>);
-<a href=#592 id=592 data-nosnippet>592</a>                <span class="kw">break</span>;
-<a href=#593 id=593 data-nosnippet>593</a>            }
-<a href=#594 id=594 data-nosnippet>594</a>            core::hint::spin_loop();
-<a href=#595 id=595 data-nosnippet>595</a>        }
-<a href=#596 id=596 data-nosnippet>596</a>        ghc_after = rd32(abar_virt, HBA_GHC) | GHC_AE;
-<a href=#597 id=597 data-nosnippet>597</a>        wr32(abar_virt, HBA_GHC, ghc_after);
-<a href=#598 id=598 data-nosnippet>598</a>        <span class="comment">// Clear global pending interrupts before per-port setup.
-<a href=#599 id=599 data-nosnippet>599</a>        </span>wr32(abar_virt, HBA_IS, <span class="number">0xFFFF_FFFF</span>);
-<a href=#600 id=600 data-nosnippet>600</a>
-<a href=#601 id=601 data-nosnippet>601</a>        <span class="macro">log::debug!</span>(
-<a href=#602 id=602 data-nosnippet>602</a>            <span class="string">"AHCI: ABAR phys={:#x} virt={:#x}  GHC={:#010x}"</span>,
-<a href=#603 id=603 data-nosnippet>603</a>            abar_phys,
-<a href=#604 id=604 data-nosnippet>604</a>            abar_virt,
-<a href=#605 id=605 data-nosnippet>605</a>            rd32(abar_virt, HBA_GHC)
-<a href=#606 id=606 data-nosnippet>606</a>        );
-<a href=#607 id=607 data-nosnippet>607</a>
-<a href=#608 id=608 data-nosnippet>608</a>        <span class="kw">let </span>pi = rd32(abar_virt, HBA_PI); <span class="comment">// bitmask of implemented ports
-<a href=#609 id=609 data-nosnippet>609</a>        </span><span class="macro">log::debug!</span>(<span class="string">"AHCI: ports implemented mask = {:#010x}"</span>, pi);
-<a href=#610 id=610 data-nosnippet>610</a>
-<a href=#611 id=611 data-nosnippet>611</a>        <span class="kw">let </span><span class="kw-2">mut </span>ports: Vec&lt;AhciPort&gt; = Vec::new();
-<a href=#612 id=612 data-nosnippet>612</a>
-<a href=#613 id=613 data-nosnippet>613</a>        <span class="kw">for </span>port_num <span class="kw">in </span><span class="number">0</span>..<span class="number">32u8 </span>{
-<a href=#614 id=614 data-nosnippet>614</a>            <span class="kw">if </span>pi &amp; (<span class="number">1 </span>&lt;&lt; port_num) == <span class="number">0 </span>{
-<a href=#615 id=615 data-nosnippet>615</a>                <span class="kw">continue</span>;
-<a href=#616 id=616 data-nosnippet>616</a>            }
-<a href=#617 id=617 data-nosnippet>617</a>
-<a href=#618 id=618 data-nosnippet>618</a>            <span class="kw">let </span>pvirt = abar_virt + <span class="number">0x100 </span>+ (port_num <span class="kw">as </span>u64) * <span class="number">0x80</span>;
+<a href=#535 id=535 data-nosnippet>535</a></span><span class="kw">impl </span>AhciController {
+<a href=#536 id=536 data-nosnippet>536</a>    <span class="doccomment">/// Probe and initialise an AHCI controller from the PCI bus.
+<a href=#537 id=537 data-nosnippet>537</a>    ///
+<a href=#538 id=538 data-nosnippet>538</a>    /// # Safety
+<a href=#539 id=539 data-nosnippet>539</a>    /// Must be called once during single-threaded kernel init (MMIO mapping).
+<a href=#540 id=540 data-nosnippet>540</a>    </span><span class="kw">pub unsafe fn </span>init() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, AhciError&gt; {
+<a href=#541 id=541 data-nosnippet>541</a>        <span class="comment">// AHCI: class=0x01, subclass=0x06 (SATA), prog_if=0x01 (AHCI 1.0)
+<a href=#542 id=542 data-nosnippet>542</a>        </span><span class="kw">let </span>pci_dev = pci::probe_first(ProbeCriteria {
+<a href=#543 id=543 data-nosnippet>543</a>            class_code: <span class="prelude-val">Some</span>(pci::class::MASS_STORAGE),
+<a href=#544 id=544 data-nosnippet>544</a>            subclass: <span class="prelude-val">Some</span>(pci::storage_subclass::SATA),
+<a href=#545 id=545 data-nosnippet>545</a>            prog_if: <span class="prelude-val">Some</span>(pci::sata_progif::AHCI),
+<a href=#546 id=546 data-nosnippet>546</a>            ..ProbeCriteria::any()
+<a href=#547 id=547 data-nosnippet>547</a>        })
+<a href=#548 id=548 data-nosnippet>548</a>        .ok_or(AhciError::NoController)<span class="question-mark">?</span>;
+<a href=#549 id=549 data-nosnippet>549</a>
+<a href=#550 id=550 data-nosnippet>550</a>        <span class="macro">log::info!</span>(<span class="string">"AHCI: found controller at {:?}"</span>, pci_dev.address);
+<a href=#551 id=551 data-nosnippet>551</a>
+<a href=#552 id=552 data-nosnippet>552</a>        <span class="comment">// Enable bus-mastering and memory-space access (required for DMA)
+<a href=#553 id=553 data-nosnippet>553</a>        </span>pci_dev.enable_bus_master();
+<a href=#554 id=554 data-nosnippet>554</a>        pci_dev.enable_memory_space();
+<a href=#555 id=555 data-nosnippet>555</a>
+<a href=#556 id=556 data-nosnippet>556</a>        <span class="comment">// Read PCI interrupt line before we need it later
+<a href=#557 id=557 data-nosnippet>557</a>        </span><span class="kw">let </span>irq_line = pci_dev.read_config_u8(pci::config::INTERRUPT_LINE);
+<a href=#558 id=558 data-nosnippet>558</a>
+<a href=#559 id=559 data-nosnippet>559</a>        <span class="comment">// BAR5 = ABAR (AHCI Base Memory Register)
+<a href=#560 id=560 data-nosnippet>560</a>        </span><span class="kw">let </span>abar_phys = pci_dev.read_bar_raw(<span class="number">5</span>).ok_or(AhciError::BadAbar)<span class="question-mark">?</span>;
+<a href=#561 id=561 data-nosnippet>561</a>        <span class="kw">if </span>abar_phys == <span class="number">0 </span>{
+<a href=#562 id=562 data-nosnippet>562</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::BadAbar);
+<a href=#563 id=563 data-nosnippet>563</a>        }
+<a href=#564 id=564 data-nosnippet>564</a>
+<a href=#565 id=565 data-nosnippet>565</a>        <span class="comment">// Map the entire HBA register space (0x100 + 32 ports * 0x80 = 0x1100 bytes)
+<a href=#566 id=566 data-nosnippet>566</a>        </span><span class="kw">crate</span>::memory::paging::ensure_identity_map_range(abar_phys, <span class="number">0x1200</span>);
+<a href=#567 id=567 data-nosnippet>567</a>        <span class="kw">let </span>abar_virt = phys_to_virt(abar_phys);
+<a href=#568 id=568 data-nosnippet>568</a>
+<a href=#569 id=569 data-nosnippet>569</a>        <span class="comment">// SAFETY: abar_virt is now a mapped MMIO virtual address
+<a href=#570 id=570 data-nosnippet>570</a>        // Enable AHCI mode
+<a href=#571 id=571 data-nosnippet>571</a>        </span><span class="kw">let </span>ghc = rd32(abar_virt, HBA_GHC);
+<a href=#572 id=572 data-nosnippet>572</a>        <span class="kw">if </span>ghc &amp; GHC_AE == <span class="number">0 </span>{
+<a href=#573 id=573 data-nosnippet>573</a>            wr32(abar_virt, HBA_GHC, ghc | GHC_AE);
+<a href=#574 id=574 data-nosnippet>574</a>        }
+<a href=#575 id=575 data-nosnippet>575</a>
+<a href=#576 id=576 data-nosnippet>576</a>        <span class="comment">// Perform HBA reset sequence (HR), then re-enable AHCI.
+<a href=#577 id=577 data-nosnippet>577</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>ghc_after = rd32(abar_virt, HBA_GHC) | GHC_AE;
+<a href=#578 id=578 data-nosnippet>578</a>        wr32(abar_virt, HBA_GHC, ghc_after | GHC_HR);
+<a href=#579 id=579 data-nosnippet>579</a>        <span class="kw">let </span><span class="kw-2">mut </span>reset_timeout = <span class="number">1_000_000u32</span>;
+<a href=#580 id=580 data-nosnippet>580</a>        <span class="kw">while </span>rd32(abar_virt, HBA_GHC) &amp; GHC_HR != <span class="number">0 </span>{
+<a href=#581 id=581 data-nosnippet>581</a>            reset_timeout = reset_timeout.saturating_sub(<span class="number">1</span>);
+<a href=#582 id=582 data-nosnippet>582</a>            <span class="kw">if </span>reset_timeout == <span class="number">0 </span>{
+<a href=#583 id=583 data-nosnippet>583</a>                <span class="macro">log::warn!</span>(<span class="string">"AHCI: HBA reset timed out, continuing with current state"</span>);
+<a href=#584 id=584 data-nosnippet>584</a>                <span class="kw">break</span>;
+<a href=#585 id=585 data-nosnippet>585</a>            }
+<a href=#586 id=586 data-nosnippet>586</a>            core::hint::spin_loop();
+<a href=#587 id=587 data-nosnippet>587</a>        }
+<a href=#588 id=588 data-nosnippet>588</a>        ghc_after = rd32(abar_virt, HBA_GHC) | GHC_AE;
+<a href=#589 id=589 data-nosnippet>589</a>        wr32(abar_virt, HBA_GHC, ghc_after);
+<a href=#590 id=590 data-nosnippet>590</a>        <span class="comment">// Clear global pending interrupts before per-port setup.
+<a href=#591 id=591 data-nosnippet>591</a>        </span>wr32(abar_virt, HBA_IS, <span class="number">0xFFFF_FFFF</span>);
+<a href=#592 id=592 data-nosnippet>592</a>
+<a href=#593 id=593 data-nosnippet>593</a>        <span class="macro">log::debug!</span>(
+<a href=#594 id=594 data-nosnippet>594</a>            <span class="string">"AHCI: ABAR phys={:#x} virt={:#x}  GHC={:#010x}"</span>,
+<a href=#595 id=595 data-nosnippet>595</a>            abar_phys,
+<a href=#596 id=596 data-nosnippet>596</a>            abar_virt,
+<a href=#597 id=597 data-nosnippet>597</a>            rd32(abar_virt, HBA_GHC)
+<a href=#598 id=598 data-nosnippet>598</a>        );
+<a href=#599 id=599 data-nosnippet>599</a>
+<a href=#600 id=600 data-nosnippet>600</a>        <span class="kw">let </span>pi = rd32(abar_virt, HBA_PI); <span class="comment">// bitmask of implemented ports
+<a href=#601 id=601 data-nosnippet>601</a>        </span><span class="macro">log::debug!</span>(<span class="string">"AHCI: ports implemented mask = {:#010x}"</span>, pi);
+<a href=#602 id=602 data-nosnippet>602</a>
+<a href=#603 id=603 data-nosnippet>603</a>        <span class="kw">let </span><span class="kw-2">mut </span>ports: Vec&lt;AhciPort&gt; = Vec::new();
+<a href=#604 id=604 data-nosnippet>604</a>
+<a href=#605 id=605 data-nosnippet>605</a>        <span class="kw">for </span>port_num <span class="kw">in </span><span class="number">0</span>..<span class="number">32u8 </span>{
+<a href=#606 id=606 data-nosnippet>606</a>            <span class="kw">if </span>pi &amp; (<span class="number">1 </span>&lt;&lt; port_num) == <span class="number">0 </span>{
+<a href=#607 id=607 data-nosnippet>607</a>                <span class="kw">continue</span>;
+<a href=#608 id=608 data-nosnippet>608</a>            }
+<a href=#609 id=609 data-nosnippet>609</a>
+<a href=#610 id=610 data-nosnippet>610</a>            <span class="kw">let </span>pvirt = abar_virt + <span class="number">0x100 </span>+ (port_num <span class="kw">as </span>u64) * <span class="number">0x80</span>;
+<a href=#611 id=611 data-nosnippet>611</a>
+<a href=#612 id=612 data-nosnippet>612</a>            <span class="comment">// Check DET: only accept DET=3 (device present + communication)
+<a href=#613 id=613 data-nosnippet>613</a>            </span><span class="kw">let </span>ssts = rd32(pvirt, PORT_SSTS);
+<a href=#614 id=614 data-nosnippet>614</a>            <span class="kw">let </span>det = ssts &amp; SSTS_DET_MASK;
+<a href=#615 id=615 data-nosnippet>615</a>            <span class="kw">if </span>det != SSTS_DET_COMM {
+<a href=#616 id=616 data-nosnippet>616</a>                <span class="macro">log::debug!</span>(<span class="string">"AHCI: port {} DET={} — no device, skipping"</span>, port_num, det);
+<a href=#617 id=617 data-nosnippet>617</a>                <span class="kw">continue</span>;
+<a href=#618 id=618 data-nosnippet>618</a>            }
 <a href=#619 id=619 data-nosnippet>619</a>
-<a href=#620 id=620 data-nosnippet>620</a>            <span class="comment">// Check DET: only accept DET=3 (device present + communication)
-<a href=#621 id=621 data-nosnippet>621</a>            </span><span class="kw">let </span>ssts = rd32(pvirt, PORT_SSTS);
-<a href=#622 id=622 data-nosnippet>622</a>            <span class="kw">let </span>det = ssts &amp; SSTS_DET_MASK;
-<a href=#623 id=623 data-nosnippet>623</a>            <span class="kw">if </span>det != SSTS_DET_COMM {
-<a href=#624 id=624 data-nosnippet>624</a>                <span class="macro">log::debug!</span>(<span class="string">"AHCI: port {} DET={} — no device, skipping"</span>, port_num, det);
-<a href=#625 id=625 data-nosnippet>625</a>                <span class="kw">continue</span>;
-<a href=#626 id=626 data-nosnippet>626</a>            }
-<a href=#627 id=627 data-nosnippet>627</a>
-<a href=#628 id=628 data-nosnippet>628</a>            <span class="comment">// Only handle plain SATA (signature 0x00000101)
-<a href=#629 id=629 data-nosnippet>629</a>            </span><span class="kw">let </span>sig = rd32(pvirt, PORT_SIG);
-<a href=#630 id=630 data-nosnippet>630</a>            <span class="kw">if </span>sig != SIG_SATA {
-<a href=#631 id=631 data-nosnippet>631</a>                <span class="macro">log::debug!</span>(
-<a href=#632 id=632 data-nosnippet>632</a>                    <span class="string">"AHCI: port {} sig={:#010x} — not plain SATA, skipping"</span>,
-<a href=#633 id=633 data-nosnippet>633</a>                    port_num,
-<a href=#634 id=634 data-nosnippet>634</a>                    sig
-<a href=#635 id=635 data-nosnippet>635</a>                );
-<a href=#636 id=636 data-nosnippet>636</a>                <span class="kw">continue</span>;
-<a href=#637 id=637 data-nosnippet>637</a>            }
-<a href=#638 id=638 data-nosnippet>638</a>
-<a href=#639 id=639 data-nosnippet>639</a>            <span class="comment">// Allocate one 4 KB frame for CLB + FIS + CTAB
-<a href=#640 id=640 data-nosnippet>640</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>lock = get_allocator().lock();
-<a href=#641 id=641 data-nosnippet>641</a>            <span class="kw">let </span>frame = lock
-<a href=#642 id=642 data-nosnippet>642</a>                .as_mut()
-<a href=#643 id=643 data-nosnippet>643</a>                .ok_or(AhciError::Alloc)<span class="question-mark">?
-<a href=#644 id=644 data-nosnippet>644</a>                </span>.alloc_frame()
-<a href=#645 id=645 data-nosnippet>645</a>                .map_err(|<span class="kw">_</span>| AhciError::Alloc)<span class="question-mark">?</span>;
-<a href=#646 id=646 data-nosnippet>646</a>            drop(lock);
-<a href=#647 id=647 data-nosnippet>647</a>
-<a href=#648 id=648 data-nosnippet>648</a>            <span class="kw">let </span>mem_phys = frame.start_address.as_u64();
-<a href=#649 id=649 data-nosnippet>649</a>            <span class="kw">let </span>mem_virt = phys_to_virt(mem_phys);
-<a href=#650 id=650 data-nosnippet>650</a>
-<a href=#651 id=651 data-nosnippet>651</a>            <span class="comment">// Zero the frame so HBA sees clean structures
-<a href=#652 id=652 data-nosnippet>652</a>            // SAFETY: mem_virt is valid HHDM-mapped physical memory, 4096 bytes
-<a href=#653 id=653 data-nosnippet>653</a>            </span>ptr::write_bytes(mem_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, <span class="number">4096</span>);
-<a href=#654 id=654 data-nosnippet>654</a>
-<a href=#655 id=655 data-nosnippet>655</a>            port_rebase(pvirt, mem_phys);
-<a href=#656 id=656 data-nosnippet>656</a>
-<a href=#657 id=657 data-nosnippet>657</a>            <span class="comment">// Enable per-port interrupts (DHRE + TFEE)
-<a href=#658 id=658 data-nosnippet>658</a>            </span>port_enable_irq(pvirt);
-<a href=#659 id=659 data-nosnippet>659</a>
-<a href=#660 id=660 data-nosnippet>660</a>            <span class="comment">// Register this port's MMIO address in the per-port static table
-<a href=#661 id=661 data-nosnippet>661</a>            // so the IRQ handler can access it without holding the controller lock.
-<a href=#662 id=662 data-nosnippet>662</a>            </span>PORT_VIRT[port_num <span class="kw">as </span>usize].store(pvirt, Ordering::Relaxed);
-<a href=#663 id=663 data-nosnippet>663</a>
-<a href=#664 id=664 data-nosnippet>664</a>            <span class="comment">// Identify device to read sector count
-<a href=#665 id=665 data-nosnippet>665</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>port = AhciPort {
-<a href=#666 id=666 data-nosnippet>666</a>                port_num,
-<a href=#667 id=667 data-nosnippet>667</a>                port_virt: pvirt,
-<a href=#668 id=668 data-nosnippet>668</a>                mem_phys,
-<a href=#669 id=669 data-nosnippet>669</a>                mem_virt,
-<a href=#670 id=670 data-nosnippet>670</a>                sector_count: <span class="number">0</span>,
-<a href=#671 id=671 data-nosnippet>671</a>            };
-<a href=#672 id=672 data-nosnippet>672</a>
-<a href=#673 id=673 data-nosnippet>673</a>            <span class="kw">let </span><span class="kw-2">mut </span>id_buf = [<span class="number">0u8</span>; SECTOR_SIZE];
-<a href=#674 id=674 data-nosnippet>674</a>            <span class="kw">match </span>submit_cmd(<span class="kw-2">&amp;</span>port, <span class="number">0</span>, <span class="number">1</span>, <span class="kw-2">&amp;mut </span>id_buf, <span class="bool-val">false</span>, ATA_IDENTIFY) {
-<a href=#675 id=675 data-nosnippet>675</a>                <span class="prelude-val">Ok</span>(()) =&gt; {
-<a href=#676 id=676 data-nosnippet>676</a>                    <span class="comment">// Words 100-103 (bytes 200-207): 48-bit LBA native max address
-<a href=#677 id=677 data-nosnippet>677</a>                    </span><span class="kw">let </span>w0 = u16::from_le_bytes([id_buf[<span class="number">200</span>], id_buf[<span class="number">201</span>]]) <span class="kw">as </span>u64;
-<a href=#678 id=678 data-nosnippet>678</a>                    <span class="kw">let </span>w1 = u16::from_le_bytes([id_buf[<span class="number">202</span>], id_buf[<span class="number">203</span>]]) <span class="kw">as </span>u64;
-<a href=#679 id=679 data-nosnippet>679</a>                    <span class="kw">let </span>w2 = u16::from_le_bytes([id_buf[<span class="number">204</span>], id_buf[<span class="number">205</span>]]) <span class="kw">as </span>u64;
-<a href=#680 id=680 data-nosnippet>680</a>                    <span class="kw">let </span>w3 = u16::from_le_bytes([id_buf[<span class="number">206</span>], id_buf[<span class="number">207</span>]]) <span class="kw">as </span>u64;
-<a href=#681 id=681 data-nosnippet>681</a>                    port.sector_count = w0 | (w1 &lt;&lt; <span class="number">16</span>) | (w2 &lt;&lt; <span class="number">32</span>) | (w3 &lt;&lt; <span class="number">48</span>);
-<a href=#682 id=682 data-nosnippet>682</a>                    <span class="macro">log::info!</span>(
-<a href=#683 id=683 data-nosnippet>683</a>                        <span class="string">"AHCI: port {} SATA — {} sectors ({} MiB)"</span>,
-<a href=#684 id=684 data-nosnippet>684</a>                        port_num,
-<a href=#685 id=685 data-nosnippet>685</a>                        port.sector_count,
-<a href=#686 id=686 data-nosnippet>686</a>                        (port.sector_count * SECTOR_SIZE <span class="kw">as </span>u64) / (<span class="number">1024 </span>* <span class="number">1024</span>)
-<a href=#687 id=687 data-nosnippet>687</a>                    );
-<a href=#688 id=688 data-nosnippet>688</a>                }
-<a href=#689 id=689 data-nosnippet>689</a>                <span class="prelude-val">Err</span>(e) =&gt; {
-<a href=#690 id=690 data-nosnippet>690</a>                    <span class="macro">log::warn!</span>(<span class="string">"AHCI: port {} IDENTIFY failed: {}"</span>, port_num, e);
-<a href=#691 id=691 data-nosnippet>691</a>                }
-<a href=#692 id=692 data-nosnippet>692</a>            }
-<a href=#693 id=693 data-nosnippet>693</a>
-<a href=#694 id=694 data-nosnippet>694</a>            ports.push(port);
-<a href=#695 id=695 data-nosnippet>695</a>        }
+<a href=#620 id=620 data-nosnippet>620</a>            <span class="comment">// Only handle plain SATA (signature 0x00000101)
+<a href=#621 id=621 data-nosnippet>621</a>            </span><span class="kw">let </span>sig = rd32(pvirt, PORT_SIG);
+<a href=#622 id=622 data-nosnippet>622</a>            <span class="kw">if </span>sig != SIG_SATA {
+<a href=#623 id=623 data-nosnippet>623</a>                <span class="macro">log::debug!</span>(
+<a href=#624 id=624 data-nosnippet>624</a>                    <span class="string">"AHCI: port {} sig={:#010x} — not plain SATA, skipping"</span>,
+<a href=#625 id=625 data-nosnippet>625</a>                    port_num,
+<a href=#626 id=626 data-nosnippet>626</a>                    sig
+<a href=#627 id=627 data-nosnippet>627</a>                );
+<a href=#628 id=628 data-nosnippet>628</a>                <span class="kw">continue</span>;
+<a href=#629 id=629 data-nosnippet>629</a>            }
+<a href=#630 id=630 data-nosnippet>630</a>
+<a href=#631 id=631 data-nosnippet>631</a>            <span class="comment">// Allocate one 4 KB frame for CLB + FIS + CTAB
+<a href=#632 id=632 data-nosnippet>632</a>            </span><span class="kw">let </span>frame = memory::allocate_frame().map_err(|<span class="kw">_</span>| AhciError::Alloc)<span class="question-mark">?</span>;
+<a href=#633 id=633 data-nosnippet>633</a>
+<a href=#634 id=634 data-nosnippet>634</a>            <span class="kw">let </span>mem_phys = frame.start_address.as_u64();
+<a href=#635 id=635 data-nosnippet>635</a>            <span class="kw">let </span>mem_virt = phys_to_virt(mem_phys);
+<a href=#636 id=636 data-nosnippet>636</a>
+<a href=#637 id=637 data-nosnippet>637</a>            <span class="comment">// Zero the frame so HBA sees clean structures
+<a href=#638 id=638 data-nosnippet>638</a>            // SAFETY: mem_virt is valid HHDM-mapped physical memory, 4096 bytes
+<a href=#639 id=639 data-nosnippet>639</a>            </span>ptr::write_bytes(mem_virt <span class="kw">as </span><span class="kw-2">*mut </span>u8, <span class="number">0</span>, <span class="number">4096</span>);
+<a href=#640 id=640 data-nosnippet>640</a>
+<a href=#641 id=641 data-nosnippet>641</a>            port_rebase(pvirt, mem_phys);
+<a href=#642 id=642 data-nosnippet>642</a>
+<a href=#643 id=643 data-nosnippet>643</a>            <span class="comment">// Enable per-port interrupts (DHRE + TFEE)
+<a href=#644 id=644 data-nosnippet>644</a>            </span>port_enable_irq(pvirt);
+<a href=#645 id=645 data-nosnippet>645</a>
+<a href=#646 id=646 data-nosnippet>646</a>            <span class="comment">// Register this port's MMIO address in the per-port static table
+<a href=#647 id=647 data-nosnippet>647</a>            // so the IRQ handler can access it without holding the controller lock.
+<a href=#648 id=648 data-nosnippet>648</a>            </span>PORT_VIRT[port_num <span class="kw">as </span>usize].store(pvirt, Ordering::Relaxed);
+<a href=#649 id=649 data-nosnippet>649</a>
+<a href=#650 id=650 data-nosnippet>650</a>            <span class="comment">// Identify device to read sector count
+<a href=#651 id=651 data-nosnippet>651</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>port = AhciPort {
+<a href=#652 id=652 data-nosnippet>652</a>                port_num,
+<a href=#653 id=653 data-nosnippet>653</a>                port_virt: pvirt,
+<a href=#654 id=654 data-nosnippet>654</a>                mem_phys,
+<a href=#655 id=655 data-nosnippet>655</a>                mem_virt,
+<a href=#656 id=656 data-nosnippet>656</a>                sector_count: <span class="number">0</span>,
+<a href=#657 id=657 data-nosnippet>657</a>            };
+<a href=#658 id=658 data-nosnippet>658</a>
+<a href=#659 id=659 data-nosnippet>659</a>            <span class="kw">let </span><span class="kw-2">mut </span>id_buf = [<span class="number">0u8</span>; SECTOR_SIZE];
+<a href=#660 id=660 data-nosnippet>660</a>            <span class="kw">match </span>submit_cmd(<span class="kw-2">&amp;</span>port, <span class="number">0</span>, <span class="number">1</span>, <span class="kw-2">&amp;mut </span>id_buf, <span class="bool-val">false</span>, ATA_IDENTIFY) {
+<a href=#661 id=661 data-nosnippet>661</a>                <span class="prelude-val">Ok</span>(()) =&gt; {
+<a href=#662 id=662 data-nosnippet>662</a>                    <span class="comment">// Words 100-103 (bytes 200-207): 48-bit LBA native max address
+<a href=#663 id=663 data-nosnippet>663</a>                    </span><span class="kw">let </span>w0 = u16::from_le_bytes([id_buf[<span class="number">200</span>], id_buf[<span class="number">201</span>]]) <span class="kw">as </span>u64;
+<a href=#664 id=664 data-nosnippet>664</a>                    <span class="kw">let </span>w1 = u16::from_le_bytes([id_buf[<span class="number">202</span>], id_buf[<span class="number">203</span>]]) <span class="kw">as </span>u64;
+<a href=#665 id=665 data-nosnippet>665</a>                    <span class="kw">let </span>w2 = u16::from_le_bytes([id_buf[<span class="number">204</span>], id_buf[<span class="number">205</span>]]) <span class="kw">as </span>u64;
+<a href=#666 id=666 data-nosnippet>666</a>                    <span class="kw">let </span>w3 = u16::from_le_bytes([id_buf[<span class="number">206</span>], id_buf[<span class="number">207</span>]]) <span class="kw">as </span>u64;
+<a href=#667 id=667 data-nosnippet>667</a>                    port.sector_count = w0 | (w1 &lt;&lt; <span class="number">16</span>) | (w2 &lt;&lt; <span class="number">32</span>) | (w3 &lt;&lt; <span class="number">48</span>);
+<a href=#668 id=668 data-nosnippet>668</a>                    <span class="macro">log::info!</span>(
+<a href=#669 id=669 data-nosnippet>669</a>                        <span class="string">"AHCI: port {} SATA — {} sectors ({} MiB)"</span>,
+<a href=#670 id=670 data-nosnippet>670</a>                        port_num,
+<a href=#671 id=671 data-nosnippet>671</a>                        port.sector_count,
+<a href=#672 id=672 data-nosnippet>672</a>                        (port.sector_count * SECTOR_SIZE <span class="kw">as </span>u64) / (<span class="number">1024 </span>* <span class="number">1024</span>)
+<a href=#673 id=673 data-nosnippet>673</a>                    );
+<a href=#674 id=674 data-nosnippet>674</a>                }
+<a href=#675 id=675 data-nosnippet>675</a>                <span class="prelude-val">Err</span>(e) =&gt; {
+<a href=#676 id=676 data-nosnippet>676</a>                    <span class="macro">log::warn!</span>(<span class="string">"AHCI: port {} IDENTIFY failed: {}"</span>, port_num, e);
+<a href=#677 id=677 data-nosnippet>677</a>                }
+<a href=#678 id=678 data-nosnippet>678</a>            }
+<a href=#679 id=679 data-nosnippet>679</a>
+<a href=#680 id=680 data-nosnippet>680</a>            ports.push(port);
+<a href=#681 id=681 data-nosnippet>681</a>        }
+<a href=#682 id=682 data-nosnippet>682</a>
+<a href=#683 id=683 data-nosnippet>683</a>        <span class="kw">if </span>ports.is_empty() {
+<a href=#684 id=684 data-nosnippet>684</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::NoPort);
+<a href=#685 id=685 data-nosnippet>685</a>        }
+<a href=#686 id=686 data-nosnippet>686</a>
+<a href=#687 id=687 data-nosnippet>687</a>        <span class="comment">// Store the ABAR virtual address and IRQ line in statics so the
+<a href=#688 id=688 data-nosnippet>688</a>        // interrupt handler can reach them without going through the controller lock.
+<a href=#689 id=689 data-nosnippet>689</a>        </span>AHCI_ABAR_VIRT.store(abar_virt, Ordering::Relaxed);
+<a href=#690 id=690 data-nosnippet>690</a>        AHCI_IRQ_LINE.store(irq_line, Ordering::Relaxed);
+<a href=#691 id=691 data-nosnippet>691</a>
+<a href=#692 id=692 data-nosnippet>692</a>        <span class="comment">// Enable global HBA interrupts (GHC.IE)
+<a href=#693 id=693 data-nosnippet>693</a>        // SAFETY: MMIO write — all port interrupts already enabled above
+<a href=#694 id=694 data-nosnippet>694</a>        </span><span class="kw">let </span>ghc = rd32(abar_virt, HBA_GHC);
+<a href=#695 id=695 data-nosnippet>695</a>        wr32(abar_virt, HBA_GHC, ghc | GHC_IE);
 <a href=#696 id=696 data-nosnippet>696</a>
-<a href=#697 id=697 data-nosnippet>697</a>        <span class="kw">if </span>ports.is_empty() {
-<a href=#698 id=698 data-nosnippet>698</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(AhciError::NoPort);
-<a href=#699 id=699 data-nosnippet>699</a>        }
-<a href=#700 id=700 data-nosnippet>700</a>
-<a href=#701 id=701 data-nosnippet>701</a>        <span class="comment">// Store the ABAR virtual address and IRQ line in statics so the
-<a href=#702 id=702 data-nosnippet>702</a>        // interrupt handler can reach them without going through the controller lock.
-<a href=#703 id=703 data-nosnippet>703</a>        </span>AHCI_ABAR_VIRT.store(abar_virt, Ordering::Relaxed);
-<a href=#704 id=704 data-nosnippet>704</a>        AHCI_IRQ_LINE.store(irq_line, Ordering::Relaxed);
-<a href=#705 id=705 data-nosnippet>705</a>
-<a href=#706 id=706 data-nosnippet>706</a>        <span class="comment">// Enable global HBA interrupts (GHC.IE)
-<a href=#707 id=707 data-nosnippet>707</a>        // SAFETY: MMIO write — all port interrupts already enabled above
-<a href=#708 id=708 data-nosnippet>708</a>        </span><span class="kw">let </span>ghc = rd32(abar_virt, HBA_GHC);
-<a href=#709 id=709 data-nosnippet>709</a>        wr32(abar_virt, HBA_GHC, ghc | GHC_IE);
-<a href=#710 id=710 data-nosnippet>710</a>
-<a href=#711 id=711 data-nosnippet>711</a>        <span class="macro">log::info!</span>(
-<a href=#712 id=712 data-nosnippet>712</a>            <span class="string">"AHCI: global interrupts enabled (IRQ line {})"</span>,
-<a href=#713 id=713 data-nosnippet>713</a>            irq_line
-<a href=#714 id=714 data-nosnippet>714</a>        );
-<a href=#715 id=715 data-nosnippet>715</a>
-<a href=#716 id=716 data-nosnippet>716</a>        <span class="prelude-val">Ok</span>(AhciController { abar_virt, ports })
-<a href=#717 id=717 data-nosnippet>717</a>    }
-<a href=#718 id=718 data-nosnippet>718</a>
-<a href=#719 id=719 data-nosnippet>719</a>    <span class="doccomment">/// Return sector count of the first port.
-<a href=#720 id=720 data-nosnippet>720</a>    </span><span class="kw">pub fn </span>sector_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
-<a href=#721 id=721 data-nosnippet>721</a>        <span class="self">self</span>.ports.first().map(|p| p.sector_count).unwrap_or(<span class="number">0</span>)
-<a href=#722 id=722 data-nosnippet>722</a>    }
-<a href=#723 id=723 data-nosnippet>723</a>
-<a href=#724 id=724 data-nosnippet>724</a>    <span class="doccomment">/// Performs the first port operation.
-<a href=#725 id=725 data-nosnippet>725</a>    </span><span class="kw">fn </span>first_port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AhciPort&gt; {
-<a href=#726 id=726 data-nosnippet>726</a>        <span class="self">self</span>.ports.first()
-<a href=#727 id=727 data-nosnippet>727</a>    }
-<a href=#728 id=728 data-nosnippet>728</a>}
-<a href=#729 id=729 data-nosnippet>729</a>
-<a href=#730 id=730 data-nosnippet>730</a><span class="kw">impl </span>BlockDevice <span class="kw">for </span>AhciController {
-<a href=#731 id=731 data-nosnippet>731</a>    <span class="doccomment">/// Reads sector.
-<a href=#732 id=732 data-nosnippet>732</a>    </span><span class="kw">fn </span>read_sector(<span class="kw-2">&amp;</span><span class="self">self</span>, sector: u64, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), BlockError&gt; {
-<a href=#733 id=733 data-nosnippet>733</a>        <span class="kw">let </span>port = <span class="self">self</span>.first_port().ok_or(BlockError::NotReady)<span class="question-mark">?</span>;
-<a href=#734 id=734 data-nosnippet>734</a>        <span class="kw">if </span>sector &gt;= port.sector_count {
-<a href=#735 id=735 data-nosnippet>735</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::InvalidSector);
-<a href=#736 id=736 data-nosnippet>736</a>        }
-<a href=#737 id=737 data-nosnippet>737</a>        <span class="kw">if </span>buf.len() &lt; SECTOR_SIZE {
-<a href=#738 id=738 data-nosnippet>738</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::BufferTooSmall);
-<a href=#739 id=739 data-nosnippet>739</a>        }
-<a href=#740 id=740 data-nosnippet>740</a>        submit_cmd(port, sector, <span class="number">1</span>, buf, <span class="bool-val">false</span>, ATA_READ_DMA_EXT).map_err(|<span class="kw">_</span>| BlockError::IoError)
-<a href=#741 id=741 data-nosnippet>741</a>    }
-<a href=#742 id=742 data-nosnippet>742</a>
-<a href=#743 id=743 data-nosnippet>743</a>    <span class="doccomment">/// Writes sector.
-<a href=#744 id=744 data-nosnippet>744</a>    </span><span class="kw">fn </span>write_sector(<span class="kw-2">&amp;</span><span class="self">self</span>, sector: u64, buf: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), BlockError&gt; {
-<a href=#745 id=745 data-nosnippet>745</a>        <span class="kw">let </span>port = <span class="self">self</span>.first_port().ok_or(BlockError::NotReady)<span class="question-mark">?</span>;
-<a href=#746 id=746 data-nosnippet>746</a>        <span class="kw">if </span>sector &gt;= port.sector_count {
-<a href=#747 id=747 data-nosnippet>747</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::InvalidSector);
-<a href=#748 id=748 data-nosnippet>748</a>        }
-<a href=#749 id=749 data-nosnippet>749</a>        <span class="kw">if </span>buf.len() &lt; SECTOR_SIZE {
-<a href=#750 id=750 data-nosnippet>750</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::BufferTooSmall);
-<a href=#751 id=751 data-nosnippet>751</a>        }
-<a href=#752 id=752 data-nosnippet>752</a>        <span class="comment">// submit_cmd needs &amp;mut [u8]; copy to a mutable staging buffer
-<a href=#753 id=753 data-nosnippet>753</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>tmp = [<span class="number">0u8</span>; SECTOR_SIZE];
-<a href=#754 id=754 data-nosnippet>754</a>        tmp.copy_from_slice(<span class="kw-2">&amp;</span>buf[..SECTOR_SIZE]);
-<a href=#755 id=755 data-nosnippet>755</a>        submit_cmd(port, sector, <span class="number">1</span>, <span class="kw-2">&amp;mut </span>tmp, <span class="bool-val">true</span>, ATA_WRITE_DMA_EXT)
-<a href=#756 id=756 data-nosnippet>756</a>            .map_err(|<span class="kw">_</span>| BlockError::IoError)
-<a href=#757 id=757 data-nosnippet>757</a>    }
-<a href=#758 id=758 data-nosnippet>758</a>
-<a href=#759 id=759 data-nosnippet>759</a>    <span class="doccomment">/// Performs the sector count operation.
-<a href=#760 id=760 data-nosnippet>760</a>    </span><span class="kw">fn </span>sector_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
-<a href=#761 id=761 data-nosnippet>761</a>        <span class="self">self</span>.sector_count()
-<a href=#762 id=762 data-nosnippet>762</a>    }
-<a href=#763 id=763 data-nosnippet>763</a>}
-<a href=#764 id=764 data-nosnippet>764</a>
-<a href=#765 id=765 data-nosnippet>765</a><span class="comment">// ─── Global singleton + public API ───────────────────────────────────────────
-<a href=#766 id=766 data-nosnippet>766</a>
-<a href=#767 id=767 data-nosnippet>767</a></span><span class="kw">static </span>AHCI: SpinLock&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;AhciController&gt;&gt;&gt; = SpinLock::new(<span class="prelude-val">None</span>);
-<a href=#768 id=768 data-nosnippet>768</a>
-<a href=#769 id=769 data-nosnippet>769</a><span class="doccomment">/// Scan the PCI bus for an AHCI controller and initialise it.
-<a href=#770 id=770 data-nosnippet>770</a>///
-<a href=#771 id=771 data-nosnippet>771</a>/// Called once during kernel boot from `hardware::init()`.
-<a href=#772 id=772 data-nosnippet>772</a></span><span class="kw">pub fn </span>init() {
-<a href=#773 id=773 data-nosnippet>773</a>    <span class="macro">log::info!</span>(<span class="string">"AHCI: scanning PCI bus..."</span>);
-<a href=#774 id=774 data-nosnippet>774</a>
-<a href=#775 id=775 data-nosnippet>775</a>    <span class="kw">match unsafe </span>{ AhciController::init() } {
-<a href=#776 id=776 data-nosnippet>776</a>        <span class="prelude-val">Ok</span>(ctrl) =&gt; {
-<a href=#777 id=777 data-nosnippet>777</a>            <span class="kw-2">*</span>AHCI.lock() = <span class="prelude-val">Some</span>(Box::new(ctrl));
-<a href=#778 id=778 data-nosnippet>778</a>            <span class="macro">log::info!</span>(<span class="string">"AHCI: controller ready"</span>);
-<a href=#779 id=779 data-nosnippet>779</a>
-<a href=#780 id=780 data-nosnippet>780</a>            <span class="comment">// Register IRQ handler in the IDT now that the controller is live.
-<a href=#781 id=781 data-nosnippet>781</a>            </span><span class="kw">let </span>irq = AHCI_IRQ_LINE.load(Ordering::Relaxed);
-<a href=#782 id=782 data-nosnippet>782</a>            <span class="kw">crate</span>::arch::x86_64::idt::register_ahci_irq(irq);
-<a href=#783 id=783 data-nosnippet>783</a>        }
-<a href=#784 id=784 data-nosnippet>784</a>        <span class="prelude-val">Err</span>(AhciError::NoController) =&gt; {
-<a href=#785 id=785 data-nosnippet>785</a>            <span class="macro">log::info!</span>(<span class="string">"AHCI: no controller found (not a SATA system?)"</span>);
-<a href=#786 id=786 data-nosnippet>786</a>        }
-<a href=#787 id=787 data-nosnippet>787</a>        <span class="prelude-val">Err</span>(e) =&gt; {
-<a href=#788 id=788 data-nosnippet>788</a>            <span class="macro">log::error!</span>(<span class="string">"AHCI: init failed: {}"</span>, e);
-<a href=#789 id=789 data-nosnippet>789</a>        }
-<a href=#790 id=790 data-nosnippet>790</a>    }
-<a href=#791 id=791 data-nosnippet>791</a>}
-<a href=#792 id=792 data-nosnippet>792</a>
-<a href=#793 id=793 data-nosnippet>793</a><span class="doccomment">/// Return a reference to the first usable AHCI controller, if any.
-<a href=#794 id=794 data-nosnippet>794</a></span><span class="kw">pub fn </span>get_device() -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>AhciController&gt; {
-<a href=#795 id=795 data-nosnippet>795</a>    <span class="comment">// SAFETY: the global Option is only ever set during init and never cleared
-<a href=#796 id=796 data-nosnippet>796</a>    </span><span class="kw">unsafe </span>{
-<a href=#797 id=797 data-nosnippet>797</a>        <span class="kw">let </span>lock = AHCI.lock();
-<a href=#798 id=798 data-nosnippet>798</a>        lock.as_ref().map(|b| {
-<a href=#799 id=799 data-nosnippet>799</a>            <span class="kw">let </span>ptr = b.as_ref() <span class="kw">as </span><span class="kw-2">*const </span>AhciController;
-<a href=#800 id=800 data-nosnippet>800</a>            <span class="kw-2">&amp;*</span>ptr
-<a href=#801 id=801 data-nosnippet>801</a>        })
-<a href=#802 id=802 data-nosnippet>802</a>    }
-<a href=#803 id=803 data-nosnippet>803</a>}
+<a href=#697 id=697 data-nosnippet>697</a>        <span class="macro">log::info!</span>(<span class="string">"AHCI: global interrupts enabled (IRQ line {})"</span>, irq_line);
+<a href=#698 id=698 data-nosnippet>698</a>
+<a href=#699 id=699 data-nosnippet>699</a>        <span class="prelude-val">Ok</span>(AhciController { abar_virt, ports })
+<a href=#700 id=700 data-nosnippet>700</a>    }
+<a href=#701 id=701 data-nosnippet>701</a>
+<a href=#702 id=702 data-nosnippet>702</a>    <span class="doccomment">/// Return sector count of the first port.
+<a href=#703 id=703 data-nosnippet>703</a>    </span><span class="kw">pub fn </span>sector_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+<a href=#704 id=704 data-nosnippet>704</a>        <span class="self">self</span>.ports.first().map(|p| p.sector_count).unwrap_or(<span class="number">0</span>)
+<a href=#705 id=705 data-nosnippet>705</a>    }
+<a href=#706 id=706 data-nosnippet>706</a>
+<a href=#707 id=707 data-nosnippet>707</a>    <span class="doccomment">/// Performs the first port operation.
+<a href=#708 id=708 data-nosnippet>708</a>    </span><span class="kw">fn </span>first_port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AhciPort&gt; {
+<a href=#709 id=709 data-nosnippet>709</a>        <span class="self">self</span>.ports.first()
+<a href=#710 id=710 data-nosnippet>710</a>    }
+<a href=#711 id=711 data-nosnippet>711</a>}
+<a href=#712 id=712 data-nosnippet>712</a>
+<a href=#713 id=713 data-nosnippet>713</a><span class="kw">impl </span>BlockDevice <span class="kw">for </span>AhciController {
+<a href=#714 id=714 data-nosnippet>714</a>    <span class="doccomment">/// Reads sector.
+<a href=#715 id=715 data-nosnippet>715</a>    </span><span class="kw">fn </span>read_sector(<span class="kw-2">&amp;</span><span class="self">self</span>, sector: u64, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), BlockError&gt; {
+<a href=#716 id=716 data-nosnippet>716</a>        <span class="kw">let </span>port = <span class="self">self</span>.first_port().ok_or(BlockError::NotReady)<span class="question-mark">?</span>;
+<a href=#717 id=717 data-nosnippet>717</a>        <span class="kw">if </span>sector &gt;= port.sector_count {
+<a href=#718 id=718 data-nosnippet>718</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::InvalidSector);
+<a href=#719 id=719 data-nosnippet>719</a>        }
+<a href=#720 id=720 data-nosnippet>720</a>        <span class="kw">if </span>buf.len() &lt; SECTOR_SIZE {
+<a href=#721 id=721 data-nosnippet>721</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::BufferTooSmall);
+<a href=#722 id=722 data-nosnippet>722</a>        }
+<a href=#723 id=723 data-nosnippet>723</a>        submit_cmd(port, sector, <span class="number">1</span>, buf, <span class="bool-val">false</span>, ATA_READ_DMA_EXT).map_err(|<span class="kw">_</span>| BlockError::IoError)
+<a href=#724 id=724 data-nosnippet>724</a>    }
+<a href=#725 id=725 data-nosnippet>725</a>
+<a href=#726 id=726 data-nosnippet>726</a>    <span class="doccomment">/// Writes sector.
+<a href=#727 id=727 data-nosnippet>727</a>    </span><span class="kw">fn </span>write_sector(<span class="kw-2">&amp;</span><span class="self">self</span>, sector: u64, buf: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), BlockError&gt; {
+<a href=#728 id=728 data-nosnippet>728</a>        <span class="kw">let </span>port = <span class="self">self</span>.first_port().ok_or(BlockError::NotReady)<span class="question-mark">?</span>;
+<a href=#729 id=729 data-nosnippet>729</a>        <span class="kw">if </span>sector &gt;= port.sector_count {
+<a href=#730 id=730 data-nosnippet>730</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::InvalidSector);
+<a href=#731 id=731 data-nosnippet>731</a>        }
+<a href=#732 id=732 data-nosnippet>732</a>        <span class="kw">if </span>buf.len() &lt; SECTOR_SIZE {
+<a href=#733 id=733 data-nosnippet>733</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(BlockError::BufferTooSmall);
+<a href=#734 id=734 data-nosnippet>734</a>        }
+<a href=#735 id=735 data-nosnippet>735</a>        <span class="comment">// submit_cmd needs &amp;mut [u8]; copy to a mutable staging buffer
+<a href=#736 id=736 data-nosnippet>736</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>tmp = [<span class="number">0u8</span>; SECTOR_SIZE];
+<a href=#737 id=737 data-nosnippet>737</a>        tmp.copy_from_slice(<span class="kw-2">&amp;</span>buf[..SECTOR_SIZE]);
+<a href=#738 id=738 data-nosnippet>738</a>        submit_cmd(port, sector, <span class="number">1</span>, <span class="kw-2">&amp;mut </span>tmp, <span class="bool-val">true</span>, ATA_WRITE_DMA_EXT)
+<a href=#739 id=739 data-nosnippet>739</a>            .map_err(|<span class="kw">_</span>| BlockError::IoError)
+<a href=#740 id=740 data-nosnippet>740</a>    }
+<a href=#741 id=741 data-nosnippet>741</a>
+<a href=#742 id=742 data-nosnippet>742</a>    <span class="doccomment">/// Performs the sector count operation.
+<a href=#743 id=743 data-nosnippet>743</a>    </span><span class="kw">fn </span>sector_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+<a href=#744 id=744 data-nosnippet>744</a>        <span class="self">self</span>.sector_count()
+<a href=#745 id=745 data-nosnippet>745</a>    }
+<a href=#746 id=746 data-nosnippet>746</a>}
+<a href=#747 id=747 data-nosnippet>747</a>
+<a href=#748 id=748 data-nosnippet>748</a><span class="comment">// ─── Global singleton + public API ───────────────────────────────────────────
+<a href=#749 id=749 data-nosnippet>749</a>
+<a href=#750 id=750 data-nosnippet>750</a></span><span class="kw">static </span>AHCI: SpinLock&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;AhciController&gt;&gt;&gt; = SpinLock::new(<span class="prelude-val">None</span>);
+<a href=#751 id=751 data-nosnippet>751</a>
+<a href=#752 id=752 data-nosnippet>752</a><span class="doccomment">/// Scan the PCI bus for an AHCI controller and initialise it.
+<a href=#753 id=753 data-nosnippet>753</a>///
+<a href=#754 id=754 data-nosnippet>754</a>/// Called once during kernel boot from `hardware::init()`.
+<a href=#755 id=755 data-nosnippet>755</a></span><span class="kw">pub fn </span>init() {
+<a href=#756 id=756 data-nosnippet>756</a>    <span class="macro">log::info!</span>(<span class="string">"AHCI: scanning PCI bus..."</span>);
+<a href=#757 id=757 data-nosnippet>757</a>
+<a href=#758 id=758 data-nosnippet>758</a>    <span class="kw">match unsafe </span>{ AhciController::init() } {
+<a href=#759 id=759 data-nosnippet>759</a>        <span class="prelude-val">Ok</span>(ctrl) =&gt; {
+<a href=#760 id=760 data-nosnippet>760</a>            <span class="kw-2">*</span>AHCI.lock() = <span class="prelude-val">Some</span>(Box::new(ctrl));
+<a href=#761 id=761 data-nosnippet>761</a>            <span class="macro">log::info!</span>(<span class="string">"AHCI: controller ready"</span>);
+<a href=#762 id=762 data-nosnippet>762</a>
+<a href=#763 id=763 data-nosnippet>763</a>            <span class="comment">// Register IRQ handler in the IDT now that the controller is live.
+<a href=#764 id=764 data-nosnippet>764</a>            </span><span class="kw">let </span>irq = AHCI_IRQ_LINE.load(Ordering::Relaxed);
+<a href=#765 id=765 data-nosnippet>765</a>            <span class="kw">crate</span>::arch::x86_64::idt::register_ahci_irq(irq);
+<a href=#766 id=766 data-nosnippet>766</a>        }
+<a href=#767 id=767 data-nosnippet>767</a>        <span class="prelude-val">Err</span>(AhciError::NoController) =&gt; {
+<a href=#768 id=768 data-nosnippet>768</a>            <span class="macro">log::info!</span>(<span class="string">"AHCI: no controller found (not a SATA system?)"</span>);
+<a href=#769 id=769 data-nosnippet>769</a>        }
+<a href=#770 id=770 data-nosnippet>770</a>        <span class="prelude-val">Err</span>(e) =&gt; {
+<a href=#771 id=771 data-nosnippet>771</a>            <span class="macro">log::error!</span>(<span class="string">"AHCI: init failed: {}"</span>, e);
+<a href=#772 id=772 data-nosnippet>772</a>        }
+<a href=#773 id=773 data-nosnippet>773</a>    }
+<a href=#774 id=774 data-nosnippet>774</a>}
+<a href=#775 id=775 data-nosnippet>775</a>
+<a href=#776 id=776 data-nosnippet>776</a><span class="doccomment">/// Return a reference to the first usable AHCI controller, if any.
+<a href=#777 id=777 data-nosnippet>777</a></span><span class="kw">pub fn </span>get_device() -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>AhciController&gt; {
+<a href=#778 id=778 data-nosnippet>778</a>    <span class="comment">// SAFETY: the global Option is only ever set during init and never cleared
+<a href=#779 id=779 data-nosnippet>779</a>    </span><span class="kw">unsafe </span>{
+<a href=#780 id=780 data-nosnippet>780</a>        <span class="kw">let </span>lock = AHCI.lock();
+<a href=#781 id=781 data-nosnippet>781</a>        lock.as_ref().map(|b| {
+<a href=#782 id=782 data-nosnippet>782</a>            <span class="kw">let </span>ptr = b.as_ref() <span class="kw">as </span><span class="kw-2">*const </span>AhciController;
+<a href=#783 id=783 data-nosnippet>783</a>            <span class="kw-2">&amp;*</span>ptr
+<a href=#784 id=784 data-nosnippet>784</a>        })
+<a href=#785 id=785 data-nosnippet>785</a>    }
+<a href=#786 id=786 data-nosnippet>786</a>}
 </code></pre></div></section></main></body></html>

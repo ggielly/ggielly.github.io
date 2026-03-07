@@ -4,8 +4,8 @@
 <a href=#4 id=4 data-nosnippet>4</a>//! capability violations, and syscall denials into a fixed-size ring
 <a href=#5 id=5 data-nosnippet>5</a>//! buffer queryable via the `audit` shell command.
 <a href=#6 id=6 data-nosnippet>6</a>
-<a href=#7 id=7 data-nosnippet>7</a></span><span class="kw">use </span>alloc::{string::String, vec::Vec};
-<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span><span class="kw">crate</span>::sync::SpinLock;
+<a href=#7 id=7 data-nosnippet>7</a></span><span class="kw">use </span><span class="kw">crate</span>::sync::SpinLock;
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>alloc::{string::String, vec::Vec};
 <a href=#9 id=9 data-nosnippet>9</a>
 <a href=#10 id=10 data-nosnippet>10</a><span class="kw">const </span>AUDIT_CAPACITY: usize = <span class="number">512</span>;
 <a href=#11 id=11 data-nosnippet>11</a>
@@ -64,51 +64,58 @@
 <a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">let </span>seq = <span class="self">self</span>.next_seq;
 <a href=#65 id=65 data-nosnippet>65</a>        <span class="self">self</span>.next_seq += <span class="number">1</span>;
 <a href=#66 id=66 data-nosnippet>66</a>
-<a href=#67 id=67 data-nosnippet>67</a>        <span class="kw">let </span>entry = AuditEntry { seq, tick, pid, silo_id, category, message };
-<a href=#68 id=68 data-nosnippet>68</a>        <span class="kw">let </span>idx = (<span class="self">self</span>.head + <span class="self">self</span>.count) % AUDIT_CAPACITY;
-<a href=#69 id=69 data-nosnippet>69</a>        <span class="self">self</span>.entries[idx] = <span class="prelude-val">Some</span>(entry);
-<a href=#70 id=70 data-nosnippet>70</a>        <span class="kw">if </span><span class="self">self</span>.count &lt; AUDIT_CAPACITY {
-<a href=#71 id=71 data-nosnippet>71</a>            <span class="self">self</span>.count += <span class="number">1</span>;
-<a href=#72 id=72 data-nosnippet>72</a>        } <span class="kw">else </span>{
-<a href=#73 id=73 data-nosnippet>73</a>            <span class="self">self</span>.head = (<span class="self">self</span>.head + <span class="number">1</span>) % AUDIT_CAPACITY;
-<a href=#74 id=74 data-nosnippet>74</a>        }
-<a href=#75 id=75 data-nosnippet>75</a>    }
-<a href=#76 id=76 data-nosnippet>76</a>
-<a href=#77 id=77 data-nosnippet>77</a>    <span class="kw">fn </span>entries_newest(<span class="kw-2">&amp;</span><span class="self">self</span>, n: usize) -&gt; Vec&lt;AuditEntry&gt; {
-<a href=#78 id=78 data-nosnippet>78</a>        <span class="kw">let </span>take = n.min(<span class="self">self</span>.count);
-<a href=#79 id=79 data-nosnippet>79</a>        <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::with_capacity(take);
-<a href=#80 id=80 data-nosnippet>80</a>        <span class="kw">let </span>start = <span class="kw">if </span><span class="self">self</span>.count &gt; take {
-<a href=#81 id=81 data-nosnippet>81</a>            (<span class="self">self</span>.head + <span class="self">self</span>.count - take) % AUDIT_CAPACITY
-<a href=#82 id=82 data-nosnippet>82</a>        } <span class="kw">else </span>{
-<a href=#83 id=83 data-nosnippet>83</a>            <span class="self">self</span>.head
-<a href=#84 id=84 data-nosnippet>84</a>        };
-<a href=#85 id=85 data-nosnippet>85</a>        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..take {
-<a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">let </span>idx = (start + i) % AUDIT_CAPACITY;
-<a href=#87 id=87 data-nosnippet>87</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(e) = <span class="kw-2">&amp;</span><span class="self">self</span>.entries[idx] {
-<a href=#88 id=88 data-nosnippet>88</a>                out.push(e.clone());
-<a href=#89 id=89 data-nosnippet>89</a>            }
-<a href=#90 id=90 data-nosnippet>90</a>        }
-<a href=#91 id=91 data-nosnippet>91</a>        out
-<a href=#92 id=92 data-nosnippet>92</a>    }
-<a href=#93 id=93 data-nosnippet>93</a>}
-<a href=#94 id=94 data-nosnippet>94</a>
-<a href=#95 id=95 data-nosnippet>95</a><span class="kw">static </span>AUDIT: SpinLock&lt;AuditLog&gt; = SpinLock::new(AuditLog::new());
-<a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a><span class="doccomment">/// Record an audit event.
-<a href=#98 id=98 data-nosnippet>98</a>///
-<a href=#99 id=99 data-nosnippet>99</a>/// Called from various kernel subsystems when security-relevant
-<a href=#100 id=100 data-nosnippet>100</a>/// operations occur (silo creation, capability changes, etc.).
-<a href=#101 id=101 data-nosnippet>101</a></span><span class="kw">pub fn </span>log(category: AuditCategory, pid: u32, silo_id: u32, message: String) {
-<a href=#102 id=102 data-nosnippet>102</a>    AUDIT.lock().push(category, pid, silo_id, message);
-<a href=#103 id=103 data-nosnippet>103</a>}
-<a href=#104 id=104 data-nosnippet>104</a>
-<a href=#105 id=105 data-nosnippet>105</a><span class="doccomment">/// Retrieve the most recent `n` audit entries.
-<a href=#106 id=106 data-nosnippet>106</a></span><span class="kw">pub fn </span>recent(n: usize) -&gt; Vec&lt;AuditEntry&gt; {
-<a href=#107 id=107 data-nosnippet>107</a>    AUDIT.lock().entries_newest(n)
-<a href=#108 id=108 data-nosnippet>108</a>}
-<a href=#109 id=109 data-nosnippet>109</a>
-<a href=#110 id=110 data-nosnippet>110</a><span class="doccomment">/// Return total number of audit events recorded since boot.
-<a href=#111 id=111 data-nosnippet>111</a></span><span class="kw">pub fn </span>total_count() -&gt; u64 {
-<a href=#112 id=112 data-nosnippet>112</a>    AUDIT.lock().next_seq - <span class="number">1
-<a href=#113 id=113 data-nosnippet>113</a></span>}
+<a href=#67 id=67 data-nosnippet>67</a>        <span class="kw">let </span>entry = AuditEntry {
+<a href=#68 id=68 data-nosnippet>68</a>            seq,
+<a href=#69 id=69 data-nosnippet>69</a>            tick,
+<a href=#70 id=70 data-nosnippet>70</a>            pid,
+<a href=#71 id=71 data-nosnippet>71</a>            silo_id,
+<a href=#72 id=72 data-nosnippet>72</a>            category,
+<a href=#73 id=73 data-nosnippet>73</a>            message,
+<a href=#74 id=74 data-nosnippet>74</a>        };
+<a href=#75 id=75 data-nosnippet>75</a>        <span class="kw">let </span>idx = (<span class="self">self</span>.head + <span class="self">self</span>.count) % AUDIT_CAPACITY;
+<a href=#76 id=76 data-nosnippet>76</a>        <span class="self">self</span>.entries[idx] = <span class="prelude-val">Some</span>(entry);
+<a href=#77 id=77 data-nosnippet>77</a>        <span class="kw">if </span><span class="self">self</span>.count &lt; AUDIT_CAPACITY {
+<a href=#78 id=78 data-nosnippet>78</a>            <span class="self">self</span>.count += <span class="number">1</span>;
+<a href=#79 id=79 data-nosnippet>79</a>        } <span class="kw">else </span>{
+<a href=#80 id=80 data-nosnippet>80</a>            <span class="self">self</span>.head = (<span class="self">self</span>.head + <span class="number">1</span>) % AUDIT_CAPACITY;
+<a href=#81 id=81 data-nosnippet>81</a>        }
+<a href=#82 id=82 data-nosnippet>82</a>    }
+<a href=#83 id=83 data-nosnippet>83</a>
+<a href=#84 id=84 data-nosnippet>84</a>    <span class="kw">fn </span>entries_newest(<span class="kw-2">&amp;</span><span class="self">self</span>, n: usize) -&gt; Vec&lt;AuditEntry&gt; {
+<a href=#85 id=85 data-nosnippet>85</a>        <span class="kw">let </span>take = n.min(<span class="self">self</span>.count);
+<a href=#86 id=86 data-nosnippet>86</a>        <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::with_capacity(take);
+<a href=#87 id=87 data-nosnippet>87</a>        <span class="kw">let </span>start = <span class="kw">if </span><span class="self">self</span>.count &gt; take {
+<a href=#88 id=88 data-nosnippet>88</a>            (<span class="self">self</span>.head + <span class="self">self</span>.count - take) % AUDIT_CAPACITY
+<a href=#89 id=89 data-nosnippet>89</a>        } <span class="kw">else </span>{
+<a href=#90 id=90 data-nosnippet>90</a>            <span class="self">self</span>.head
+<a href=#91 id=91 data-nosnippet>91</a>        };
+<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..take {
+<a href=#93 id=93 data-nosnippet>93</a>            <span class="kw">let </span>idx = (start + i) % AUDIT_CAPACITY;
+<a href=#94 id=94 data-nosnippet>94</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(e) = <span class="kw-2">&amp;</span><span class="self">self</span>.entries[idx] {
+<a href=#95 id=95 data-nosnippet>95</a>                out.push(e.clone());
+<a href=#96 id=96 data-nosnippet>96</a>            }
+<a href=#97 id=97 data-nosnippet>97</a>        }
+<a href=#98 id=98 data-nosnippet>98</a>        out
+<a href=#99 id=99 data-nosnippet>99</a>    }
+<a href=#100 id=100 data-nosnippet>100</a>}
+<a href=#101 id=101 data-nosnippet>101</a>
+<a href=#102 id=102 data-nosnippet>102</a><span class="kw">static </span>AUDIT: SpinLock&lt;AuditLog&gt; = SpinLock::new(AuditLog::new());
+<a href=#103 id=103 data-nosnippet>103</a>
+<a href=#104 id=104 data-nosnippet>104</a><span class="doccomment">/// Record an audit event.
+<a href=#105 id=105 data-nosnippet>105</a>///
+<a href=#106 id=106 data-nosnippet>106</a>/// Called from various kernel subsystems when security-relevant
+<a href=#107 id=107 data-nosnippet>107</a>/// operations occur (silo creation, capability changes, etc.).
+<a href=#108 id=108 data-nosnippet>108</a></span><span class="kw">pub fn </span>log(category: AuditCategory, pid: u32, silo_id: u32, message: String) {
+<a href=#109 id=109 data-nosnippet>109</a>    AUDIT.lock().push(category, pid, silo_id, message);
+<a href=#110 id=110 data-nosnippet>110</a>}
+<a href=#111 id=111 data-nosnippet>111</a>
+<a href=#112 id=112 data-nosnippet>112</a><span class="doccomment">/// Retrieve the most recent `n` audit entries.
+<a href=#113 id=113 data-nosnippet>113</a></span><span class="kw">pub fn </span>recent(n: usize) -&gt; Vec&lt;AuditEntry&gt; {
+<a href=#114 id=114 data-nosnippet>114</a>    AUDIT.lock().entries_newest(n)
+<a href=#115 id=115 data-nosnippet>115</a>}
+<a href=#116 id=116 data-nosnippet>116</a>
+<a href=#117 id=117 data-nosnippet>117</a><span class="doccomment">/// Return total number of audit events recorded since boot.
+<a href=#118 id=118 data-nosnippet>118</a></span><span class="kw">pub fn </span>total_count() -&gt; u64 {
+<a href=#119 id=119 data-nosnippet>119</a>    AUDIT.lock().next_seq - <span class="number">1
+<a href=#120 id=120 data-nosnippet>120</a></span>}
 </code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["get_allocator","init_buddy_allocator"],"struct":["BuddyAllocator","ZoneStats"]};
+window.SIDEBAR_ITEMS = {"fn":["alloc","free","get_allocator","init_buddy_allocator"],"struct":["BuddyAllocator","ZoneStats"]};

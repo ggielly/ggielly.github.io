@@ -15,26 +15,25 @@
 <a href=#15 id=15 data-nosnippet>15</a></span><span class="kw">pub fn </span>init() {
 <a href=#16 id=16 data-nosnippet>16</a>    <span class="comment">// Initialize controllers in order: xHCI first (USB 3.0), then EHCI (USB 2.0), then UHCI (USB 1.1)
 <a href=#17 id=17 data-nosnippet>17</a>    // This ensures we use the fastest available controller for each device
-<a href=#18 id=18 data-nosnippet>18</a>    
+<a href=#18 id=18 data-nosnippet>18</a>
 <a href=#19 id=19 data-nosnippet>19</a>    </span><span class="macro">log::info!</span>(<span class="string">"[USB] Initializing USB subsystem..."</span>);
-<a href=#20 id=20 data-nosnippet>20</a>    
+<a href=#20 id=20 data-nosnippet>20</a>
 <a href=#21 id=21 data-nosnippet>21</a>    <span class="comment">// xHCI (USB 3.0) - must be initialized first as it may control EHCI
 <a href=#22 id=22 data-nosnippet>22</a>    </span>xhci::init();
-<a href=#23 id=23 data-nosnippet>23</a>    
+<a href=#23 id=23 data-nosnippet>23</a>
 <a href=#24 id=24 data-nosnippet>24</a>    <span class="comment">// EHCI (USB 2.0)
 <a href=#25 id=25 data-nosnippet>25</a>    </span>ehci::init();
-<a href=#26 id=26 data-nosnippet>26</a>    
+<a href=#26 id=26 data-nosnippet>26</a>
 <a href=#27 id=27 data-nosnippet>27</a>    <span class="comment">// UHCI (USB 1.1) - for legacy devices
 <a href=#28 id=28 data-nosnippet>28</a>    </span>uhci::init();
-<a href=#29 id=29 data-nosnippet>29</a>    
+<a href=#29 id=29 data-nosnippet>29</a>
 <a href=#30 id=30 data-nosnippet>30</a>    <span class="comment">// Initialize HID drivers after controllers are ready
 <a href=#31 id=31 data-nosnippet>31</a>    </span>hid::init();
-<a href=#32 id=32 data-nosnippet>32</a>    
-<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">let </span>total_controllers = 
-<a href=#34 id=34 data-nosnippet>34</a>        (<span class="kw">if </span>xhci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>}) +
-<a href=#35 id=35 data-nosnippet>35</a>        (<span class="kw">if </span>ehci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>}) +
-<a href=#36 id=36 data-nosnippet>36</a>        (<span class="kw">if </span>uhci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
-<a href=#37 id=37 data-nosnippet>37</a>    
-<a href=#38 id=38 data-nosnippet>38</a>    <span class="macro">log::info!</span>(<span class="string">"[USB] Total USB controllers: {}"</span>, total_controllers);
-<a href=#39 id=39 data-nosnippet>39</a>}
+<a href=#32 id=32 data-nosnippet>32</a>
+<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">let </span>total_controllers = (<span class="kw">if </span>xhci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>})
+<a href=#34 id=34 data-nosnippet>34</a>        + (<span class="kw">if </span>ehci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>})
+<a href=#35 id=35 data-nosnippet>35</a>        + (<span class="kw">if </span>uhci::is_available() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
+<a href=#36 id=36 data-nosnippet>36</a>
+<a href=#37 id=37 data-nosnippet>37</a>    <span class="macro">log::info!</span>(<span class="string">"[USB] Total USB controllers: {}"</span>, total_controllers);
+<a href=#38 id=38 data-nosnippet>38</a>}
 </code></pre></div></section></main></body></html>

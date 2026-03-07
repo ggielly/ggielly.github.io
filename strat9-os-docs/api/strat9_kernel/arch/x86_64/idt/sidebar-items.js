@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["init","register_ahci_irq","register_lapic_timer_vector","register_tlb_shootdown_handler","register_virtio_block_irq"],"mod":["irq"]};
+window.SIDEBAR_ITEMS = {"fn":["init","register_ahci_irq","register_lapic_timer_vector","register_virtio_block_irq"],"mod":["irq"]};
